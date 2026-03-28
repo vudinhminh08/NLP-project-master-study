@@ -121,12 +121,12 @@ class ABSAPhoBERT(nn.Module):
 
         loss = None
         if labels is not None:
-            loss = torch.tensor(0.0, device=input_ids.device, requires_grad=True)
+            losses = []
             for i, logit in enumerate(logits):
                 w = class_weights[i].to(input_ids.device) if class_weights else None
                 criterion = nn.CrossEntropyLoss(weight=w)
-                loss = loss + criterion(logit, labels[:, i])
-            loss = loss / self.num_aspects
+                losses.append(criterion(logit, labels[:, i]))
+            loss = torch.stack(losses).mean()
 
         preds = torch.stack(
             [logit.argmax(dim=-1) for logit in logits], dim=1

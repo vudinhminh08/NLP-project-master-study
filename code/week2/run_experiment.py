@@ -72,7 +72,7 @@ def main(encoder_option: str = None) -> dict:
     class_weights = load_class_weights(
         "outputs/eda/class_weights.json",
         weight_clip=config["weight_clip"],
-        device=device,
+        device=torch.device("cpu"),  # ← load CPU, run_epoch sẽ move lên GPU khi cần
     )
 
     # Model
