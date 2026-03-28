@@ -108,7 +108,7 @@ def run_epoch(
             out = model(
                 input_ids, attention_mask,
                 labels=labels,
-                class_weights=class_weights,
+                class_weights=weights_on_device,  # ← đây
             )
             loss = out["loss"]
 
