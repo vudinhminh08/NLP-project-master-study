@@ -104,7 +104,7 @@ def run_epoch(
             input_ids      = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             labels         = batch["labels"].to(device)
-
+            weights_on_device = [w.to(device) for w in class_weights]
             out = model(
                 input_ids, attention_mask,
                 labels=labels,
