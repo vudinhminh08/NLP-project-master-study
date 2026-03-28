@@ -103,7 +103,7 @@ TRAIN_CONFIG = {
     "optimizer":               "AdamW",
     "scheduler":               "linear_warmup_decay",
     "seed":                    42,
-    "max_seq_len":             384,       # từ encoder_config.json (p99=243 × 1.5)
+    "max_seq_len":             256,       # từ encoder_config.json (p99=243 × 1.5)
     "weight_clip":             10.0,      # clip weight neutral=154 → 10.0
     "encoder_option":          "concat_4_layers",
     "max_grad_norm":           1.0,
