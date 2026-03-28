@@ -9,6 +9,7 @@ Chạy từ root project:
 import os
 import sys
 import argparse
+import torch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "week1"))
 sys.path.insert(0, os.path.dirname(__file__))
@@ -72,7 +73,7 @@ def main(encoder_option: str = None) -> dict:
     class_weights = load_class_weights(
         "outputs/eda/class_weights.json",
         weight_clip=config["weight_clip"],
-        device=torch.device("cpu"),  # ← load CPU, run_epoch sẽ move lên GPU khi cần
+        device=torch.device("cpu"),  # ← CPU
     )
 
     # Model
