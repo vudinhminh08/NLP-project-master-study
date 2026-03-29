@@ -20,6 +20,20 @@ from transformers import AutoModel
 from typing import Optional
 
 
+# add new (try to fix)
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=None, gamma=2.0):
+        super(FocalLoss, self).__init__()
+        self.gamma = gamma
+        self.alpha = alpha # Đây là class_weights truyền vào
+
+    def forward(self, inputs, targets):
+        ce_loss = F.cross_entropy(inputs, targets, reduction='none', weight=self.alpha)
+        pt = torch.exp(-ce_loss)
+        focal_loss = ((1 - pt) ** self.gamma * ce_loss).mean()
+        return focal_loss
+
+
 class ABSAPhoBERT(nn.Module):
     """
     Multi-task PhoBERT cho ABSA VLSP 2018 Hotel.
@@ -135,22 +149,32 @@ class ABSAPhoBERT(nn.Module):
 
         # === Loss (chỉ tính khi có labels) ===
         loss = None
+        # if labels is not None:
+        #     losses = []
+        #     for i, logit in enumerate(logits):
+        #         if class_weights is not None:
+        #             # Per-aspect weighted loss — xử lý class imbalance
+        #             # F.cross_entropy tính inline, không tạo object mới → efficient
+        #             loss_i = F.cross_entropy(
+        #                 logit, labels[:, i],
+        #                 weight=class_weights[i],  # tensor [4] trên cùng device
+        #             )
+        #         else:
+        #             # Fallback: unweighted (chỉ dùng cho inference debug)
+        #             loss_i = F.cross_entropy(logit, labels[:, i])
+        #         losses.append(loss_i)
+
+        #     # torch.stack → [34] → mean → scalar gradient flow đúng
+        #     loss = torch.stack(losses).mean()
         if labels is not None:
             losses = []
             for i, logit in enumerate(logits):
-                if class_weights is not None:
-                    # Per-aspect weighted loss — xử lý class imbalance
-                    # F.cross_entropy tính inline, không tạo object mới → efficient
-                    loss_i = F.cross_entropy(
-                        logit, labels[:, i],
-                        weight=class_weights[i],  # tensor [4] trên cùng device
-                    )
-                else:
-                    # Fallback: unweighted (chỉ dùng cho inference debug)
-                    loss_i = F.cross_entropy(logit, labels[:, i])
+                # Thay F.cross_entropy bằng FocalLoss
+                weight = class_weights[i] if class_weights is not None else None
+                criterion = FocalLoss(alpha=weight, gamma=2.0)
+                loss_i = criterion(logit, labels[:, i])
                 losses.append(loss_i)
-
-            # torch.stack → [34] → mean → scalar gradient flow đúng
+            
             loss = torch.stack(losses).mean()
 
         # === Predictions ===

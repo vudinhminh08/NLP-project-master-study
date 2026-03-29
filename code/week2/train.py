@@ -225,13 +225,23 @@ def train(
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
+    phobert_params = list(model.phobert.parameters())
+    classifier_params = list(model.classifiers.parameters())
+
+    optimizer_grouped_parameters = [
+        {'params': phobert_params, 'lr': config["learning_rate"]},
+        {'params': classifier_params, 'lr': 1e-4} # Tốc độ đột phá cho 34 heads
+    ]
+
+    optimizer = AdamW(optimizer_grouped_parameters, weight_decay=0.01)
+
     # === Optimizer ===
-    optimizer = AdamW(
-        model.parameters(),
-        lr=config["learning_rate"],
-        weight_decay=0.01,
-        eps=1e-8,
-    )
+    # optimizer = AdamW(
+    #     model.parameters(),
+    #     lr=config["learning_rate"],
+    #     weight_decay=0.01,
+    #     eps=1e-8,
+    # )
 
     # === Scheduler: warmup 10% + linear decay ===
     # Tính đúng số optimizer steps (sau gradient accumulation)
