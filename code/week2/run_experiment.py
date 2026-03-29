@@ -2,8 +2,15 @@
 run_experiment.py — Entry point duy nhất cho tuần 2.
 
 Chạy từ root project:
-    python code/week2/run_experiment.py                          # concat_4_layers (SOTA)
-    python code/week2/run_experiment.py --encoder cls_only       # ablation
+    python code/week2/run_experiment.py                           # concat_4_layers (SOTA)
+    python code/week2/run_experiment.py --encoder cls_only        # ablation
+
+Output:
+    outputs/models/best_model.pt                 (hoặc outputs/models_cls_only/)
+    outputs/results/training_history.json
+    outputs/results/week2_dev_metrics.json
+    outputs/results/week2_test_metrics.json
+    outputs/results/week2_summary.md
 """
 
 import os
@@ -24,24 +31,28 @@ from train import train, load_class_weights
 from predict import load_best_model, predict_and_evaluate, generate_summary_report
 
 
-def main(encoder_option: str = None) -> dict:
+def main(encoder_option: str = None, use_amp: bool = True) -> dict:
     """
     Full pipeline: load data → build model → train → evaluate → report.
 
     Args:
-        encoder_option: override encoder config.
-                        None = đọc từ encoder_config.json (concat_4_layers).
-                        "cls_only" = ablation study (768 dim).
+        encoder_option: "concat_4_layers" (SOTA) hoặc "cls_only" (ablation).
+                        None = đọc từ encoder_config.json (mặc định concat_4_layers).
+        use_amp:        True để dùng Mixed Precision training (tự động tắt nếu CPU).
 
     Returns:
-        test_metrics dict
+        test_metrics dict với các keys: macro_acd_f1, macro_spc_f1, macro_combined_f1, ...
     """
+    # === Setup ===
     set_seed(TRAIN_CONFIG["seed"])
     device = get_device()
 
-    # Load encoder config từ EDA — không hardcode MAX_SEQ_LEN
+    # Tắt AMP tự động nếu không có CUDA
+    use_amp = use_amp and (device.type == "cuda")
+
+    # Load encoder config từ EDA — max_seq_len được xác định chính xác từ EDA
     enc_cfg = load_json("outputs/eda/encoder_config.json")
-    max_seq_len    = enc_cfg.get("recommended_max_seq_len", 384)
+    max_seq_len    = enc_cfg.get("recommended_max_seq_len", 256)
     encoder_option = encoder_option or enc_cfg.get("encoder_option", "concat_4_layers")
 
     config = {
@@ -49,15 +60,25 @@ def main(encoder_option: str = None) -> dict:
         "max_seq_len":    max_seq_len,
         "encoder_option": encoder_option,
     }
-    print(f"\n[Config] encoder={encoder_option}, seq_len={max_seq_len}")
-    print(f"[Config] batch={config['batch_size']} × accum={config['grad_accumulation_steps']}"
+
+    print(f"\n{'='*60}")
+    print(f"TUẦN 2 — PhoBERT Multi-task ABSA")
+    print(f"  encoder:    {encoder_option}")
+    print(f"  seq_len:    {max_seq_len}")
+    print(f"  batch:      {config['batch_size']} × {config['grad_accumulation_steps']}"
           f" = {config['batch_size'] * config['grad_accumulation_steps']} effective")
-    print(f"[Config] lr={config['learning_rate']}, weight_clip={config['weight_clip']}")
+    print(f"  lr:         {config['learning_rate']}")
+    print(f"  weight_clip:{config['weight_clip']}")
+    print(f"  amp:        {'ON' if use_amp else 'OFF'}")
+    print(f"{'='*60}")
 
-    # Tokenizer
+    # === Tokenizer ===
+    print(f"\n[Tokenizer] Loading {PHOBERT_MODEL_NAME}...")
     tokenizer = AutoTokenizer.from_pretrained(PHOBERT_MODEL_NAME)
+    print("[Tokenizer] Loaded ✓")
 
-    # DataLoaders — dùng preprocessed cache từ tuần 1
+    # === DataLoaders — dùng preprocessed cache từ tuần 1 ===
+    print("\n[Data] Creating DataLoaders...")
     train_loader, dev_loader, test_loader = create_dataloaders(
         train_path="data/train_preprocessed.csv",
         dev_path  ="data/dev_preprocessed.csv",
@@ -69,32 +90,43 @@ def main(encoder_option: str = None) -> dict:
         use_preprocessed=True,
     )
 
-    # Class weights — load từ EDA, clip neutral=154 → 10.0
+    if train_loader is None or dev_loader is None:
+        raise FileNotFoundError(
+            "Không tìm thấy preprocessed data. "
+            "Chạy code/week1/step3_preprocessing.py trước!"
+        )
+
+    # === Class Weights — load từ EDA, clip neutral=154 → 10.0 ===
+    # Quan trọng: class weights phải load trên CPU trước, sau đó chuyển lên device trong run_epoch
     class_weights = load_class_weights(
         "outputs/eda/class_weights.json",
         weight_clip=config["weight_clip"],
-        device=torch.device("cpu"),  # ← CPU
+        device=torch.device("cpu"),
     )
 
-    # Model
+    # === Model ===
+    print(f"\n[Model] Building ABSAPhoBERT ({encoder_option})...")
     model = ABSAPhoBERT(
         model_name=PHOBERT_MODEL_NAME,
         dropout=config["dropout"],
         encoder_option=encoder_option,
     ).to(device)
 
-    # Suffix cho ablation (lưu riêng để so sánh)
+    # Thư mục riêng cho ablation (để so sánh sau)
     suffix      = "" if encoder_option == "concat_4_layers" else f"_{encoder_option}"
     save_dir    = f"outputs/models{suffix}"
     results_dir = f"outputs/results{suffix}"
 
-    # Train
+    # === Train ===
     history = train(
         model, train_loader, dev_loader, class_weights, device,
-        config, save_dir=save_dir, results_dir=results_dir,
+        config,
+        save_dir=save_dir,
+        results_dir=results_dir,
+        use_amp=use_amp,
     )
 
-    # Evaluate với best checkpoint
+    # === Evaluate best checkpoint ===
     model = load_best_model(f"{save_dir}/best_model.pt", model, device)
 
     dev_metrics, _, _ = predict_and_evaluate(
@@ -108,19 +140,23 @@ def main(encoder_option: str = None) -> dict:
         save_path=f"{results_dir}/week2_test_metrics.json",
     )
 
+    # === Summary Report ===
     generate_summary_report(
         history, dev_metrics, test_metrics, config,
         save_path=f"{results_dir}/week2_summary.md",
     )
 
-    # Final summary
+    # === Final Summary ===
     gap = 0.7732 - test_metrics["macro_combined_f1"]
     print(f"\n{'='*60}")
     print(f"TUẦN 2 HOÀN TẤT — encoder={encoder_option}")
     print(f"  Dev  Combined F1 : {dev_metrics['macro_combined_f1']:.4f}")
+    print(f"  Test ACD F1      : {test_metrics['macro_acd_f1']:.4f}")
+    print(f"  Test SPC F1      : {test_metrics['macro_spc_f1']:.4f}")
     print(f"  Test Combined F1 : {test_metrics['macro_combined_f1']:.4f}")
     print(f"  SOTA Combined F1 : 0.7732")
     print(f"  Gap              : {gap:.4f} ({gap * 100:.1f}%)")
+    print(f"  Xem report       : {results_dir}/week2_summary.md")
     print(f"{'='*60}")
 
     return test_metrics
@@ -134,7 +170,12 @@ if __name__ == "__main__":
         "--encoder",
         default=None,
         choices=["concat_4_layers", "cls_only"],
-        help="Encoder option. None = đọc từ encoder_config.json",
+        help="Encoder option. None = đọc từ encoder_config.json (concat_4_layers)",
+    )
+    parser.add_argument(
+        "--no-amp",
+        action="store_true",
+        help="Tắt Mixed Precision training (dùng nếu gặp lỗi AMP)",
     )
     args = parser.parse_args()
-    main(encoder_option=args.encoder)
+    main(encoder_option=args.encoder, use_amp=not args.no_amp)
