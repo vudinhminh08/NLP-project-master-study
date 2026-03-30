@@ -67,9 +67,15 @@ def predict_rag(
 def run_rag_ablation(
     test_df, train_df, providers, k_values, api_keys,
     results_dir="outputs/results", max_samples=None,
+    models: dict = None,
 ) -> dict:
-    """Chạy ablation RAG: k=2,4,8 × GPT+Gemini."""
+    """Chạy ablation RAG: k=2,4,8 × GPT+Gemini.
+
+    Args:
+        models: {"gemini": "gemini-2.0-flash", "openai": "gpt-4o-mini"} (optional)
+    """
     os.makedirs(results_dir, exist_ok=True)
+    models = models or {}
 
     # Build retriever 1 lần, dùng cho tất cả experiments
     retriever = ABSARetriever()
@@ -77,7 +83,8 @@ def run_rag_ablation(
 
     all_results = {}
     for provider in providers:
-        client = LLMClient(provider=provider, api_key=api_keys.get(provider))
+        client = LLMClient(provider=provider, api_key=api_keys.get(provider),
+                           model=models.get(provider))
         for k in k_values:
             exp_name = f"tier3_{provider}_k{k}"
             print(f"\n{'─'*50}\nRunning: {exp_name}")

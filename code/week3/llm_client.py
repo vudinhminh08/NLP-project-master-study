@@ -51,7 +51,7 @@ class LLMClient:
             self.client = openai.OpenAI(api_key=self.api_key)
 
         elif provider == "gemini":
-            self.model = model or "gemini-1.5-flash"
+            self.model = model or "gemini-2.0-flash"
             self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
             if not self.api_key:
                 raise ValueError("Cần GEMINI_API_KEY env var hoặc truyền api_key")
@@ -160,6 +160,7 @@ class LLMClient:
             "model": self.model,
             "total_tokens": self.total_tokens,
             "estimated_cost_usd": self.total_tokens / 1_000_000 * (
-                0.15 if "gpt-4o-mini" in self.model else 0.075
+                0.15 if "gpt-4o-mini" in self.model else
+                0.10 if "gemini-2.0-flash" in self.model else 0.075
             ),
         }

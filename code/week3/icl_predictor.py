@@ -100,6 +100,7 @@ def run_icl_ablation(
     api_keys: dict,
     results_dir: str = "outputs/results",
     max_samples: int = None,
+    models: dict = None,
 ) -> dict:
     """
     Chạy ablation: k=2,4,8 × GPT+Gemini.
@@ -108,17 +109,20 @@ def run_icl_ablation(
         providers: ["openai", "gemini"]
         k_values:  [2, 4, 8]
         api_keys:  {"openai": "sk-...", "gemini": "AIza..."}
+        models:    {"gemini": "gemini-2.0-flash", "openai": "gpt-4o-mini"} (optional)
 
     Returns:
         dict tất cả kết quả
     """
     os.makedirs(results_dir, exist_ok=True)
+    models = models or {}
     all_results = {}
 
     for provider in providers:
         client = LLMClient(
             provider=provider,
             api_key=api_keys.get(provider),
+            model=models.get(provider),
         )
         for k in k_values:
             exp_name = f"tier2_{provider}_k{k}"
