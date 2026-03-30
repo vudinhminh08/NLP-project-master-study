@@ -90,7 +90,9 @@ class ABSARetriever:
         )
 
         # Lưu cache
-        os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
+        cache_dir = os.path.dirname(self.cache_path)
+        if cache_dir:
+            os.makedirs(cache_dir, exist_ok=True)
         np.save(self.cache_path, self.train_embeds)
         print(f"[Retriever] Saved embeddings: {self.cache_path}")
 
@@ -183,8 +185,8 @@ class ABSARetriever:
             # Tính new coverage
             new_coverage = len(cand_aspects - covered_aspects)
 
-            # Luôn lấy nếu chưa đủ k, ưu tiên coverage mới
-            if not selected or new_coverage > 0 or len(selected) < k:
+            # Lấy top-1 luôn luôn; sau đó ưu tiên candidates tăng coverage
+            if not selected or new_coverage > 0:
                 selected.append(cand_idx)
                 covered_aspects |= cand_aspects
 

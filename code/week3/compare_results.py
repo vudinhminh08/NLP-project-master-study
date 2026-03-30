@@ -14,14 +14,14 @@ from utils.helpers import load_json, save_json
 # [PLACEHOLDER] Cập nhật sau khi tuần 2 xong
 WEEK2_RESULTS = {
     "phobert_concat4": {
-        "acd_f1":      __WEEK2_ACD_F1__,
-        "spc_f1":      __WEEK2_SPC_F1__,
-        "combined_f1": __WEEK2_COMBINED_F1__,
+        "acd_f1":      0.5836,
+        "spc_f1":      0.4658,
+        "combined_f1": 0.5247,
     },
     "phobert_cls_only": {
-        "acd_f1":      __WEEK2_ABLATION_ACD_F1__,
-        "spc_f1":      __WEEK2_ABLATION_SPC_F1__,
-        "combined_f1": __WEEK2_ABLATION_COMBINED_F1__,
+        "acd_f1":      0.6360,
+        "spc_f1":      0.4727,
+        "combined_f1": 0.5543,
     },
 }
 
@@ -30,7 +30,7 @@ SOTA_RESULTS = {
         "acd_f1": 0.8255, "spc_f1": None, "combined_f1": 0.7732
     },
     "baseline_svm": {
-        "acd_f1": 0.69, "spc_f1": None, "combined_f1": 0.61
+        "acd_f1": 0.4074, "spc_f1": 0.2272, "combined_f1": 0.3173
     },
 }
 

@@ -2,7 +2,9 @@
 import os, sys
 import pandas as pd
 
-sys.path.insert(0, "code/week1")
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _HERE)                                      # code/week3
+sys.path.insert(0, os.path.join(_HERE, '..', 'week1'))         # code/week1
 from utils.helpers import set_seed
 
 from rag_predictor import run_rag_ablation
@@ -10,6 +12,9 @@ from compare_results import generate_comparison_table
 
 
 def main(api_keys: dict, max_samples: int = None):
+    if not api_keys:
+        print("[ERROR] Không có API key nào. Set OPENAI_API_KEY hoặc GEMINI_API_KEY.")
+        return
     set_seed(42)
     train_df = pd.read_csv("data/train_preprocessed.csv")
     test_df  = pd.read_csv("data/test_preprocessed.csv")

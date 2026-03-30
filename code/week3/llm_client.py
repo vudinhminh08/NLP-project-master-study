@@ -55,9 +55,8 @@ class LLMClient:
             self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
             if not self.api_key:
                 raise ValueError("Cần GEMINI_API_KEY env var hoặc truyền api_key")
-            import google.generativeai as genai
-            genai.configure(api_key=self.api_key)
-            self.client = genai.GenerativeModel(self.model)
+            from google import genai
+            self.client = genai.Client(api_key=self.api_key)
 
     def _cache_key(self, messages: list) -> str:
         """Hash messages làm cache key."""
@@ -130,26 +129,28 @@ class LLMClient:
             return resp.choices[0].message.content
 
         elif self.provider == "gemini":
-            # Convert OpenAI format → Gemini format
-            history = []
-            system_content = ""
-            for msg in messages[:-1]:  # tất cả trừ message cuối
+            # Convert OpenAI format → google.genai format
+            from google.genai import types
+
+            system_instruction = None
+            contents = []
+            for msg in messages:
                 if msg["role"] == "system":
-                    system_content = msg["content"]
+                    system_instruction = msg["content"]
                 elif msg["role"] == "user":
-                    history.append({"role": "user", "parts": [msg["content"]]})
+                    contents.append({"role": "user", "parts": [{"text": msg["content"]}]})
                 elif msg["role"] == "assistant":
-                    history.append({"role": "model", "parts": [msg["content"]]})
+                    contents.append({"role": "model", "parts": [{"text": msg["content"]}]})
 
-            # Ghép system vào user message đầu tiên nếu có
-            last_user = messages[-1]["content"]
-            if system_content and not history:
-                last_user = f"{system_content}\n\n{last_user}"
-
-            chat = self.client.start_chat(history=history)
-            resp = chat.send_message(
-                last_user,
-                generation_config={"temperature": temperature, "max_output_tokens": 512}
+            config = types.GenerateContentConfig(
+                temperature=temperature,
+                max_output_tokens=512,
+                system_instruction=system_instruction,
+            )
+            resp = self.client.models.generate_content(
+                model=self.model,
+                contents=contents,
+                config=config,
             )
             return resp.text
 

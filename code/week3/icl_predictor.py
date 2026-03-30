@@ -16,8 +16,8 @@ from utils.constants import ASPECT_COLUMNS, LABEL_TO_IDX, IDX_TO_LABEL
 from utils.helpers import set_seed, save_json
 from step4_eval import evaluate_predictions
 
-from .prompts import build_prompt, parse_llm_output, labels_dict_to_array
-from .llm_client import LLMClient
+from prompts import build_prompt, parse_llm_output, labels_dict_to_array
+from llm_client import LLMClient
 
 
 def df_to_examples(df: pd.DataFrame, indices: list[int]) -> list[dict]:
@@ -87,8 +87,7 @@ def predict_icl(
         y_true_list.append(true_arr)
 
         # Rate limiting: 1 request / giây để tránh bị block
-        if i % 10 == 0:
-            import time; time.sleep(1.0)
+        import time; time.sleep(1.0)
 
     return np.array(y_true_list), np.array(y_pred_list)
 
@@ -127,7 +126,7 @@ def run_icl_ablation(
             print(f"Running: {exp_name}")
 
             y_true, y_pred = predict_icl(
-                test_df, train_df, client, k=k, max_samples=max_samples
+                test_df, train_df, client, k=k, seed=42, max_samples=max_samples
             )
             metrics = evaluate_predictions(
                 y_true, y_pred,

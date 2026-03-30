@@ -157,20 +157,63 @@ def parse_llm_output(raw_output: str) -> dict:
     raw = re.sub(r'```(?:json)?\s*', '', raw)
     raw = re.sub(r'```\s*$', '', raw)
 
-    # Tìm JSON object trong output
-    match = re.search(r'\{[^{}]*\}', raw, re.DOTALL)
-    if not match:
-        # Có thể là empty dict
+    # Tìm JSON object trong output — thử từ outermost đến innermost
+    parsed = None
+    # Tìm tất cả cặp {} và thử parse từ ngoài vào trong
+    brace_matches = list(re.finditer(r'\{', raw))
+    for start_match in brace_matches:
+        start = start_match.start()
+        # Tìm closing brace tương ứng (đếm depth)
+        depth = 0
+        for i, ch in enumerate(raw[start:]):
+            if ch == '{':
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+                if depth == 0:
+                    candidate = raw[start: start + i + 1]
+                    try:
+                        parsed = json.loads(candidate)
+                        if isinstance(parsed, dict):
+                            break
+                    except json.JSONDecodeError:
+                        pass
+        if parsed is not None:
+            break
+
+    # Fallback: ast.literal_eval cho Python-style single-quote dict
+    if parsed is None:
+        import ast
+        sq_match = re.search(r'\{[^{}]*\}', raw, re.DOTALL)
+        if sq_match:
+            try:
+                parsed = ast.literal_eval(sq_match.group())
+            except (ValueError, SyntaxError):
+                pass
+
+    if parsed is None:
         if '{}' in raw:
             return {}
         print(f"[WARN] Không tìm thấy JSON trong output: {raw[:100]}")
         return {}
 
-    try:
-        parsed = json.loads(match.group())
-    except json.JSONDecodeError as e:
-        print(f"[WARN] JSON parse error: {e} | raw: {raw[:100]}")
+    if not isinstance(parsed, dict):
+        print(f"[WARN] Parsed value không phải dict: {type(parsed)}")
         return {}
+
+    # Safeguard: nếu values là dicts (nested JSON như {"result": {...}}),
+    # tìm nested dict chứa valid aspect-sentiment pairs
+    if any(isinstance(v, dict) for v in parsed.values()):
+        for v in parsed.values():
+            if isinstance(v, dict):
+                candidate = {
+                    k2: str(v2).lower().strip()
+                    for k2, v2 in v.items()
+                    if k2 in valid_aspects and str(v2).lower().strip() in valid_sentiments
+                }
+                if candidate:
+                    parsed = v
+                    break
 
     # Validate và filter
     result = {}

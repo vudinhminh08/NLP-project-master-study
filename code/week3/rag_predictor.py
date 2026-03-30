@@ -16,10 +16,10 @@ from utils.constants import ASPECT_COLUMNS
 from utils.helpers import set_seed, save_json
 from step4_eval import evaluate_predictions
 
-from .prompts import build_prompt, parse_llm_output, labels_dict_to_array
-from .llm_client import LLMClient
-from .rag_retriever import ABSARetriever
-from .icl_predictor import df_to_examples
+from prompts import build_prompt, parse_llm_output, labels_dict_to_array
+from llm_client import LLMClient
+from rag_retriever import ABSARetriever
+from icl_predictor import df_to_examples
 
 
 def predict_rag(
@@ -59,8 +59,7 @@ def predict_rag(
         y_pred_list.append(labels_dict_to_array(pred_dict))
         y_true_list.append([int(test_row[asp]) for asp in ASPECT_COLUMNS])
 
-        if i % 10 == 0:
-            time.sleep(1.0)
+        time.sleep(1.0)
 
     return np.array(y_true_list), np.array(y_pred_list)
 
