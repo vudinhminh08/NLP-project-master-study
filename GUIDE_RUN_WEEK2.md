@@ -25,8 +25,11 @@ Chạy từ thư mục root project để download model (~250MB):
 
 ```bash
 python -c "
-import py_vncorenlp
-m = py_vncorenlp.VnCoreNLP(annotators=['wseg'], save_dir='./vncorenlp')
+import os, py_vncorenlp
+vncorenlp_dir = os.path.abspath("./vncorenlp")
+if not os.path.exists(os.path.join(vncorenlp_dir, "models", "wordsegmenter", "wordsegmenter.rdr")):
+    py_vncorenlp.download_model(save_dir=vncorenlp_dir)
+m = py_vncorenlp.VnCoreNLP(annotators=['wseg'], save_dir=vncorenlp_dir)
 result = m.word_segment('Khách sạn rất tốt và nhân viên thân thiện')
 print(result)
 m.close()

@@ -16,8 +16,11 @@ __pycache__/
 .venv/
 *.egg-info/
 
-# Data cache
-data/*_preprocessed.csv
+# Local VnCoreNLP models (không cần commit khi đã có cache)
+vncorenlp/
+
+# Data cache (giữ lại để commit nếu muốn đưa lên Git cho Kaggle pull)
+# data/*_preprocessed.csv
 
 # Model outputs (large files)
 outputs/models/*.pt

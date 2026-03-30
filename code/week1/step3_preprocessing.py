@@ -251,13 +251,18 @@ class VnCoreNLPSegmenter:
             return
         try:
             import py_vncorenlp
-            if self.vncorenlp_dir:
-                self._segmenter = py_vncorenlp.VnCoreNLP(
-                    annotators=["wseg"],
-                    save_dir=self.vncorenlp_dir,
-                )
-            else:
-                self._segmenter = py_vncorenlp.VnCoreNLP(annotators=["wseg"])
+            # py_vncorenlp đổi cwd sang save_dir; ta phục hồi để tránh ảnh hưởng path tương đối.
+            prev_cwd = os.getcwd()
+            try:
+                if self.vncorenlp_dir:
+                    self._segmenter = py_vncorenlp.VnCoreNLP(
+                        annotators=["wseg"],
+                        save_dir=self.vncorenlp_dir,
+                    )
+                else:
+                    self._segmenter = py_vncorenlp.VnCoreNLP(annotators=["wseg"])
+            finally:
+                os.chdir(prev_cwd)
             print("[Segmenter] VnCoreNLP loaded successfully.")
         except Exception as e:
             if self.use_fallback:
@@ -320,7 +325,11 @@ def main() -> None:
         print()
 
     # Preprocess train/dev/test nếu CSV tồn tại
-    segmenter = VnCoreNLPSegmenter(use_fallback=True)
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    segmenter = VnCoreNLPSegmenter(
+        vncorenlp_dir=os.path.join(project_root, "vncorenlp"),
+        use_fallback=True,
+    )
 
     path_pairs = [
         (TRAIN_PATH, TRAIN_PREPROCESSED, "train"),
