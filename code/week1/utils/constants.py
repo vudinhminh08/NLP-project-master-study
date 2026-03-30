@@ -78,8 +78,8 @@ CLASS_WEIGHTS_PATH  = f"{EDA_DIR}/class_weights.json"
 ENCODER_CONFIG_PATH = f"{EDA_DIR}/encoder_config.json"
 
 # ─── PhoBERT Config ────────────────────────────────────────────────────────────
-PHOBERT_MODEL_NAME = "vinai/phobert-base"
-MAX_SEQ_LEN        = 256   # Sẽ được gợi ý lại bởi EDA (p99 token count)
+PHOBERT_MODEL_NAME = "vinai/phobert-base-v2"
+MAX_SEQ_LEN        = 256
 
 # ─── Model Architecture Config (QUAN TRỌNG — insight từ ds4v SOTA) ────────────
 # Option A: chỉ dùng [CLS] hidden state layer cuối (768 dim)
@@ -93,18 +93,18 @@ DEFAULT_ENCODER = "concat_4_layers"  # Theo SOTA ds4v
 
 # ─── Training Hyperparameters — Cập nhật từ EDA thực tế ───────────────────────
 TRAIN_CONFIG = {
-    "learning_rate":           2e-5,
-    "warmup_ratio":            0.1,       # 10% steps đầu là warmup
-    "batch_size":              8,         # T4 16GB, seq_len=256
-    "grad_accumulation_steps": 4,         # effective batch = 8×4 = 32 (v2: tăng từ 16→32)
-    "max_epochs":              40,        # v2: tăng từ 20→40 (model chưa hội tụ ở v1)
-    "early_stop_patience":     5,         # v2: tăng từ 3→5 (tránh stop sớm do noise)
-    "dropout":                 0.2,       # theo ds4v
-    "optimizer":               "AdamW",
-    "scheduler":               "cosine_warmup",  # v2: đổi từ linear → cosine (LR giữ cao hơn lâu hơn)
+    "learning_rate":           1e-4,      # ds4v: 1e-4
+    "warmup_ratio":            0.15,      # ds4v: 15% warmup
+    "batch_size":              16,        # ds4v: 25, giảm xuống 16 cho T4 safe
+    "grad_accumulation_steps": 1,
+    "max_epochs":              20,        # ds4v: 20
+    "early_stop_patience":     3,         # ds4v: 3
+    "dropout":                 0.2,       # ds4v: 0.2
+    "optimizer":               "Adam",    # ds4v: Adam
+    "scheduler":               "cosine_warmup",
     "seed":                    42,
-    "max_seq_len":             256,       # từ encoder_config.json (p99=243)
-    "weight_clip":             10.0,      # clip weight neutral=154 → 10.0
+    "max_seq_len":             256,
+    "weight_clip":             10.0,
     "encoder_option":          "concat_4_layers",
     "max_grad_norm":           1.0,
 }

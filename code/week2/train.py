@@ -19,8 +19,7 @@ from typing import Optional
 
 import torch
 import numpy as np
-from torch.optim import AdamW
-from transformers import get_linear_schedule_with_warmup, get_cosine_schedule_with_warmup
+from transformers import get_cosine_schedule_with_warmup
 from tqdm import tqdm
 
 # Mixed precision — safe import (fallback nếu PyTorch cũ)
@@ -225,37 +224,21 @@ def train(
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
-    # === Optimizer — single LR group (v2: revert differential LR) ===
-    optimizer = AdamW(
+    # === Optimizer: Adam (theo ds4v) ===
+    optimizer = torch.optim.Adam(
         model.parameters(),
         lr=config["learning_rate"],
-        weight_decay=0.01,
-        eps=1e-8,
     )
 
-    # === Scheduler: warmup 10% + linear decay ===
-    # Tính đúng số optimizer steps (sau gradient accumulation)
-    steps_per_epoch = max(1, len(train_loader) // config["grad_accumulation_steps"])
-    # Cộng thêm 1 nếu có batch cuối không chia hết
-    if len(train_loader) % config["grad_accumulation_steps"] != 0:
-        steps_per_epoch += 1
-
-    total_steps  = steps_per_epoch * config["max_epochs"]
+    # === Scheduler: cosine warmup (theo ds4v: warmup 15%) ===
+    total_steps  = len(train_loader) * config["max_epochs"]
     warmup_steps = int(total_steps * config["warmup_ratio"])
 
-    # === Scheduler: cosine warmup (v2) hoặc linear warmup (v1 fallback) ===
-    if config.get("scheduler") == "cosine_warmup":
-        scheduler = get_cosine_schedule_with_warmup(
-            optimizer,
-            num_warmup_steps=warmup_steps,
-            num_training_steps=total_steps,
-        )
-    else:
-        scheduler = get_linear_schedule_with_warmup(
-            optimizer,
-            num_warmup_steps=warmup_steps,
-            num_training_steps=total_steps,
-        )
+    scheduler = get_cosine_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=warmup_steps,
+        num_training_steps=total_steps,
+    )
 
     # === Mixed Precision Scaler ===
     scaler = GradScaler() if (use_amp and AMP_AVAILABLE and device.type == "cuda") else None
@@ -279,12 +262,13 @@ def train(
         "dev_spc_f1":       [],
         "dev_combined_f1":  [],
         "best_epoch":       0,
+        "best_dev_loss":    float("inf"),
         "best_combined_f1": 0.0,
         "config":           config,
         "use_amp":          amp_active,
     }
-    best_f1 = 0.0
-    patience = 0
+    best_loss = float("inf")
+    patience  = 0
 
     for epoch in range(1, config["max_epochs"] + 1):
         t0 = time.time()
@@ -327,21 +311,23 @@ def train(
         history["dev_spc_f1"].append(metrics["macro_spc_f1"])
         history["dev_combined_f1"].append(combined)
 
-        # --- Save best checkpoint ---
-        if combined > best_f1:
-            best_f1 = combined
+        # --- Save best checkpoint (monitor dev_loss, theo ds4v) ---
+        if dev_loss < best_loss:
+            best_loss = dev_loss
             history["best_epoch"]       = epoch
-            history["best_combined_f1"] = best_f1
+            history["best_dev_loss"]    = best_loss
+            history["best_combined_f1"] = combined
             ckpt = {
                 "epoch":            epoch,
                 "model_state_dict": model.state_dict(),
+                "dev_loss":         dev_loss,
                 "combined_f1":      combined,
                 "acd_f1":           metrics["macro_acd_f1"],
                 "spc_f1":           metrics["macro_spc_f1"],
                 "config":           config,
             }
             torch.save(ckpt, os.path.join(save_dir, "best_model.pt"))
-            print(f"  ✅ Best model saved (combined_f1={best_f1:.4f})")
+            print(f"  ✅ Best model saved (dev_loss={best_loss:.4f}, combined_f1={combined:.4f})")
             patience = 0
         else:
             patience += 1
@@ -361,6 +347,7 @@ def train(
 
     print(
         f"\n✅ Training xong. "
-        f"Best Combined F1={best_f1:.4f} @ epoch {history['best_epoch']}"
+        f"Best dev_loss={best_loss:.4f}, Combined F1={history['best_combined_f1']:.4f}"
+        f" @ epoch {history['best_epoch']}"
     )
     return history
