@@ -30,8 +30,8 @@ class LLMClient:
         api_key: Optional[str] = None,    # None → đọc từ env
         model: Optional[str] = None,      # None → dùng default
         cache_dir: str = "outputs/llm_cache",
-        max_retries: int = 3,
-        retry_delay: float = 2.0,
+        max_retries: int = 5,
+        retry_delay: float = 5.0,
     ):
         assert provider in self.SUPPORTED, f"Provider phải là {self.SUPPORTED}"
         self.provider = provider

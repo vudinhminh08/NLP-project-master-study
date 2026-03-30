@@ -126,7 +126,7 @@ def build_prompt(
     # Test review
     test_msg = f"""Review: {test_review}
 {COT_INSTRUCTION if include_cot else ""}
-Trả về JSON output:"""
+Trả về JSON output (BẮT BUỘC kết thúc bằng JSON, ví dụ: {{"SERVICE#GENERAL": "positive"}} hoặc {{}} nếu không có aspect nào):"""
     messages.append({"role": "user", "content": test_msg})
 
     return messages
