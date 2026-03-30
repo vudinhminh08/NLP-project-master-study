@@ -98,7 +98,7 @@ TRAIN_CONFIG = {
     "batch_size":              16,        # ds4v: 25, giảm xuống 16 cho T4 safe
     "grad_accumulation_steps": 1,
     "max_epochs":              20,        # ds4v: 20
-    "early_stop_patience":     3,         # ds4v: 3
+    "early_stop_patience":     7,
     "dropout":                 0.2,       # ds4v: 0.2
     "optimizer":               "Adam",    # ds4v: Adam
     "scheduler":               "cosine_warmup",

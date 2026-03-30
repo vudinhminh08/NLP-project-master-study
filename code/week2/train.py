@@ -341,7 +341,7 @@ def train(
             print(
                 f"\n🛑 Early stopping tại epoch {epoch}. "
                 f"Best: epoch={history['best_epoch']}, "
-                f"Combined F1={best_f1:.4f}"
+                f"dev_loss={best_loss:.4f}, Combined F1={history['best_combined_f1']:.4f}"
             )
             break
 
