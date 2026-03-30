@@ -1,1 +1,27 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# AI/Claude Code files
+CLAUDE.md
+**/CLAUDE.md
+CODING_DIRECTIVE*.md
+**/CODING_DIRECTIVE*.md
+docs/superpowers/
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# Data cache
+data/*_preprocessed.csv
+
+# Model outputs (large files)
+outputs/models/*.pt
 outputs/week2_results_version1/
+
+# Jupyter
+.ipynb_checkpoints/
