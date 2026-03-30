@@ -95,15 +95,15 @@ DEFAULT_ENCODER = "concat_4_layers"  # Theo SOTA ds4v
 TRAIN_CONFIG = {
     "learning_rate":           2e-5,
     "warmup_ratio":            0.1,       # 10% steps đầu là warmup
-    "batch_size":              8,         # giảm từ 16 do seq_len=384, T4 16GB
-    "grad_accumulation_steps": 2,         # effective batch = 8×2 = 16
-    "max_epochs":              20,
-    "early_stop_patience":     3,         # dựa trên Macro-F1 dev set
+    "batch_size":              8,         # T4 16GB, seq_len=256
+    "grad_accumulation_steps": 4,         # effective batch = 8×4 = 32 (v2: tăng từ 16→32)
+    "max_epochs":              40,        # v2: tăng từ 20→40 (model chưa hội tụ ở v1)
+    "early_stop_patience":     5,         # v2: tăng từ 3→5 (tránh stop sớm do noise)
     "dropout":                 0.2,       # theo ds4v
     "optimizer":               "AdamW",
-    "scheduler":               "linear_warmup_decay",
+    "scheduler":               "cosine_warmup",  # v2: đổi từ linear → cosine (LR giữ cao hơn lâu hơn)
     "seed":                    42,
-    "max_seq_len":             256,       # từ encoder_config.json (p99=243 × 1.5)
+    "max_seq_len":             256,       # từ encoder_config.json (p99=243)
     "weight_clip":             10.0,      # clip weight neutral=154 → 10.0
     "encoder_option":          "concat_4_layers",
     "max_grad_norm":           1.0,

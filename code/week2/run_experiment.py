@@ -61,10 +61,6 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
         "encoder_option": encoder_option,
     }
 
-    # add new (try to fix)
-    config["gradient_accumulation_steps"] = 8  # Tăng từ 2 lên 8 để đạt Batch 64
-    config["weight_clip"] = 20.0
-
     print(f"\n{'='*60}")
     print(f"TUẦN 2 — PhoBERT Multi-task ABSA")
     print(f"  encoder:    {encoder_option}")

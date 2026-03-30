@@ -6,11 +6,9 @@ Kiến trúc theo ds4v (Huynh et al. IEEE MAPR 2022):
     → [batch, 3072] → Dropout(0.2)
     → 34 × Linear(3072, 4) song song
 
-BUG FIX so với version trước:
-    - Version cũ: tự ý bỏ class_weights → model bias hoàn toàn về class absent
-    - Version này: dùng F.cross_entropy(weight=...) đúng spec EDA → xử lý imbalance
-    - Lý do dùng class weights: 85% nhãn là absent, neutral global weight=154
-      → không có weighted loss thì model không học được minority classes
+Version 2:
+    - Dùng F.cross_entropy(weight=...) đúng spec → xử lý class imbalance
+    - Bỏ FocalLoss (thêm complexity không cần thiết)
 """
 
 import torch
@@ -18,20 +16,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import AutoModel
 from typing import Optional
-
-
-# add new (try to fix)
-class FocalLoss(nn.Module):
-    def __init__(self, alpha=None, gamma=2.0):
-        super(FocalLoss, self).__init__()
-        self.gamma = gamma
-        self.alpha = alpha # Đây là class_weights truyền vào
-
-    def forward(self, inputs, targets):
-        ce_loss = F.cross_entropy(inputs, targets, reduction='none', weight=self.alpha)
-        pt = torch.exp(-ce_loss)
-        focal_loss = ((1 - pt) ** self.gamma * ce_loss).mean()
-        return focal_loss
 
 
 class ABSAPhoBERT(nn.Module):
@@ -77,9 +61,6 @@ class ABSAPhoBERT(nn.Module):
             nn.Linear(self.hidden_size, num_labels)
             for _ in range(num_aspects)
         ])
-
-        # Fallback criterion (không có class weights) — dùng khi class_weights=None
-        self.criterion = nn.CrossEntropyLoss()
 
     def get_cls_representation(
         self,
@@ -149,32 +130,17 @@ class ABSAPhoBERT(nn.Module):
 
         # === Loss (chỉ tính khi có labels) ===
         loss = None
-        # if labels is not None:
-        #     losses = []
-        #     for i, logit in enumerate(logits):
-        #         if class_weights is not None:
-        #             # Per-aspect weighted loss — xử lý class imbalance
-        #             # F.cross_entropy tính inline, không tạo object mới → efficient
-        #             loss_i = F.cross_entropy(
-        #                 logit, labels[:, i],
-        #                 weight=class_weights[i],  # tensor [4] trên cùng device
-        #             )
-        #         else:
-        #             # Fallback: unweighted (chỉ dùng cho inference debug)
-        #             loss_i = F.cross_entropy(logit, labels[:, i])
-        #         losses.append(loss_i)
-
-        #     # torch.stack → [34] → mean → scalar gradient flow đúng
-        #     loss = torch.stack(losses).mean()
         if labels is not None:
             losses = []
             for i, logit in enumerate(logits):
-                # Thay F.cross_entropy bằng FocalLoss
-                weight = class_weights[i] if class_weights is not None else None
-                criterion = FocalLoss(alpha=weight, gamma=2.0)
-                loss_i = criterion(logit, labels[:, i])
+                if class_weights is not None:
+                    loss_i = F.cross_entropy(
+                        logit, labels[:, i],
+                        weight=class_weights[i],
+                    )
+                else:
+                    loss_i = F.cross_entropy(logit, labels[:, i])
                 losses.append(loss_i)
-            
             loss = torch.stack(losses).mean()
 
         # === Predictions ===

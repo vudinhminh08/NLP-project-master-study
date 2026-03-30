@@ -20,7 +20,7 @@ from typing import Optional
 import torch
 import numpy as np
 from torch.optim import AdamW
-from transformers import get_linear_schedule_with_warmup
+from transformers import get_linear_schedule_with_warmup, get_cosine_schedule_with_warmup
 from tqdm import tqdm
 
 # Mixed precision — safe import (fallback nếu PyTorch cũ)
@@ -225,23 +225,13 @@ def train(
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
-    phobert_params = list(model.phobert.parameters())
-    classifier_params = list(model.classifiers.parameters())
-
-    optimizer_grouped_parameters = [
-        {'params': phobert_params, 'lr': config["learning_rate"]},
-        {'params': classifier_params, 'lr': 1e-4} # Tốc độ đột phá cho 34 heads
-    ]
-
-    optimizer = AdamW(optimizer_grouped_parameters, weight_decay=0.01)
-
-    # === Optimizer ===
-    # optimizer = AdamW(
-    #     model.parameters(),
-    #     lr=config["learning_rate"],
-    #     weight_decay=0.01,
-    #     eps=1e-8,
-    # )
+    # === Optimizer — single LR group (v2: revert differential LR) ===
+    optimizer = AdamW(
+        model.parameters(),
+        lr=config["learning_rate"],
+        weight_decay=0.01,
+        eps=1e-8,
+    )
 
     # === Scheduler: warmup 10% + linear decay ===
     # Tính đúng số optimizer steps (sau gradient accumulation)
@@ -253,11 +243,19 @@ def train(
     total_steps  = steps_per_epoch * config["max_epochs"]
     warmup_steps = int(total_steps * config["warmup_ratio"])
 
-    scheduler = get_linear_schedule_with_warmup(
-        optimizer,
-        num_warmup_steps=warmup_steps,
-        num_training_steps=total_steps,
-    )
+    # === Scheduler: cosine warmup (v2) hoặc linear warmup (v1 fallback) ===
+    if config.get("scheduler") == "cosine_warmup":
+        scheduler = get_cosine_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=warmup_steps,
+            num_training_steps=total_steps,
+        )
+    else:
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=warmup_steps,
+            num_training_steps=total_steps,
+        )
 
     # === Mixed Precision Scaler ===
     scaler = GradScaler() if (use_amp and AMP_AVAILABLE and device.type == "cuda") else None
