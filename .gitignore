@@ -24,6 +24,7 @@ vncorenlp/
 
 # Model outputs (large files)
 outputs/models/*.pt
+**/*.pt
 outputs/week2_results_version1/
 
 # Jupyter
