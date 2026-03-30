@@ -29,3 +29,14 @@ outputs/week2_results_version1/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Large binary / tool files
+*.jar
+
+# Models directory
+models/
+
+# Directive / guide files (local notes, not for repo)
+ANALYSIS_DIRECTIVE*.md
+GUIDE_RUN*.md
+**/REVIEW_DIRECTIVE*.md
