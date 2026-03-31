@@ -47,6 +47,7 @@ def predict_icl(
     k: int = 4,
     seed: int = 42,
     max_samples: int = None,
+    sleep_sec: float = 7.0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Tầng 2: Random few-shot ICL prediction.
@@ -86,8 +87,7 @@ def predict_icl(
         true_arr = [int(test_row[asp]) for asp in ASPECT_COLUMNS]
         y_true_list.append(true_arr)
 
-        # Rate limiting: 1 request / giây để tránh bị block
-        import time; time.sleep(1.0)
+        import time; time.sleep(sleep_sec)
 
     return np.array(y_true_list), np.array(y_pred_list)
 
@@ -101,6 +101,7 @@ def run_icl_ablation(
     results_dir: str = "outputs/results",
     max_samples: int = None,
     models: dict = None,
+    sleep_sec: float = 7.0,
 ) -> dict:
     """
     Chạy ablation: k=2,4,8 × GPT+Gemini.
@@ -130,7 +131,8 @@ def run_icl_ablation(
             print(f"Running: {exp_name}")
 
             y_true, y_pred = predict_icl(
-                test_df, train_df, client, k=k, seed=42, max_samples=max_samples
+                test_df, train_df, client, k=k, seed=42,
+                max_samples=max_samples, sleep_sec=sleep_sec,
             )
             metrics = evaluate_predictions(
                 y_true, y_pred,

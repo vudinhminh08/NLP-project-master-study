@@ -30,6 +30,7 @@ def predict_rag(
     k: int = 4,
     aspect_aware: bool = True,
     max_samples: int = None,
+    sleep_sec: float = 7.0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Tầng 3: RAG prediction với semantic retrieval.
@@ -59,7 +60,7 @@ def predict_rag(
         y_pred_list.append(labels_dict_to_array(pred_dict))
         y_true_list.append([int(test_row[asp]) for asp in ASPECT_COLUMNS])
 
-        time.sleep(1.0)
+        time.sleep(sleep_sec)
 
     return np.array(y_true_list), np.array(y_pred_list)
 
@@ -68,6 +69,7 @@ def run_rag_ablation(
     test_df, train_df, providers, k_values, api_keys,
     results_dir="outputs/results", max_samples=None,
     models: dict = None,
+    sleep_sec: float = 7.0,
 ) -> dict:
     """Chạy ablation RAG: k=2,4,8 × GPT+Gemini.
 
@@ -91,7 +93,7 @@ def run_rag_ablation(
 
             y_true, y_pred = predict_rag(
                 test_df, train_df, client, retriever,
-                k=k, max_samples=max_samples,
+                k=k, max_samples=max_samples, sleep_sec=sleep_sec,
             )
             metrics = evaluate_predictions(
                 y_true, y_pred,

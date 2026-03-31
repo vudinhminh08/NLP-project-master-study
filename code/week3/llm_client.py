@@ -146,6 +146,7 @@ class LLMClient:
                 temperature=temperature,
                 max_output_tokens=512,
                 system_instruction=system_instruction,
+                response_mime_type="application/json",  # force JSON output
             )
             resp = self.client.models.generate_content(
                 model=self.model,
