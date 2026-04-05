@@ -26,7 +26,7 @@ class ABSAPhoBERT(nn.Module):
     Mỗi head predict 4 classes: absent(0) / positive(1) / negative(2) / neutral(3).
 
     Args:
-        model_name:     HuggingFace model id, mặc định "vinai/phobert-base"
+        model_name:     HuggingFace model id, mặc định "vinai/phobert-base-v2"
         num_aspects:    số lượng aspect heads, mặc định 34
         num_labels:     số lượng classes mỗi head, mặc định 4
         dropout:        dropout rate trước classifiers, mặc định 0.2
@@ -35,7 +35,7 @@ class ABSAPhoBERT(nn.Module):
 
     def __init__(
         self,
-        model_name: str = "vinai/phobert-base",
+        model_name: str = "vinai/phobert-base-v2",
         num_aspects: int = 34,
         num_labels: int = 4,
         dropout: float = 0.2,
