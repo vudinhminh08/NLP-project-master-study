@@ -1,7 +1,7 @@
 {
-  "recommended_max_seq_len": 256,
+  "recommended_max_seq_len": 384,
   "p99_word_count": 243,
   "encoder_option": "concat_4_layers",
   "encoder_hidden_size": 3072,
-  "note": "PhoBERT max_position_embeddings=258, safe max=256"
+  "note": "phobert-base-v2 dung RoBERTa architecture, max_position_embeddings=514. p99=243 words x1.5 segmentation factor=364 -> lam tron boi 64 = 384"
 }

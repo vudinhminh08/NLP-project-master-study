@@ -97,7 +97,7 @@ TRAIN_CONFIG = {
     "warmup_ratio":            0.15,      # ds4v: 15% warmup
     "batch_size":              8,         # ds4v: 25, giảm xuống 8 + grad_accum=2
     "grad_accumulation_steps": 2,
-    "max_epochs":              20,        # ds4v: 20
+    "max_epochs":              35,        # tăng từ 20: model chưa converge ở epoch 20
     "early_stop_patience":     7,
     "dropout":                 0.2,       # ds4v: 0.2
     "optimizer":               "AdamW",   # ds4v: Adam → fixed to AdamW

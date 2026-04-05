@@ -50,16 +50,16 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
     # Tắt AMP tự động nếu không có CUDA
     use_amp = use_amp and (device.type == "cuda")
 
-    # Load encoder config từ EDA — max_seq_len được xác định chính xác từ EDA
+    # Load encoder config từ EDA — chỉ lấy encoder_option, KHÔNG override max_seq_len
+    # max_seq_len là hyperparameter training → nguồn chính xác là TRAIN_CONFIG (constants.py)
     enc_cfg = load_json("outputs/eda/encoder_config.json")
-    max_seq_len    = enc_cfg.get("recommended_max_seq_len", 256)
     encoder_option = encoder_option or enc_cfg.get("encoder_option", "concat_4_layers")
 
     config = {
         **TRAIN_CONFIG,
-        "max_seq_len":    max_seq_len,
         "encoder_option": encoder_option,
     }
+    max_seq_len = config["max_seq_len"]  # đọc từ TRAIN_CONFIG (384)
 
     print(f"\n{'='*60}")
     print(f"TUẦN 2 — PhoBERT Multi-task ABSA")
