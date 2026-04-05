@@ -123,10 +123,22 @@ class ABSAPhoBERT(nn.Module):
         """
         # === Encoder ===
         cls_repr = self.get_cls_representation(input_ids, attention_mask)
-        cls_repr = self.dropout(cls_repr)
 
-        # === 34 heads song song ===
-        logits = [clf(cls_repr) for clf in self.classifiers]  # 34 × [batch, 4]
+        # Multi-sample dropout (Inoue 2019) — chỉ khi training
+        # Dropout N lần, average logits → regularization mạnh hơn cho dataset nhỏ
+        if self.training:
+            N_DROPOUT = 5
+            all_logits = []
+            for _ in range(N_DROPOUT):
+                dropped = self.dropout(cls_repr)
+                all_logits.append([clf(dropped) for clf in self.classifiers])
+            logits = [
+                torch.stack([all_logits[n][i] for n in range(N_DROPOUT)]).mean(0)
+                for i in range(len(self.classifiers))
+            ]
+        else:
+            cls_repr = self.dropout(cls_repr)
+            logits = [clf(cls_repr) for clf in self.classifiers]  # 34 × [batch, 4]
 
         # === Loss (chỉ tính khi có labels) ===
         loss = None
@@ -137,9 +149,13 @@ class ABSAPhoBERT(nn.Module):
                     loss_i = F.cross_entropy(
                         logit, labels[:, i],
                         weight=class_weights[i],
+                        label_smoothing=0.1,
                     )
                 else:
-                    loss_i = F.cross_entropy(logit, labels[:, i])
+                    loss_i = F.cross_entropy(
+                        logit, labels[:, i],
+                        label_smoothing=0.1,
+                    )
                 losses.append(loss_i)
             loss = torch.stack(losses).mean()
 
