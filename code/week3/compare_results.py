@@ -29,17 +29,19 @@ SOTA_RESULTS = {
     "sota_phobert_huynh2022": {
         "acd_f1": 0.8255, "spc_f1": None, "combined_f1": 0.7732
     },
-    "baseline_svm": {
+    "baseline_svm_tfidf": {
         "acd_f1": 0.4074, "spc_f1": 0.2272, "combined_f1": 0.3173
     },
 }
 
 
 def load_all_results(results_dir: str = "outputs/results") -> dict:
-    """Load tất cả metrics JSON từ results_dir."""
+    """Load tất cả metrics JSON từ results_dir.
+    Chỉ load tier2_* và tier3_* — bỏ qua svm_baseline_* (đã hardcode trong SOTA_RESULTS).
+    """
     results = {}
     for fname in os.listdir(results_dir):
-        if fname.endswith("_metrics.json"):
+        if fname.endswith("_metrics.json") and (fname.startswith("tier2_") or fname.startswith("tier3_")):
             key = fname.replace("_metrics.json", "")
             data = load_json(os.path.join(results_dir, fname))
             results[key] = {
@@ -74,10 +76,10 @@ def generate_comparison_table(
             "Tầng 3"  if "tier3" in name else "?"
         )
         provider = (
-            "GPT-4o-mini"   if "gpt" in name else
-            "Gemini 1.5"    if "gemini" in name else
+            "GPT-4o-mini"   if "gpt" in name or "openai" in name else
+            "Gemini 2.0"    if "gemini" in name else
             "PhoBERT"       if "phobert" in name else
-            "SVM"           if "svm" in name else "—"
+            "SVM+TF-IDF"    if "svm" in name else "—"
         )
         k = name.split("_k")[-1] if "_k" in name else "—"
         spc = f"{m['spc_f1']:.4f}" if m['spc_f1'] else "—"
@@ -100,7 +102,7 @@ def generate_comparison_table(
     tier3_best = max(
         (v["combined_f1"] for k, v in all_results.items() if "tier3" in k), default=0
     )
-    phobert_f1 = WEEK2_RESULTS["phobert_concat4"]["combined_f1"]
+    phobert_f1 = WEEK2_RESULTS["phobert_cls_only"]["combined_f1"]
     rag_gain   = tier3_best - tier2_best
 
     analysis = f"""

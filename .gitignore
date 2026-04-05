@@ -27,6 +27,17 @@ outputs/models/*.pt
 **/*.pt
 outputs/week2_results_version1/
 
+# LLM cache (large, local only)
+outputs/llm_cache/
+
+# Cache / binary artifacts
+*.npy
+outputs/results/embeddings_cache*
+
+# Auto-generated output reports (md in outputs)
+outputs/**/*.md
+outputs/*.md
+
 # Jupyter
 .ipynb_checkpoints/
 
@@ -36,7 +47,12 @@ outputs/week2_results_version1/
 # Models directory
 models/
 
+
 # Directive / guide files (local notes, not for repo)
 ANALYSIS_DIRECTIVE*.md
 GUIDE_RUN*.md
 **/REVIEW_DIRECTIVE*.md
+
+# Local working directories (not for repo)
+coding-directive/
+Tài liệu/
