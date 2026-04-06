@@ -6,21 +6,17 @@ Kiến trúc theo ds4v (Huynh et al. IEEE MAPR 2022):
     → [batch, 3072] → Dropout(0.2)
     → 34 × Linear(3072, 4) song song
 
-Version 2.5 (Flat BCE Loss):
-    - Loss: flat binary_crossentropy trên concatenated softmax outputs [batch, 136]
-      thay vì 34 cross_entropy riêng biệt
-    - Lý do: ds4v v1 dùng kiến trúc này → Combined F1 0.7732, trong khi v2 (separate heads)
-      chỉ đạt ~0.55 — cùng dataset, cùng architecture, chỉ khác loss formulation
-    - Cơ chế: gradient từ 1 loss node chảy qua tất cả 34 heads → model học được
-      correlation giữa các aspects (nếu ROOMS#CLEANLINESS positive thì ROOMS#GENERAL
-      có xu hướng positive). 34 CE riêng không học được điều này.
-    - Class weights vẫn giữ nguyên: build weight vector [136] từ per-aspect weights
+Version 2.4:
+    - Dùng F.cross_entropy(weight=...) per-aspect → xử lý class imbalance đúng
+    - label_smoothing=0.05
+    - Flat BCE (v2.5) đã thử và revert: BCE + class weights không tương thích
+      do weight semantics khác nhau (BCE penalize mọi position, không chỉ true class)
+      → SPC F1 sụp đổ từ 0.49 → 0.36 vì model bias về absent
 """
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.cuda.amp import autocast
 from transformers import AutoModel
 from typing import Optional
 
@@ -147,34 +143,24 @@ class ABSAPhoBERT(nn.Module):
             cls_repr = self.dropout(cls_repr)
             logits = [clf(cls_repr) for clf in self.classifiers]  # 34 × [batch, 4]
 
-        # === Loss: Flat BCE (ds4v v1 architecture) ===
-        # Thay vì 34 cross_entropy riêng biệt, concat tất cả softmax outputs
-        # thành vector 136-dim rồi dùng binary_crossentropy.
-        # Gradient chảy qua 1 loss node → model học correlation giữa aspects.
+        # === Loss: 34 × weighted cross_entropy (v2.4) ===
         loss = None
         if labels is not None:
-            # [batch, 136] — concat softmax probs của 34 heads
-            probs = torch.cat(
-                [F.softmax(logit, dim=-1) for logit in logits], dim=-1
-            ).clamp(1e-7, 1 - 1e-7)
-
-            # [batch, 34, 4] → [batch, 136] — one-hot flat labels
-            flat_labels = F.one_hot(labels, num_classes=self.num_labels).float().view(
-                labels.size(0), -1
-            )
-
-            # F.binary_cross_entropy không tương thích với AMP autocast (float16).
-            # Disable autocast cục bộ tại đây → BCE luôn chạy ở float32.
-            # Encoder vẫn chạy float16 bình thường, chỉ loss step này là float32.
-            with autocast(enabled=False):
+            losses = []
+            for i, logit in enumerate(logits):
                 if class_weights is not None:
-                    weight_vec = torch.cat(class_weights, dim=0)  # [136]
-                    loss = F.binary_cross_entropy(
-                        probs.float(), flat_labels.float(),
-                        weight=weight_vec.float().unsqueeze(0).expand_as(probs),
+                    loss_i = F.cross_entropy(
+                        logit, labels[:, i],
+                        weight=class_weights[i],
+                        label_smoothing=0.05,
                     )
                 else:
-                    loss = F.binary_cross_entropy(probs.float(), flat_labels.float())
+                    loss_i = F.cross_entropy(
+                        logit, labels[:, i],
+                        label_smoothing=0.05,
+                    )
+                losses.append(loss_i)
+            loss = torch.stack(losses).mean()
 
         # === Predictions ===
         preds = torch.stack(
