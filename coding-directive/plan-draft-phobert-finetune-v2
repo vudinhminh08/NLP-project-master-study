@@ -477,4 +477,68 @@ flat BCE là incompatible.
 
 ---
 
-*Cập nhật: 06/04/2026 | v2.4 best model, v2.5 revert*
+---
+
+## 11. Thực nghiệm v2.6 — Focal Loss + LR Warmup (THẤT BẠI, đã revert)
+
+### 11.1 Kết quả
+
+| Metric | v2.4 | v2.6 (Focal+warmup) |
+|---|---|---|
+| ACD F1 | 0.6265 | 0.5823 |
+| SPC F1 | 0.4902 | 0.4424 ❌ |
+| Combined F1 | **0.5583** | 0.5123 ❌ |
+
+### 11.2 Nguyên nhân
+
+`patience=3` + focal loss không tương thích: focal loss tự nhiên cho dev_loss thấp hơn và "flat" hơn ngay từ đầu (easy samples bị down-weight), nên early stopping cắt trước khi model học đủ sentiment → SPC F1 giảm.
+
+**Bài học:** Focal loss cần patience cao hơn (≥7), không nên kết hợp patience=3.
+
+---
+
+## 12. Ensemble + Threshold Tuning — Kết quả cuối
+
+Chạy local trên CPU, dùng 2 checkpoints có sẵn:
+- **Gốc cls_only**: epoch=16, dev_f1=0.5451, LR=1e-4, Adam
+- **v2.3 cls_only**: epoch=28, dev_f1=0.5262, LR=2e-5, AdamW+LLRD
+
+### 12.1 Kết quả 4 kịch bản
+
+| Kịch bản | Dev F1 | **Test F1** | Ghi chú |
+|---|---|---|---|
+| A — Gốc cls_only baseline | 0.5451 | 0.5543 | single model |
+| B — Ensemble argmax | 0.5392 | 0.5587 | +0.0044 vs baseline |
+| C — Gốc cls_only + threshold | 0.5505 | 0.5526 | threshold alone không giúp |
+| **D — Ensemble + threshold** | **0.5744** | **0.5650** | **best — +0.0107 vs baseline** |
+| v2.4 (tham chiếu) | — | 0.5583 | best single model |
+| SOTA ds4v | — | 0.7732 | upper bound |
+
+### 12.2 Nhận xét
+
+- **Ensemble + threshold = 0.5650** — cải thiện +0.0107 (+1.07%) so với gốc cls_only
+- **Vẫn chưa đạt 0.65** — ceiling của PhoBERT base + 3000 samples
+- Ensemble với v2.3 (diversity thấp) không lý tưởng; nếu có v2.4 checkpoint sẽ tốt hơn
+- Threshold tuning alone (C) không giúp vì mô hình đơn lẻ đã calibrate tốt
+
+### 12.3 Phân tích thresholds
+
+Một số aspects quan trọng thay đổi ngưỡng:
+- Rare aspects (F1=0): threshold được hạ xuống để detect nhiều hơn
+- Common aspects (F1>0.8): threshold gần 0.5 (không cần thay đổi)
+
+### 12.4 Tổng kết tất cả thực nghiệm
+
+| Model | ACD F1 | SPC F1 | Combined F1 |
+|---|---|---|---|
+| Gốc cls_only | 0.6360 | 0.4727 | 0.5543 |
+| v2.4 cls_only (best single) | 0.6265 | 0.4902 | 0.5583 |
+| **Ensemble+Threshold (best)** | **0.6526** | **0.4774** | **0.5650** |
+| visolex HuggingFace | — | — | ~0.5294 (Macro-F1) |
+| SOTA ds4v | 0.8255 | — | 0.7732 |
+
+**→ Best result: Combined F1 = 0.5650** (Ensemble Gốc+v2.3 + threshold tuning)
+
+---
+
+*Cập nhật: 06/04/2026 | Ensemble chạy local trên CPU*

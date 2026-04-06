@@ -1,0 +1,22 @@
+{
+  "A_orig_baseline": {
+    "dev": 0.5450640462974191,
+    "test": 0.5543128401889759,
+    "desc": "Gốc cls_only, argmax (baseline)"
+  },
+  "B_ensemble_argmax": {
+    "dev": 0.5392314361940086,
+    "test": 0.5587032045611012,
+    "desc": "Ensemble (avg logits), argmax"
+  },
+  "C_orig_threshold": {
+    "dev": 0.5504716946890679,
+    "test": 0.552554602964264,
+    "desc": "Gốc cls_only + threshold tuning"
+  },
+  "D_ensemble_threshold": {
+    "dev": 0.5743949383506937,
+    "test": 0.5650143652085673,
+    "desc": "Ensemble + threshold tuning (best kỳ vọng)"
+  }
+}
