@@ -160,4 +160,155 @@ Model code v2.4:
 
 ---
 
+## 8. Phương án post-processing: Ensemble + Threshold Tuning
+
+> **Mục tiêu:** Squeeze thêm F1 từ các model đã train, không cần train lại.
+> **Lý do hợp lệ:** Ensemble và threshold tuning là kỹ thuật chuẩn trong ML competition và production, không phải "gian lận" — chỉ là dùng thông tin từ dev set để calibrate model.
+
+---
+
+### 8.1 Tại sao Ensemble hoạt động
+
+Mỗi model train với hyperparameter khác nhau → hội tụ về **điểm khác nhau trong không gian tham số** → mỗi model mắc lỗi ở những sample/aspect khác nhau.
+
+Ví dụ minh hoạ với aspect `ROOMS#CLEANLINESS`:
+
+| Sample | Nhãn thật | Gốc cls_only | v2.4 cls_only | Ensemble |
+|---|---|---|---|---|
+| "Phòng hơi bẩn" | negative | **negative** ✅ | absent ❌ | **negative** ✅ |
+| "Phòng sạch sẽ" | positive | absent ❌ | **positive** ✅ | **positive** ✅ |
+| "KS tốt" | absent | **absent** ✅ | **absent** ✅ | **absent** ✅ |
+
+Kết hợp 2 model → sample 1 và 2 đều đúng thay vì chỉ đúng 1 trong 2.
+
+---
+
+### 8.2 Average Logits — cơ chế kỹ thuật
+
+Model không chỉ cho ra nhãn cuối mà cho ra **logits** — 4 số thô chưa qua softmax.
+
+```
+ROOMS#CLEANLINESS, sample "Phòng hơi bẩn":
+  Gốc cls_only: [absent=-2.1, positive=0.3, negative=3.5, neutral=0.1]  ← chắc negative
+  v2.4 cls_only: [absent= 1.2, positive=0.5, negative=1.8, neutral=0.2]  ← phân vân
+
+  Average logits: [(-2.1+1.2)/2, (0.3+0.5)/2, (3.5+1.8)/2, (0.1+0.2)/2]
+                = [-0.45, 0.40, 2.65, 0.15]
+  → argmax = negative ✅
+```
+
+**Tại sao average logits, không phải average probabilities (softmax)?**
+
+Softmax nén mọi thứ về [0,1] và mất thông tin về "model chắc chắn đến mức nào". Logit giữ nguyên scale → model chắc hơn (logit cách xa nhau hơn) được đóng góp nhiều hơn vào kết quả cuối. Đây là chuẩn thực hành trong NLP ensemble.
+
+---
+
+### 8.3 Threshold Tuning — cơ chế kỹ thuật
+
+Sau khi có `ensemble_logits [N, 34, 4]`, với mỗi sample và aspect:
+
+```
+softmax([absent=-0.45, positive=0.40, negative=2.65, neutral=0.15])
+= [p_absent=0.19, p_positive=0.22, p_negative=0.54, p_neutral=0.18]
+```
+
+**Quyết định mặc định:** nếu `p_absent < 0.50` → predict là present (lấy nhãn có p cao nhất trong 3 cái còn lại = negative).
+
+**Vấn đề:** Ngưỡng 0.5 là mặc định cứng, không phù hợp với từng aspect:
+- Aspect phổ biến (`SERVICE#GENERAL`, `LOCATION#GENERAL`): model tự tin, ngưỡng 0.5 ổn.
+- Aspect hiếm (`FACILITIES#MISCELLANEOUS`, `ROOMS#MISCELLANEOUS`): model luôn thiên về absent vì trong train set có rất ít mẫu present → cần **hạ ngưỡng** để bắt được nhiều hơn.
+
+**Cách tune:** Với mỗi aspect `i` trong 34:
+```
+for t in [0.30, 0.35, 0.40, ..., 0.95]:  # grid search
+    y_pred_i = nếu p_absent > t → predict absent
+               nếu p_absent ≤ t → predict argmax(p_pos, p_neg, p_neu) + 1
+    tính ACD F1 của aspect i trên dev set với ngưỡng t
+chọn t* = ngưỡng cho ACD F1 cao nhất trên dev set
+```
+
+Sau khi có 34 ngưỡng riêng `[t_0*, t_1*, ..., t_33*]`, apply lên **test set** để ra kết quả cuối.
+
+**Tại sao chỉ tune ACD (không tune SPC riêng)?**
+
+SPC chỉ được tính trên các sample đã được predict là present. Khi ta tune ngưỡng absent để bắt được nhiều present hơn (cải thiện ACD), model đồng thời phải dự đoán sentiment cho những sample đó → SPC tự nhiên được test trên tập rộng hơn. Tune SPC riêng phức tạp hơn nhiều mà gain không đáng kể.
+
+---
+
+### 8.4 Pipeline đầy đủ
+
+```
+Gốc cls_only              v2.4 cls_only
+(local: models_cls_only/) (cần download từ Kaggle)
+        ↓                          ↓
+  logits_A [N,34,4]        logits_B [N,34,4]   ← inference trên dev + test
+        ↓                          ↓
+        └──────── average ──────────┘
+                     ↓
+         ensemble_logits [N,34,4]
+                     ↓
+         softmax → p_absent per aspect
+                     ↓
+         grid search t ∈ [0.30..0.95] trên DEV set
+         → t* = [t_0*, ..., t_33*]   (34 ngưỡng riêng)
+                     ↓
+         apply t* lên TEST set
+                     ↓
+         y_pred_final [N,34]
+                     ↓
+         evaluate → Combined F1
+```
+
+---
+
+### 8.5 Các kịch bản so sánh
+
+Sẽ chạy 4 kịch bản để đánh giá đóng góp của từng kỹ thuật:
+
+| # | Kịch bản | Mô tả |
+|---|---|---|
+| 1 | **Baseline** | v2.4 cls_only, argmax thường (không ensemble, không tune) |
+| 2 | **+Threshold** | v2.4 cls_only + per-aspect threshold tuning trên dev |
+| 3 | **+Ensemble** | Average logits Gốc cls_only + v2.4 cls_only, argmax thường |
+| 4 | **+Ensemble+Threshold** | Average logits + per-aspect threshold tuning (kỳ vọng tốt nhất) |
+
+---
+
+### 8.6 Models sử dụng
+
+**Lý do chọn Gốc cls_only + v2.4 cls_only (không dùng v2.3):**
+
+| Model | Combined F1 (test) | LR | Optimizer | Diversity với v2.4 |
+|---|---|---|---|---|
+| Gốc cls_only | 0.5543 | 1e-4 | Adam | **Cao** (LR khác 3×, optimizer khác) |
+| v2.3 cls_only | 0.5247 | 2e-5 | AdamW+LLRD | Thấp (cùng AdamW, LR chỉ khác 1.5×) |
+| **v2.4 cls_only** | **0.5583** | 3e-5 | AdamW uniform | — (model chính) |
+
+→ Gốc cls_only cho diversity cao nhất với v2.4 (Adam vs AdamW, LR khác 3×) → ensemble hiệu quả hơn.
+
+**Lưu ý:** Gốc cls_only đã có local tại `outputs/results/week2_results_VNcoreNLP/models_cls_only/best_model.pt`. v2.4 cls_only cần download từ Kaggle output (`outputs/results_cls_only/best_model.pt`).
+
+---
+
+### 8.7 Điều kiện tiên quyết để implement
+
+1. Download `best_model.pt` của v2.4 cls_only từ Kaggle → đặt vào `outputs/results/week2_results_VNCoreNLP_version2.4/models_cls_only/best_model.pt`
+2. `data/*_preprocessed.csv` đã có sẵn local ✅
+3. Viết `code/week2/ensemble.py` — hàm `collect_logits()` trả về `[N, 34, 4]` (run_epoch hiện chỉ thu thập argmax preds, không có raw logits)
+
+---
+
+### 8.8 Kỳ vọng thực tế
+
+| Phương án | Combined F1 ước tính | Lý do |
+|---|---|---|
+| v2.4 cls_only baseline | 0.5583 | đã đo |
+| + Threshold only | ~0.563–0.568 | tune ngưỡng rare aspects |
+| + Ensemble only | ~0.565–0.572 | diversity giữa 2 model |
+| **+ Ensemble + Threshold** | **~0.570–0.580** | kết hợp cả hai |
+
+Không kỳ vọng vượt 0.60 vì ceiling PhoBERT base trên 3000 samples đã gần chạm. Nhưng đây là cách hợp lệ để báo cáo kết quả tốt nhất có thể với tài nguyên hiện có.
+
+---
+
 *Cập nhật: 06/04/2026 | v2.4 chạy trên Kaggle T4 GPU*
