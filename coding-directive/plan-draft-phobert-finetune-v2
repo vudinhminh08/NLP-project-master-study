@@ -311,4 +311,123 @@ Không kỳ vọng vượt 0.60 vì ceiling PhoBERT base trên 3000 samples đã
 
 ---
 
+---
+
+## 9. So sánh với các model khác (căn cứ báo cáo)
+
+### 9.1 visolex/phobert-v1-absa-hotel (HuggingFace)
+> Link: https://huggingface.co/visolex/phobert-v1-absa-hotel
+
+**Kết quả của họ:**
+
+| Metric | Giá trị | Ghi chú |
+|---|---|---|
+| Accuracy | 0.9529 | **Inflate bởi absent** — 85% nhãn là absent, predict absent hết cũng đạt 0.85 |
+| Weighted-F1 | 0.7703 | **Inflate** — nhân F1 với số lượng sample, absent chiếm đa số kéo lên |
+| **Macro-F1** | **0.5294** | Số thực sự so sánh được — thấp hơn v2.4 của chúng ta |
+| Macro-Precision | 0.7967 | — |
+| Macro-Recall | 0.4384 | Rất thấp — model bỏ sót nhiều aspect |
+
+**Config:**
+- Base model: PhoBERT **v1** (chúng ta dùng v2 — tốt hơn)
+- LR: 3e-5, Batch: 32, Epochs: 100, AdamW, seq_len=256
+
+**Kết luận so sánh:**
+- Accuracy 0.95 và Weighted-F1 0.77 trông ấn tượng nhưng bị inflate bởi class imbalance
+- **Macro-F1 thực = 0.5294 < v2.4 của chúng ta (0.5583)**
+- Chúng ta dùng PhoBERT v2 (tốt hơn v1), họ không công bố ACD/SPC riêng nên không so sánh trực tiếp được
+- **→ Chúng ta tốt hơn model này**
+
+---
+
+### 9.2 ds4v/absa-vlsp-2018 — SOTA Huynh et al. (IEEE MAPR 2022)
+> Link: https://github.com/ds4v/absa-vlsp-2018
+
+**Kết quả của họ:**
+
+| Model | ACD F1 | Combined F1 | Ghi chú |
+|---|---|---|---|
+| **ds4v v1 (multi-task concat)** | **0.8255** | **0.7732** | SOTA — architecture v1 |
+| ds4v v2 (multi-branch riêng) | ~0.55 | ~0.55 | Kém hơn v1 rất nhiều |
+| **v2.4 của chúng ta** | **0.6265** | **0.5583** | Gap ~22% so với SOTA |
+
+**Cùng dataset:** 3000 train / 2000 dev / 600 test — không dùng data augmentation.
+
+**Config thực tế của ds4v v1:**
+
+| Tham số | ds4v | v2.4 của chúng ta |
+|---|---|---|
+| Base model | PhoBERT **v1** (base) | PhoBERT **v2** (base) |
+| LR schedule | Warmup 1e-4 → 2e-4 (15% steps) → decay về 1e-5 | Cosine warmup flat 3e-5 |
+| Batch | 25 | 16 |
+| Epochs | 20, early_stop patience=**3** | 35, patience=7 |
+| Seq len | 256 | 256 |
+| Preprocessing | VnCoreNLP **strict** + error correction | VnCoreNLP + underthesea fallback |
+| Loss | **Binary crossentropy trên flat 136-dim** | Cross entropy 34 heads riêng |
+
+**Phát hiện quan trọng nhất — Loss function khác nhau:**
+
+ds4v v1 dùng kiến trúc "concatenated output":
+- 34 heads × softmax(4) → concat thành vector 136 chiều
+- Binary crossentropy trên toàn bộ 136 outputs
+- Softmax trong mỗi head đảm bảo 4 class mutually exclusive
+
+ds4v v2 dùng "multi-branch riêng" (giống chúng ta):
+- 34 cross_entropy loss riêng biệt
+- Kết quả: **~55% Combined F1 — tương đương chúng ta!**
+
+**→ Kết luận then chốt: Kiến trúc loss "flat binary_crossentropy" của v1 có thể là lý do chính tạo ra gap 22%.** Không phải hyperparameter, không phải data augmentation, không phải ensemble.
+
+**Lý do kỹ thuật tại sao flat BCE có thể tốt hơn:**
+Khi concat 34 softmax outputs thành 136-dim và dùng BCE, gradient từ mỗi aspect chảy qua **cùng một loss node** → model học được mối quan hệ giữa các aspects (ví dụ: nếu ROOMS#CLEANLINESS = positive thì ROOMS#GENERAL có xu hướng positive). 34 cross_entropy riêng biệt không học được correlations này.
+
+**Các yếu tố khác góp phần vào gap:**
+
+| Yếu tố | Ảnh hưởng ước tính | Ghi chú |
+|---|---|---|
+| Loss architecture (flat BCE vs separate CE) | **+10–15%** | Lý do chính — v2 của ds4v chỉ đạt 55% |
+| VnCoreNLP strict + error correction | +2–4% | Họ dùng bmd1905/vietnamese-correction-v2 trước segmentation |
+| LR warmup schedule (1e-4 → 2e-4 → decay) | +2–3% | Agressive warmup và decay |
+| Early stopping patience=3 (vs 7) | +1–2% | Stop sớm hơn, tránh overfit |
+| PhoBERT v1 vs v2 | ~0% | v2 không nhất thiết tốt hơn nhiều cho task này |
+
+---
+
+### 9.3 Hướng implement để cải thiện (tham khảo từ ds4v)
+
+Dựa trên phân tích, thứ tự ưu tiên để đạt 0.65+:
+
+**Ưu tiên 1 — Thử flat BCE architecture (kỳ vọng +8-12%):**
+```python
+# Thay vì: 34 × F.cross_entropy riêng
+# Dùng: concat 34 softmax outputs → BCE trên 136-dim
+import torch.nn.functional as F
+
+# Trong forward():
+probs = torch.cat([F.softmax(logit, dim=-1) for logit in logits], dim=-1)  # [batch, 136]
+flat_labels = F.one_hot(labels, num_classes=4).float().view(batch, -1)      # [batch, 136]
+loss = F.binary_cross_entropy(probs, flat_labels)
+```
+Thay đổi nhỏ trong `model.py`, không đổi architecture, không cần train infrastructure mới.
+
+**Ưu tiên 2 — VnCoreNLP strict (không fallback) + error correction (+2-4%):**
+- Hiện tại preprocessing có fallback về underthesea khi VnCoreNLP fail
+- Cần đảm bảo 100% sample đi qua VnCoreNLP trên Kaggle
+- Thêm error correction: `bmd1905/vietnamese-correction-v2` trước segmentation
+
+**Ưu tiên 3 — LR schedule agressive warmup (+1-2%):**
+```python
+# Thay cosine warmup flat bằng warmup-then-decay của ds4v
+initial_lr = 1e-4
+warmup_target = 2e-4   # peak
+alpha = 0.1            # min LR = 1e-5 = 0.1 × 1e-4
+```
+
+**Ưu tiên 4 — Early stopping patience=3 thay vì 7:**
+- Giảm overfitting, stop sớm hơn khi dev không cải thiện
+
+**Nếu implement cả 4 ưu tiên → kỳ vọng Combined F1 ~0.63–0.68.**
+
+---
+
 *Cập nhật: 06/04/2026 | v2.4 chạy trên Kaggle T4 GPU*
