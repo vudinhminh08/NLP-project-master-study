@@ -225,42 +225,14 @@ def train(
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
-    # === Optimizer: AdamW + Layer-wise LR Decay (LLRD) ===
-    # Research: Revisiting Few-sample BERT Fine-tuning (2020)
-    # Lower BERT layers giữ pretrained knowledge → LR thấp hơn
-    # Upper BERT layers adapt task-specific → LR cao hơn
-    base_lr     = config["learning_rate"]   # 2e-5
-    head_lr     = base_lr * 10              # 2e-4 cho classification heads
-    llrd_factor = 0.9                       # LR giảm 10% mỗi layer từ trên xuống
-
-    num_layers     = model.phobert.config.num_hidden_layers  # 12 cho phobert-base
-    encoder_params = []
-
-    for layer_idx in range(num_layers - 1, -1, -1):
-        layer_lr = base_lr * (llrd_factor ** (num_layers - 1 - layer_idx))
-        layer_params = [
-            p for n, p in model.phobert.named_parameters()
-            if f"encoder.layer.{layer_idx}." in n and p.requires_grad
-        ]
-        if layer_params:
-            encoder_params.append({"params": layer_params, "lr": layer_lr, "weight_decay": 0.01})
-
-    embedding_params = [
-        p for n, p in model.phobert.named_parameters()
-        if "embeddings" in n and p.requires_grad
-    ]
-    if embedding_params:
-        encoder_params.append({
-            "params": embedding_params,
-            "lr": base_lr * (llrd_factor ** num_layers),
-            "weight_decay": 0.01,
-        })
-
-    head_params = [p for n, p in model.named_parameters()
-                   if "phobert" not in n and p.requires_grad]
-
+    # === Optimizer: AdamW uniform LR (v2.4 — bỏ LLRD) ===
+    # LLRD với factor=0.9 làm lower layers LR=3e-5×0.9^12≈8.5e-6 → quá thấp
+    # Kết quả thực nghiệm: LLRD không cải thiện, thậm chí kém hơn model gốc
+    # → Dùng uniform LR cho toàn bộ encoder + heads
     optimizer = AdamW(
-        encoder_params + [{"params": head_params, "lr": head_lr, "weight_decay": 0.0}],
+        model.parameters(),
+        lr=config["learning_rate"],
+        weight_decay=0.01,
         eps=1e-8,
     )
 

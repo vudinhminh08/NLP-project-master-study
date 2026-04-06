@@ -149,12 +149,12 @@ class ABSAPhoBERT(nn.Module):
                     loss_i = F.cross_entropy(
                         logit, labels[:, i],
                         weight=class_weights[i],
-                        label_smoothing=0.1,
+                        label_smoothing=0.05,  # v2.4: 0.1 → 0.05, rare aspects cần signal rõ hơn
                     )
                 else:
                     loss_i = F.cross_entropy(
                         logit, labels[:, i],
-                        label_smoothing=0.1,
+                        label_smoothing=0.05,
                     )
                 losses.append(loss_i)
             loss = torch.stack(losses).mean()

@@ -93,18 +93,18 @@ DEFAULT_ENCODER = "concat_4_layers"  # Theo SOTA ds4v
 
 # ─── Training Hyperparameters — Cập nhật từ EDA thực tế ───────────────────────
 TRAIN_CONFIG = {
-    "learning_rate":           2e-5,      # ds4v: 1e-4 → fixed to 2e-5
+    "learning_rate":           3e-5,      # v2.4: 2e-5 → 3e-5, bỏ LLRD → uniform LR
     "warmup_ratio":            0.15,      # ds4v: 15% warmup
     "batch_size":              16,        # seq_len=256 → có thể dùng batch=16
     "grad_accumulation_steps": 1,
     "max_epochs":              35,        # tăng từ 20: model chưa converge ở epoch 20
     "early_stop_patience":     7,
     "dropout":                 0.2,       # ds4v: 0.2
-    "optimizer":               "AdamW",   # ds4v: Adam → fixed to AdamW
+    "optimizer":               "AdamW",   # AdamW uniform (không còn LLRD)
     "scheduler":               "cosine_warmup",
     "seed":                    42,
     "max_seq_len":             256,  # PhoBERT base max_position_embeddings=258, hard limit
     "weight_clip":             10.0,
-    "encoder_option":          "concat_4_layers",
+    "encoder_option":          "cls_only",  # v2.4: cls_only consistently tốt hơn concat
     "max_grad_norm":           1.0,
 }
