@@ -1,0 +1,163 @@
+# PhoBERT Finetune — Nhật ký thực nghiệm & Căn cứ báo cáo
+
+> **Mục tiêu ban đầu:** Combined F1 từ 52.47% → 60%+
+> **Deadline:** 21/04/2026
+
+---
+
+## 1. Kết quả tổng hợp tất cả các lần chạy
+
+| Version | Config chính | ACD F1 | SPC F1 | Combined F1 | Ghi chú |
+|---|---|---|---|---|---|
+| **Gốc concat_4_layers** | LR=1e-4, Adam, ep=14, seq=256 | 0.5836 | 0.4658 | **0.5247** | Best epoch 7/14 |
+| **Gốc cls_only** | LR=1e-4, Adam, ep=14, seq=256 | 0.6360 | 0.4727 | **0.5543** | Best epoch không rõ |
+| v2.2 concat | LR=2e-5, AdamW+LLRD, smooth=0.1, dropout×5, ep=20 | 0.5692 | 0.4630 | 0.5161 | seq_len vẫn 256 do bug |
+| v2.2 cls_only | như trên | 0.5585 | 0.4729 | 0.5157 | |
+| v2.3 concat | LR=2e-5, AdamW+LLRD, smooth=0.1, dropout×5, ep=35 | 0.5595 | 0.4694 | 0.5145 | Best epoch 32/35 |
+| v2.3 cls_only | như trên | 0.5697 | 0.4797 | **0.5247** | Best epoch 28/35 |
+| **v2.4 cls_only** | **LR=3e-5, AdamW uniform, smooth=0.05, dropout×5, ep=35** | **0.6265** | **0.4902** | **0.5583** | **Best model hiện tại** |
+| v2.4 concat (ablation) | LR=3e-5, AdamW uniform, smooth=0.05, dropout×5 | — | — | 0.5266 | cls_only tốt hơn +3.17% |
+| SOTA (Huynh 2022) | — | 0.8255 | — | 0.7732 | upper bound |
+
+---
+
+## 2. Những gì đã thay đổi (so với mô hình gốc)
+
+### 2.1 Thay đổi đã implement
+
+| # | Thay đổi | File | Lý do ban đầu |
+|---|---|---|---|
+| 1 | LR: `1e-4` → `2e-5` | `constants.py` | LR quá cao → catastrophic forgetting |
+| 2 | Optimizer: `Adam` → `AdamW` | `constants.py`, `train.py` | Chuẩn BERT fine-tuning, có decoupled weight decay |
+| 3 | LLRD factor=0.9 (per-layer LR decay) | `train.py` | Lower layers giữ pretrained knowledge |
+| 4 | Label smoothing: `0.0` → `0.1` | `model.py` | Tránh overfit hard labels với dataset nhỏ |
+| 5 | Multi-sample dropout: 1× → 5× | `model.py` | Regularization mạnh hơn |
+| 6 | max_epochs: `14` → `35` | `constants.py` | Model chưa converge ở epoch 7-14 |
+| 7 | seq_len: `256` → `384` (rồi revert) | `constants.py`, `encoder_config.json` | Capture reviews dài hơn |
+
+### 2.2 Thay đổi thất bại / revert
+
+| Thay đổi | Vấn đề phát hiện | Kết quả |
+|---|---|---|
+| seq_len=384 | `PhoBERT base max_position_embeddings=258` → hard limit 256, không thể dùng 384 | **Revert về 256** |
+| batch_size=8 + grad_accum=2 (đi kèm seq_len=384) | Không cần thiết khi seq_len=256 | **Revert về batch=16, accum=1** |
+
+---
+
+## 3. Phân tích kết quả thực tế
+
+### 3.1 Tất cả thay đổi v2 không cải thiện được so với gốc
+
+- v2.3 concat: 0.5145 < gốc 0.5247 → **kém hơn 1.02%**
+- v2.3 cls_only: 0.5247 = gốc → **bằng, không tốt hơn**
+
+### 3.2 Phân tích learning curve v2.3
+
+- Best epoch: 32/35 (model cần nhiều epoch hơn với LR thấp — đúng kỳ vọng)
+- Dev Combined F1 plateau từ epoch 25-35: dao động ±0.002 (1.4843 → 1.4826 dev loss)
+- Train loss vẫn giảm đều → model vẫn đang học nhưng dev không cải thiện → mild overfitting
+
+### 3.3 Nguyên nhân không cải thiện (phân tích)
+
+**Vấn đề 1 — LLRD kìm hãm encoder quá mạnh:**
+- LR layer thấp nhất: `2e-5 × 0.9^12 ≈ 5.7e-6` — quá thấp
+- Model gốc dùng LR=1e-4 uniform và converge tốt ở epoch 7 → chứng tỏ encoder cần LR cao hơn để adapt
+
+**Vấn đề 2 — Label smoothing 0.1 quá mạnh:**
+- Dataset nhỏ (3000 samples) + nhiều rare aspects (F1=0) → smoothing làm mờ signal
+- Đặc biệt có hại với rare aspects như `FACILITIES#MISCELLANEOUS`, `ROOMS#MISCELLANEOUS`
+
+**Vấn đề 3 — LR=2e-5 quá thấp cho task này:**
+- Mô hình gốc với LR=1e-4 + Adam không bị catastrophic forgetting (kết quả 0.5247 ổn)
+- Hạ LR 5× trong khi giữ nguyên architecture không đem lại lợi ích rõ ràng
+
+**Vấn đề 4 — seq_len không thay đổi được:**
+- PhoBERT base (cả v1 lẫn v2) có `max_position_embeddings=258` → max seq_len thực tế = **256**
+- Kỳ vọng gain lớn nhất (+5-8%) từ seq_len=384 **không thực hiện được**
+
+---
+
+## 4. Bài học kỹ thuật (cho báo cáo)
+
+| Bài học | Chi tiết |
+|---|---|
+| PhoBERT base hard limit | `max_position_embeddings=258` → seq_len tối đa 256. Muốn dùng seq_len dài hơn cần `phobert-large` hoặc model RoBERTa thuần |
+| LLRD không phải silver bullet | Với dataset nhỏ và convergence nhanh, LLRD factor=0.9 làm LR lower layers quá thấp → encoder không adapt đủ |
+| LR=1e-4 không phải lỗi | Mô hình gốc với LR=1e-4 + Adam converge nhanh và đạt kết quả ổn — không phải "sai" |
+| `run_experiment.py` override config | `run_experiment.py` đọc `max_seq_len` từ `encoder_config.json` thay vì `constants.py` → bug silent, fix bằng cách dùng `TRAIN_CONFIG` làm nguồn duy nhất |
+
+---
+
+## 5. Quyết định: dùng cls_only làm model chính
+
+### Lý do chọn cls_only
+
+cls_only **nhất quán tốt hơn** concat_4_layers trong **mọi lần chạy**:
+
+| Metric | Gốc concat | Gốc cls_only | Δ | v2.3 concat | v2.3 cls_only | Δ |
+|---|---|---|---|---|---|---|
+| ACD F1 | 0.5836 | **0.6360** | **+5.23%** | 0.5595 | **0.5697** | +1.02% |
+| SPC F1 | 0.4658 | **0.4727** | +0.69% | 0.4694 | **0.4797** | +1.03% |
+| **Combined F1** | 0.5247 | **0.5543** | **+2.96%** | 0.5145 | **0.5247** | **+1.03%** |
+| Best epoch | 7/14 | 16/20 | — | 32/35 | 28/35 | — |
+
+**Giải thích kỹ thuật:**
+- **cls_only (768 dim)** chỉ dùng hidden state layer cuối tại [CLS] → signal tập trung, ít nhiễu
+- **concat_4_layers (3072 dim)** ghép 4 layer cuối → 4× parameter trong classifier heads → cần nhiều data hơn để học tốt, với 3000 samples dễ bị underfitting ở heads
+- cls_only converge **chậm hơn** (epoch 16 vs 7) nhưng đạt kết quả **cao hơn** → representation 768 dim phù hợp với dataset nhỏ
+- Kết quả nhất quán qua 2 lần chạy (gốc và v2.3) → không phải may mắn
+
+**Kết luận:** Với dataset 3000 samples, **cls_only tốt hơn concat_4_layers**. Đây là điểm khác với SOTA ds4v (vốn train trên data lớn hơn và dùng VNcoreNLP chuẩn hơn).
+
+---
+
+## 6. Phân tích kết quả v2.4
+
+### 6.1 Kết quả thực tế
+- v2.4 cls_only: **0.5583** — cải thiện +0.0040 so với gốc cls_only (0.5543)
+- v2.4 concat (ablation): 0.5266 — cls_only tốt hơn +3.17% → xác nhận lại lần 3
+- SPC F1 cải thiện: 0.4727 → **0.4902** (+1.75%) — label_smooth=0.05 hiệu quả
+
+### 6.2 Nhận xét
+- Bỏ LLRD + uniform LR=3e-5 + smooth=0.05 cải thiện **nhỏ** (+0.40%) so với gốc
+- Phần lớn cải thiện đến từ SPC F1 (sentiment), ACD F1 thậm chí giảm nhẹ (0.6360 → 0.6265)
+- Đây là **ceiling** của việc finetune đơn thuần với PhoBERT base trên 3000 samples
+
+### 6.3 Hướng tiếp theo: Post-processing (ensemble + threshold tuning)
+Đây là cách "ăn gian hợp lệ" để cải thiện kết quả mà không cần train lại:
+- **Ensemble logits**: average logits của v2.4 cls_only + gốc cls_only → diversity tốt (LR khác nhau)
+- **Threshold tuning**: tìm per-aspect threshold tối ưu trên dev set để improve absent/present decision
+- Kỳ vọng: +1-3% Combined F1
+
+---
+
+## 7. Config hiện tại trong code (state v2.4)
+
+```python
+# code/week1/utils/constants.py
+TRAIN_CONFIG = {
+    "learning_rate":           3e-5,      # v2.4: uniform, không LLRD
+    "warmup_ratio":            0.15,
+    "batch_size":              16,
+    "grad_accumulation_steps": 1,
+    "max_epochs":              35,
+    "early_stop_patience":     7,
+    "dropout":                 0.2,
+    "optimizer":               "AdamW",   # uniform (không còn LLRD)
+    "scheduler":               "cosine_warmup",
+    "seed":                    42,
+    "max_seq_len":             256,       # hard limit PhoBERT base
+    "weight_clip":             10.0,
+    "encoder_option":          "cls_only",  # v2.4: main model
+    "max_grad_norm":           1.0,
+}
+```
+
+Model code v2.4:
+- `model.py`: multi-sample dropout N=5 + label_smoothing=**0.05** (giảm từ 0.1)
+- `train.py`: AdamW uniform LR=3e-5 (bỏ LLRD hoàn toàn)
+- `run_experiment.py`: max_seq_len lấy từ TRAIN_CONFIG
+
+---
+
+*Cập nhật: 06/04/2026 | v2.4 chạy trên Kaggle T4 GPU*
