@@ -12,6 +12,14 @@ Version 2.4:
     - Flat BCE (v2.5) đã thử và revert: BCE + class weights không tương thích
       do weight semantics khác nhau (BCE penalize mọi position, không chỉ true class)
       → SPC F1 sụp đổ từ 0.49 → 0.36 vì model bias về absent
+
+Version 2.6 (Focal Loss):
+    - Thay cross_entropy bằng focal loss (γ=2)
+    - Focal loss = -(1-p_true)^γ × log(p_true)
+    - Khi model đã chắc (p_true cao → easy sample): (1-p)^2 nhỏ → loss nhỏ
+    - Khi model sai (p_true thấp → hard sample): (1-p)^2 ≈ 1 → loss giữ nguyên
+    - Focus gradient vào rare aspects thay vì lãng phí vào absent (85% dataset)
+    - Tương thích hoàn toàn với class weights hiện tại (cùng semantics với CE)
 """
 
 import torch
@@ -43,10 +51,12 @@ class ABSAPhoBERT(nn.Module):
         num_labels: int = 4,
         dropout: float = 0.2,
         encoder_option: str = "concat_4_layers",
+        focal_gamma: float = 2.0,
     ) -> None:
         super().__init__()
         self.encoder_option = encoder_option
         self.num_aspects    = num_aspects
+        self.focal_gamma    = focal_gamma
         self.num_labels     = num_labels
 
         # PhoBERT — cần output_hidden_states=True để lấy 4 layers cuối
@@ -143,22 +153,45 @@ class ABSAPhoBERT(nn.Module):
             cls_repr = self.dropout(cls_repr)
             logits = [clf(cls_repr) for clf in self.classifiers]  # 34 × [batch, 4]
 
-        # === Loss: 34 × weighted cross_entropy (v2.4) ===
+        # === Loss: 34 × weighted Focal Loss (v2.6) ===
+        # Focal loss = -w_c × (1 - p_true)^γ × log(p_true)
+        # γ=2: down-weight easy samples (absent đã đúng),
+        #       focus gradient vào hard/rare aspects
+        #
+        # Implementation đúng:
+        #   1. log_softmax → lấy log(p_true) per sample qua gather
+        #   2. p_true = exp(log_p_true) — xác suất raw của đúng class
+        #   3. focal_factor = (1 - p_true)^γ
+        #   4. sample_w = class_weight[true_class] per sample
+        #   5. loss = mean(sample_w × focal_factor × (-log_p_true))
+        # Cách này đảm bảo focal_loss ≤ CE và semantics weight đúng như CE
         loss = None
         if labels is not None:
             losses = []
             for i, logit in enumerate(logits):
+                lbl = labels[:, i]                                    # [batch]
+                log_probs = F.log_softmax(logit, dim=-1)              # [batch, 4]
+
+                # log(p_true) và p_true
+                log_p_true = log_probs.gather(1, lbl.unsqueeze(1)).squeeze(1)  # [batch]
+                p_true     = log_p_true.exp()                         # [batch]
+
+                # Focal factor: (1 - p_true)^γ
+                focal_factor = (1.0 - p_true.detach()) ** self.focal_gamma  # [batch]
+
+                # CE per-sample (không weight, không smoothing) = -log_p_true
+                ce_per_sample = -log_p_true                           # [batch]
+
+                # Apply class weight per sample: w[true_class]
+                # Normalize bằng sum(weights) để khớp với F.cross_entropy(weight=w)
+                # PyTorch CE: mean = sum(w[c] * loss) / sum(w[c]), không chia batch_size
                 if class_weights is not None:
-                    loss_i = F.cross_entropy(
-                        logit, labels[:, i],
-                        weight=class_weights[i],
-                        label_smoothing=0.05,
-                    )
+                    sample_w = class_weights[i][lbl]                  # [batch]
+                    weighted = sample_w * focal_factor * ce_per_sample
+                    loss_i   = weighted.sum() / sample_w.sum().clamp(min=1e-8)
                 else:
-                    loss_i = F.cross_entropy(
-                        logit, labels[:, i],
-                        label_smoothing=0.05,
-                    )
+                    loss_i = (focal_factor * ce_per_sample).mean()
+
                 losses.append(loss_i)
             loss = torch.stack(losses).mean()
 
