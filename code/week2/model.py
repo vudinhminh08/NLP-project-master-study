@@ -6,9 +6,15 @@ Kiến trúc theo ds4v (Huynh et al. IEEE MAPR 2022):
     → [batch, 3072] → Dropout(0.2)
     → 34 × Linear(3072, 4) song song
 
-Version 2:
-    - Dùng F.cross_entropy(weight=...) đúng spec → xử lý class imbalance
-    - Bỏ FocalLoss (thêm complexity không cần thiết)
+Version 2.5 (Flat BCE Loss):
+    - Loss: flat binary_crossentropy trên concatenated softmax outputs [batch, 136]
+      thay vì 34 cross_entropy riêng biệt
+    - Lý do: ds4v v1 dùng kiến trúc này → Combined F1 0.7732, trong khi v2 (separate heads)
+      chỉ đạt ~0.55 — cùng dataset, cùng architecture, chỉ khác loss formulation
+    - Cơ chế: gradient từ 1 loss node chảy qua tất cả 34 heads → model học được
+      correlation giữa các aspects (nếu ROOMS#CLEANLINESS positive thì ROOMS#GENERAL
+      có xu hướng positive). 34 CE riêng không học được điều này.
+    - Class weights vẫn giữ nguyên: build weight vector [136] từ per-aspect weights
 """
 
 import torch
@@ -140,24 +146,32 @@ class ABSAPhoBERT(nn.Module):
             cls_repr = self.dropout(cls_repr)
             logits = [clf(cls_repr) for clf in self.classifiers]  # 34 × [batch, 4]
 
-        # === Loss (chỉ tính khi có labels) ===
+        # === Loss: Flat BCE (ds4v v1 architecture) ===
+        # Thay vì 34 cross_entropy riêng biệt, concat tất cả softmax outputs
+        # thành vector 136-dim rồi dùng binary_crossentropy.
+        # Gradient chảy qua 1 loss node → model học correlation giữa aspects.
         loss = None
         if labels is not None:
-            losses = []
-            for i, logit in enumerate(logits):
-                if class_weights is not None:
-                    loss_i = F.cross_entropy(
-                        logit, labels[:, i],
-                        weight=class_weights[i],
-                        label_smoothing=0.05,  # v2.4: 0.1 → 0.05, rare aspects cần signal rõ hơn
-                    )
-                else:
-                    loss_i = F.cross_entropy(
-                        logit, labels[:, i],
-                        label_smoothing=0.05,
-                    )
-                losses.append(loss_i)
-            loss = torch.stack(losses).mean()
+            # [batch, 136] — concat softmax probs của 34 heads
+            probs = torch.cat(
+                [F.softmax(logit, dim=-1) for logit in logits], dim=-1
+            ).clamp(1e-7, 1 - 1e-7)  # clamp tránh log(0) trong BCE
+
+            # [batch, 34, 4] → [batch, 136] — one-hot flat labels
+            flat_labels = F.one_hot(labels, num_classes=self.num_labels).float().view(
+                labels.size(0), -1
+            )
+
+            if class_weights is not None:
+                # Build weight vector [136] = concat của 34 × [4] per-aspect weights
+                # Broadcast lên [batch, 136] để apply cho từng sample
+                weight_vec = torch.cat(class_weights, dim=0)  # [136]
+                loss = F.binary_cross_entropy(
+                    probs, flat_labels,
+                    weight=weight_vec.unsqueeze(0).expand_as(probs),
+                )
+            else:
+                loss = F.binary_cross_entropy(probs, flat_labels)
 
         # === Predictions ===
         preds = torch.stack(
