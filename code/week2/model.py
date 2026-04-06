@@ -153,9 +153,10 @@ class ABSAPhoBERT(nn.Module):
         loss = None
         if labels is not None:
             # [batch, 136] — concat softmax probs của 34 heads
+            # .float() bắt buộc: F.binary_cross_entropy không tương thích với AMP float16
             probs = torch.cat(
                 [F.softmax(logit, dim=-1) for logit in logits], dim=-1
-            ).clamp(1e-7, 1 - 1e-7)  # clamp tránh log(0) trong BCE
+            ).clamp(1e-7, 1 - 1e-7).float()
 
             # [batch, 34, 4] → [batch, 136] — one-hot flat labels
             flat_labels = F.one_hot(labels, num_classes=self.num_labels).float().view(
@@ -164,8 +165,7 @@ class ABSAPhoBERT(nn.Module):
 
             if class_weights is not None:
                 # Build weight vector [136] = concat của 34 × [4] per-aspect weights
-                # Broadcast lên [batch, 136] để apply cho từng sample
-                weight_vec = torch.cat(class_weights, dim=0)  # [136]
+                weight_vec = torch.cat(class_weights, dim=0).float()  # [136]
                 loss = F.binary_cross_entropy(
                     probs, flat_labels,
                     weight=weight_vec.unsqueeze(0).expand_as(probs),
