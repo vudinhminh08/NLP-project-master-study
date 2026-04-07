@@ -1,0 +1,1862 @@
+[
+  {
+    "review": "Khách sạn có hồ bơi rất đẹp, sảnh chờ rộng rãi và thoải mái, mình cảm thấy rất thích khi ngồi ở đây. Nhân viên nhiệt tình lắm, phòng cũng sạch sẽ nữa.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive",
+      "ROOMS#CLEANLINESS": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình khá ấn tượng với gym của khách sạn, trang thiết bị hiện đại và đầy đủ. Hồ bơi thì hơi nhỏ nhưng nước sạch, rất thích hợp để thư giãn.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "FACILITIES#QUALITY": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có thang máy khá chậm và không đủ, để đi lên phòng mất khá nhiều thời gian. Nhưng bù lại phòng ốc sạch sẽ.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "negative",
+      "ROOMS#CLEANLINESS": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Tiện nghi khách sạn cũng bình thường, không có gì đặc sắc lắm. Hồ bơi thì nhìn ổn nhưng không có thời gian thử nghiệm. Phòng cũng sạch sẽ thôi.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "neutral",
+      "ROOMS#CLEANLINESS": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Hồ bơi hơi nhỏ nhưng sạch sẽ, sảnh thì rộng rãi. Nhân viên phục vụ nhanh nhẹn, hỗ trợ khách rất nhiệt tình.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive",
+      "HOTEL#GENERAL": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có bể bơi lớn và sạch sẽ, rất thích hợp cho gia đình. Sảnh tiếp khách rộng rãi và thoải mái, nhân viên cũng rất nhiệt tình.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Hồ bơi hơi nhỏ nhưng sạch sẽ, không gian chung thì đẹp và thoải mái. Mình cũng thích phòng gym, tuy nhiên hơi ít máy tập.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "FACILITIES#COMFORT": "neutral"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có đầy đủ các tiện nghi như hồ bơi, gym nhưng không có gì nổi bật. Mình cũng không sử dụng hết các dịch vụ ở đây.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "neutral"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình khá thất vọng với bể bơi, nước thì không được sạch cho lắm và không gian xung quanh cũng không được chăm sóc cẩn thận.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "negative",
+      "FACILITIES#CLEANLINESS": "negative"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Hồ bơi thì nhỏ nhưng khá sạch, sảnh khách sạn rộng rãi và thoải mái. Nhân viên phục vụ cũng nhanh nhẹn và thân thiện.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có hồ bơi cực đẹp, nước trong xanh và sạch sẽ. Sảnh tiếp khách thoải mái, mình thích ngồi ở đây đọc sách. Nhân viên phục vụ rất nhiệt tình.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình rất thích khu vực gym của khách sạn, trang thiết bị hiện đại và đầy đủ. Hồ bơi thì hơi nhỏ nhưng sạch sẽ, thoải mái cho việc thư giãn.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "FACILITIES#COMFORT": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có một sảnh rất rộng rãi nhưng có vẻ hơi cũ kỹ. Hồ bơi thì sạch sẽ, nhưng không có gì nổi bật. Nói chung là ổn.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "neutral",
+      "FACILITIES#DESIGN&FEATURES": "neutral"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình không hài lòng với hồ bơi, nó khá bẩn và xung quanh thì không được chăm sóc tốt. Dịch vụ cũng chưa thực sự tốt như kỳ vọng.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "negative",
+      "HOTEL#QUALITY": "negative"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Sảnh khách sạn rất thoáng đãng và dễ chịu. Hồ bơi thì nhỏ nhưng sạch, mình cũng không có thời gian để thử gym.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "FACILITIES#CLEANLINESS": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có hồ bơi rất đẹp và sạch sẽ, mình đã có những giây phút thư giãn tuyệt vời bên hồ. Sảnh tiếp khách rộng rãi và nhân viên rất thân thiện, phục vụ nhanh chóng.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Hồ bơi hơi nhỏ nhưng nước rất sạch và có khu vực cho trẻ em chơi. Nhân viên ở đây cũng chu đáo nữa, mình thấy thoải mái khi sử dụng các tiện nghi chung.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có nhiều tiện nghi như hồ bơi, gym nhưng không có gì đặc sắc lắm. Sảnh tiếp khách khá thoáng nhưng mà mình thấy hơi cũ.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "neutral",
+      "FACILITIES#GENERAL": "neutral"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình không hài lòng với khu vực hồ bơi, nước không được sạch lắm và không gian cũng thiếu chăm sóc. Nhân viên thì không nhiệt tình cho lắm.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "negative",
+      "SERVICE#GENERAL": "negative"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Hồ bơi khá rộng rãi và sạch sẽ, mình thực sự thích không gian ở đây. Sảnh cũng rất thoải mái, thích hợp để ngồi thư giãn và đọc sách.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "FACILITIES#COMFORT": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có hồ bơi rất đẹp, mình đã có những phút giây thư giãn tuyệt vời bên hồ. Gym cũng được trang bị đầy đủ, nhân viên thì nhiệt tình và vui vẻ.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Sảnh tiếp khách rộng rãi, thoải mái, nhưng hồ bơi thì hơi nhỏ. Mình nghĩ nếu có thêm một vài ghế tắm nắng thì sẽ tuyệt hơn nhiều.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "FACILITIES#COMFORT": "neutral"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Hồ bơi sạch sẽ, nhưng không có gì đặc sắc lắm. Mình thấy khu vực gym hơi chật chội, không đủ không gian cho mọi người tập.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "FACILITIES#COMFORT": "neutral"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình hơi thất vọng với hồ bơi, nước không được trong và xung quanh có vẻ bẩn. Sảnh khách sạn thì ổn nhưng không thoáng lắm.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "negative",
+      "FACILITIES#CLEANLINESS": "negative"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có nhiều tiện nghi như hồ bơi và gym, nhưng không có gì nổi bật để mình khen. Sảnh thiết kế cũng đơn giản.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "neutral",
+      "FACILITIES#DESIGN&FEATURES": "neutral"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có hồ bơi rộng lớn và rất đẹp, mình đã có những giây phút thư giãn tuyệt vời ở đó. Nhân viên thì thân thiện và hỗ trợ nhiệt tình.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình rất thích khu vực spa ở khách sạn, dịch vụ tốt và không gian rất thư giãn. Hồ bơi thì hơi nhỏ nhưng nước sạch sẽ.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "FACILITIES#QUALITY": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Hồ bơi của khách sạn hơi nhỏ và không có nhiều ghế tắm nắng, nhưng sảnh khách sạn thì rất thoải mái và rộng rãi.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "positive",
+      "FACILITIES#COMFORT": "positive"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình thấy hồ bơi không được sạch sẽ cho lắm, có nhiều lá cây rụng và không gian xung quanh cũng không được chăm sóc tốt.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "negative"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có đầy đủ tiện nghi như hồ bơi, gym nhưng không có gì nổi bật lắm. Mình thấy cũng chỉ tạm được.",
+    "labels": {
+      "FACILITIES#MISCELLANEOUS": "neutral"
+    },
+    "source_aspect": "FACILITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Tiện nghi trong phòng rất đầy đủ mà giá cả hợp lý, minibar cũng không quá đắt. Mình rất hài lòng với dịch vụ phòng, đồ ăn vừa ngon vừa rẻ.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "ROOM_AMENITIES#QUALITY": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá wifi và dịch vụ phòng hơi cao so với chất lượng. Mặc dù phòng sạch sẽ nhưng mình không thích phải trả thêm phí cho những tiện nghi cơ bản.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "negative",
+      "ROOMS#CLEANLINESS": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá các tiện nghi trong phòng cũng như dịch vụ rất bình thường, không có gì nổi bật. Tuy nhiên, phòng khá thoải mái và sạch sẽ.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "neutral",
+      "ROOMS#COMFORT": "positive",
+      "ROOMS#CLEANLINESS": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Mình rất thích minibar trong phòng, giá cả hợp lý và có nhiều đồ uống ngon. Đội ngũ nhân viên phục vụ cũng rất chu đáo, nhiệt tình.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Dịch vụ phòng quá đắt, mình không dám gọi món. Tuy nhiên, phòng rất thoáng và có view đẹp, là điểm cộng lớn cho khách sạn.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "negative",
+      "ROOMS#DESIGN&FEATURES": "positive",
+      "HOTEL#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Minibar trong phòng giá cả hợp lý, lại có nhiều lựa chọn đồ uống. Phòng sạch sẽ và thoải mái, nhân viên cũng nhiệt tình.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "ROOMS#CLEANLINESS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá wifi khá hợp lý, mình cũng dùng dịch vụ phòng mà thấy không quá đắt. Phòng rộng rãi và thiết kế đẹp.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "ROOMS#DESIGN&FEATURES": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá dịch vụ phòng không quá cao, nhưng chất lượng đồ ăn chỉ ở mức trung bình. Phòng thì rất thoải mái.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "ROOMS#COMFORT": "positive",
+      "FOOD&DRINKS#QUALITY": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá dịch vụ phòng cao quá, mình không dám gọi món gì. Tuy nhiên, phòng thì rất sạch sẽ và có view đẹp.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "negative",
+      "ROOMS#CLEANLINESS": "positive",
+      "ROOMS#DESIGN&FEATURES": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá minibar trong phòng khá bình thường, không có gì đặc biệt. Mình thấy phòng ở đây ok, nhưng ko có gì nổi bật.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "neutral",
+      "ROOMS#GENERAL": "neutral",
+      "ROOMS#QUALITY": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Minibar trong phòng giá cả hợp lý, lại có nhiều đồ uống ngon. Phòng sạch sẽ và thoải mái, nhân viên cũng nhiệt tình.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "ROOMS#CLEANLINESS": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá minibar khá hợp lý, mình thích sự đa dạng đồ uống. Nhân viên phục vụ cũng rất chu đáo.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá wifi và dịch vụ phòng hơi cao so với chất lượng. Mặc dù phòng sạch sẽ nhưng mình không thích phải trả thêm phí cho những dịch vụ này.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "negative",
+      "ROOMS#CLEANLINESS": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá minibar rất hợp lý, mình thấy đồ uống cũng phong phú nữa. Phòng sạch sẽ và thoải mái, nhân viên lễ tân thân thiện.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "ROOMS#CLEANLINESS": "positive",
+      "ROOMS#COMFORT": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá dịch vụ phòng không quá cao mà chất lượng đồ ăn lại ổn áp. Phòng cũng rộng rãi và thoải mái, tụi mình rất hài lòng.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "FOOD&DRINKS#QUALITY": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá wifi cũng như các dịch vụ trong phòng đều phải chăng, không quá đắt. Mình thấy phòng hơi nhỏ nhưng vẫn thoải mái đủ dùng.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "ROOMS#COMFORT": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Mình thấy giá dịch vụ phòng cao quá so với chất lượng đồ ăn. Tuy nhiên, phòng thì sạch sẽ và có view đẹp.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "negative",
+      "ROOMS#CLEANLINESS": "positive",
+      "ROOMS#DESIGN&FEATURES": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá cả các tiện nghi trong phòng khá bình thường, không có gì nổi bật. Mình thấy phòng thoải mái nhưng vẫn có thể cải thiện.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "neutral",
+      "ROOMS#COMFORT": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá minibar siêu hợp lý, mình thấy nhiều đồ ngon để thưởng thức. Phòng sạch sẽ và nhân viên thì rất nhiệt tình.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "ROOMS#CLEANLINESS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá dịch vụ phòng không cao, đồ ăn cũng khá ngon, phòng rất thoải mái. Mình thích không gian ở đây.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "FOOD&DRINKS#QUALITY": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá wifi trong phòng hơi cao, nhưng bù lại phòng rất sạch và thoải mái. Nhân viên cũng thân thiện nữa.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "ROOMS#CLEANLINESS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá cả cho các tiện nghi trong phòng quá cao so với chất lượng, mình không thấy đáng. Mặc dù phòng rộng rãi nhưng vẫn hơi thất vọng.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "negative",
+      "ROOMS#GENERAL": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá cả tiện nghi trong phòng bình thường, không có gì đặc sắc. Phòng cũng thoải mái nhưng không có quá nhiều lựa chọn.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "neutral",
+      "ROOMS#COMFORT": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá phòng và các tiện nghi trong phòng rất hợp lý, mình thấy minibar cũng không cao mà đồ uống lại phong phú, thật sự thích thú. Phòng sạch sẽ và thoải mái nữa.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "ROOMS#CLEANLINESS": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá wifi trong phòng cũng như các dịch vụ khác không quá đắt, mình thấy khá hợp lý. Phòng hơi nhỏ nhưng vẫn thoải mái cho 2 người.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "positive",
+      "ROOMS#COMFORT": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Mình thấy giá dịch vụ phòng ở đây cao quá so với chất lượng món ăn. Dù phòng rộng rãi và thoải mái nhưng mình không hài lòng lắm về giá cả.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "negative",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Giá cả cho các tiện nghi trong phòng khá bình thường, không có gì nổi bật nhưng cũng không quá đắt. Phòng thoải mái, nhưng có thể cải thiện thêm.",
+    "labels": {
+      "ROOM_AMENITIES#PRICES": "neutral",
+      "ROOMS#COMFORT": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#PRICES"
+  },
+  {
+    "review": "Phòng ở khách sạn này rất tiện nghi, remote TV hoạt động tốt, ổ cắm điện nhiều và dễ sử dụng, mình thấy rất thoải mái khi nghỉ ngơi tại đây.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "positive",
+      "HOTEL#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình khá hài lòng với các tiện nghi trong phòng, có bàn là sẵn, móc áo đầy đủ, rất tiện cho việc sắp xếp đồ đạc khi đi du lịch.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "positive",
+      "ROOMS#QUALITY": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Tiện nghi trong phòng cũng ok, nhưng có vẻ như remote TV hơi cũ, đôi khi không hoạt động ổn định. Nói chung vẫn chấp nhận được.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "neutral",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình rất thất vọng vì phòng không có đủ ổ cắm điện, trong khi đó mọi thiết bị đều cần sạc. Điều này làm mình thấy khó chịu khi ở lại.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "negative",
+      "HOTEL#CLEANLINESS": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có nhiều tiện nghi nhưng mình không thấy có bàn ủi trong phòng, điều này khá bất tiện cho chuyến công tác của mình.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "negative",
+      "SERVICE#GENERAL": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng mình ở có đủ tiện nghi, ổ cắm điện nhiều và dễ dàng sử dụng, remote TV hoạt động tốt nên mình rất hài lòng.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Tiện nghi trong phòng rất phong phú, mình thích có bàn là và móc áo đầy đủ, giúp mình dễ dàng hơn trong việc sắp xếp đồ.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "positive",
+      "ROOMS#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Tiện nghi phòng khá ổn, nhưng remote TV đôi khi không hoạt động tốt lắm, cái này cần cải thiện chút.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "neutral",
+      "ROOMS#QUALITY": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình thật sự thất vọng vì trong phòng không có đủ ổ cắm điện, khiến cho việc sạc thiết bị rất khó khăn.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "negative",
+      "ROOMS#COMFORT": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có nhiều tiện nghi, nhưng mình không thấy có bàn ủi trong phòng, điều này làm mình cảm thấy không thoải mái lắm.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "negative",
+      "HOTEL#GENERAL": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có nhiều tiện nghi trong phòng, remote TV sử dụng rất mượt mà, ổ cắm điện cũng đủ cho mọi thiết bị. Mình rất hài lòng với trải nghiệm ở đây.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "positive",
+      "HOTEL#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Tiện nghi trong phòng khá ổn, có bàn là và móc áo đầy đủ, giúp mình dễ dàng hơn trong việc sắp xếp đồ đạc. Mình cảm thấy thoải mái khi ở đây.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "positive",
+      "ROOMS#GENERAL": "positive",
+      "HOTEL#QUALITY": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng có đủ tiện nghi, nhưng remote TV thì không hoạt động ổn định lắm, đôi khi phải bấm đi bấm lại mấy lần mới được. Tuy vậy, mọi thứ còn lại đều ổn.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "neutral",
+      "ROOMS#CLEANLINESS": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình khá thất vọng vì không có đủ ổ cắm điện trong phòng, điều này gây khó khăn cho việc sạc điện thoại và laptop. Khách sạn nên cải thiện điểm này.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "negative",
+      "HOTEL#GENERAL": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Tiện nghi trong phòng cũng tạm ổn, nhưng mình không thấy có bàn ủi nào, điều này không thoải mái cho chuyến công tác của mình.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "negative",
+      "FACILITIES#QUALITY": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Trong phòng có đầy đủ tiện nghi, ổ cắm điện dễ sử dụng và remote TV hoạt động tốt, mình rất hài lòng với trải nghiệm này.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình thích có bàn là và móc áo trong phòng, giúp mình dễ dàng sắp xếp đồ đạc hơn. Tuy nhiên, remote TV thỉnh thoảng không hoạt động mượt mà lắm.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "positive",
+      "ROOMS#GENERAL": "neutral",
+      "ROOM_AMENITIES#QUALITY": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Tiện nghi trong phòng khá đủ, nhưng mình thấy thiếu một số thứ như máy sấy tóc hay đôi dép đi trong phòng, làm mình cảm thấy hơi bất tiện.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "neutral",
+      "ROOMS#QUALITY": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình không hài lòng vì trong phòng chỉ có một ổ cắm điện, rất khó khăn khi cần sạc nhiều thiết bị, điều này thật sự gây bất tiện.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "negative",
+      "ROOMS#COMFORT": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Khách sạn có nhiều tiện nghi, nhưng lại thiếu bàn ủi trong phòng, không thoải mái cho chuyến đi công tác của mình.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "negative",
+      "SERVICE#GENERAL": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Trong phòng có đầy đủ tiện nghi, remote TV sử dụng rất mượt mà, ổ cắm điện cũng đủ cho mọi thiết bị. Mình rất hài lòng với trải nghiệm này.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình khá thất vọng vì không có đủ ổ cắm điện trong phòng, điều này gây khó khăn cho việc sạc điện thoại và laptop. Không hài lòng chút nào.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "negative",
+      "ROOMS#CLEANLINESS": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Tiện nghi trong phòng hoàn toàn đầy đủ, nhưng remote TV thỉnh thoảng không hoạt động ổn định lắm. Hy vọng khách sạn sẽ cải thiện thêm.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "positive",
+      "ROOMS#QUALITY": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Tiện nghi trong phòng rất đa dạng, mình thích có ổ cắm điện ở nhiều chỗ khác nhau và remote TV hoạt động mượt mà. Phòng cũng rất sạch sẽ, nhân viên phục vụ tận tình.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "positive",
+      "ROOMS#CLEANLINESS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình thấy trong phòng có đủ tiện nghi như bàn là, móc áo, nhưng remote TV thì không hoạt động tốt lắm. Dù sao thì không gian phòng cũng khá thoải mái.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "positive",
+      "ROOMS#COMFORT": "positive",
+      "ROOM_AMENITIES#GENERAL": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Không có nhiều tiện nghi trong phòng, chỉ được cái có remote TV nhưng không chắc chắn lắm. Nếu có thêm vài món như máy sấy tóc thì tốt hơn.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "negative",
+      "ROOMS#DESIGN&FEATURES": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng mình ở chỉ có duy nhất một ổ cắm điện, thực sự gây khó khăn khi cần sạc nhiều thiết bị. Dù không gian cũng khá ổn nhưng tiện nghi phải cải thiện hơn.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "negative",
+      "ROOMS#COMFORT": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Tiện nghi trong phòng tạm ổn, có remote TV và bàn là, nhưng không thấy có móc áo nào. Đó là điều mình thấy hơi thiếu sót.",
+    "labels": {
+      "ROOM_AMENITIES#MISCELLANEOUS": "neutral",
+      "ROOMS#GENERAL": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng rất sạch sẽ, khăn tắm và ga giường đều mới tinh, không có mùi lạ. Nhân viên cũng rất thân thiện, hỗ trợ nhiệt tình.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Mình khá ưng ý về vệ sinh phòng, mọi thứ đều rất sạch sẽ, từ cốc đến khăn tắm. Địa điểm cũng thuận lợi để đi lại.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "LOCATION#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Vệ sinh phòng tốt, khăn tắm sạch sẽ nhưng ga giường có vài vết bẩn nhỏ. Dù sao thì cũng chấp nhận được.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "neutral",
+      "ROOMS#COMFORT": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Mình không hài lòng với vệ sinh phòng, khăn tắm có mùi hôi và giường thì không sạch lắm. Mình đã phản ánh nhưng chưa thấy cải thiện.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "negative",
+      "ROOMS#QUALITY": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Mọi thứ ổn nhưng mình thấy khăn tắm không được thơm tho lắm, hy vọng lần sau sẽ tốt hơn. Nhân viên phục vụ cũng khá chu đáo.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "negative",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Mình khá hài lòng với sự sạch sẽ của tiện nghi phòng, khăn tắm và ga giường đều mới và thơm mát. Nhân viên cũng rất nhiệt tình giúp đỡ.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Vệ sinh phòng rất tốt, mọi thứ đều sạch sẽ từ cốc uống đến khăn tắm. Chưa kể, phòng còn có view rất đẹp.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "ROOMS#DESIGN&FEATURES": "positive",
+      "ROOMS#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Tiện nghi phòng sạch sẽ, nhưng có một chiếc khăn tắm hơi cũ, mình nghĩ cần thay mới. Nhưng nói chung thì mình khá hài lòng.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "neutral",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Khăn tắm có mùi hôi, giường thì không sạch sẽ, mình rất thất vọng về điều này. Không biết khách sạn có cải thiện không.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Mọi thứ trong phòng nhìn chung khá sạch sẽ, nhưng khăn tắm thì không được thơm tho như mong đợi, hy vọng lần tới sẽ tốt hơn.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "neutral",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Khăn tắm và ga giường đều rất sạch sẽ, không có mùi khó chịu. Mọi thứ trong phòng đều được bảo trì tốt.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Mình rất hài lòng với sự sạch sẽ của phòng, từ khăn tắm đến cốc uống đều được vệ sinh cẩn thận. Nhân viên cũng rất nhiệt tình.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Vệ sinh phòng tốt, khăn tắm sạch sẽ. Tuy nhiên, mình thấy ga giường có chút vết bẩn nhỏ, nhưng không ảnh hưởng nhiều đến trải nghiệm.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "ROOMS#QUALITY": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Khăn tắm có mùi hôi và giường thì không được sạch lắm, mình rất thất vọng về điều này và không thấy có cải thiện gì.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "negative",
+      "HOTEL#GENERAL": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Mọi thứ trong phòng khá ổn, nhưng khăn tắm thì không thơm tho như mình mong đợi. Hy vọng lần sau sẽ tốt hơn.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "neutral",
+      "ROOMS#COMFORT": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Mình rất hài lòng với sự sạch sẽ của tiện nghi phòng, khăn tắm và ga giường đều mới và thơm mát. Nhân viên cũng rất nhiệt tình.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Phòng sạch sẽ, khăn tắm thơm tho và không có bụi bẩn. Mình rất hài lòng với dịch vụ ở đây.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Khăn tắm và ga trải giường đều rất mới và sạch sẽ. Phòng tắm cũng được vệ sinh kỹ lưỡng.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Mọi thứ trong phòng đều sạch sẽ, từ cốc uống đến khăn tắm. Tuy nhiên, mình thấy giá cả hơi cao một chút.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "HOTEL#PRICES": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Khăn tắm có vài vết bẩn và mùi không được thơm tho lắm. Thật sự mình không hài lòng về điểm này.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Vệ sinh phòng tạm ổn, không có gì nổi bật lắm. Khăn tắm thì sạch nhưng không được thơm lắm.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "neutral",
+      "ROOMS#QUALITY": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Mình rất thích sự sạch sẽ của khăn tắm và ga trải giường ở đây, mọi thứ đều thơm mát. Nhân viên cũng rất thân thiện và hỗ trợ nhiệt tình.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Khăn tắm, chén đĩa trong phòng đều rất sạch sẽ, mình cảm thấy rất thoải mái khi ở đây. Giá cả cũng hợp lý với chất lượng.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "HOTEL#PRICES": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Tiện nghi phòng sạch sẽ, khăn tắm mới nhưng vẫn còn mùi hơi lạ, có lẽ cần cải thiện thêm về khâu vệ sinh. Dịch vụ lễ tân khá ok.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Khăn tắm có vài vết bẩn và không được sạch sẽ, mình khá thất vọng về điều này. Không biết khách sạn có chú ý cải thiện không.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Mọi thứ trong phòng nhìn chung sạch sẽ, khăn tắm thì ok nhưng chưa thật sự thơm tho. Mong lần sau sẽ tốt hơn.",
+    "labels": {
+      "ROOM_AMENITIES#CLEANLINESS": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#CLEANLINESS"
+  },
+  {
+    "review": "Phòng khách sạn có thiết kế hiện đại, bồn tắm sang chảnh quá đã, mình rất thích. Nhân viên phục vụ cũng vô cùng thân thiện, tạo cảm giác dễ chịu trong suốt kỳ nghỉ.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Mình vừa ở tại khách sạn này và thấy bồn tắm rất đẹp, thiết kế phòng cũng rất tinh tế. Tuy nhiên, đồ uống trong minibar giá hơi cao so với mặt bằng chung.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "FOOD&DRINKS#PRICES": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng thì cũng bình thường, không có gì đặc biệt, chỉ có chiếc tủ lạnh mới khá hiện đại. Nhưng mình thấy giá phòng hơi cao so với tiện nghi đã được cung cấp.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "neutral",
+      "ROOMS#PRICES": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Mình thất vọng vì phòng có thiết kế khá cũ, không giống như những gì quảng cáo. Bồn tắm rất nhỏ và không thoải mái, không xứng với giá tiền đã trả.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "negative",
+      "ROOMS#QUALITY": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế phòng rất hiện đại và dễ thương, nhưng không có nhiều tiện nghi gì đặc biệt. Nhân viên thì vô cùng nhiệt tình, mình rất hài lòng về sự phục vụ.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng khách sạn rất xịn với thiết kế sang trọng, bồn tắm lớn thoải mái, mình thư giãn cực đã. Nhân viên phục vụ cũng nhiệt tình và vui vẻ.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế của phòng rất đẹp, bồn tắm hiện đại khiến mình cảm thấy như đang ở spa. Tuy nhiên, không gian hơi chật chội một chút.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "ROOMS#COMFORT": "neutral"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng có thiết kế cũng khá ổn, bồn tắm đẹp nhưng không có gì đặc biệt, chỉ có cái tủ lạnh mới hiện đại. Khách sạn sạch sẽ.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "ROOMS#CLEANLINESS": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế phòng ngày xưa quá, bồn tắm không thoải mái và chật chội, không thích chút nào. Hy vọng sẽ cải thiện.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng thiết kế đơn giản, bồn tắm không có gì nổi bật, cảm giác cũng bình thường, không có tiện nghi gì đặc sắc. Giá phòng thì hợp lý.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "neutral",
+      "ROOMS#PRICES": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng khách sạn có thiết kế rất đẹp, bồn tắm sang trọng khiến mình cảm thấy thư giãn như ở spa. Nhân viên cũng thân thiện, nhiệt tình.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế phòng rất hiện đại và dễ thương, bồn tắm khá lớn giúp mình thoải mái sau một ngày khám phá. Tuy nhiên, giá phòng hơi cao một chút.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "FACILITIES#PRICES": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng có thiết kế khá ổn, bồn tắm đẹp nhưng không có gì quá nổi bật, chỉ vậy thôi. Nhân viên cũng vui vẻ.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Mình không hài lòng với thiết kế phòng, bồn tắm chật chội và không thoải mái như mình mong đợi. Chắc mình sẽ không quay lại.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng có thiết kế đơn giản, bồn tắm không có gì nổi bật, cảm giác bình thường. Nhưng mà vị trí khách sạn thì đẹp.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "neutral",
+      "LOCATION#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng mình có thiết kế rất hiện đại, bồn tắm lớn và đẹp, cảm giác thư giãn như ở resort. Nhân viên cũng rất thân thiện.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế phòng rất tinh tế với bồn tắm rộng rãi, mình thích lắm. Tuy nhiên, bữa sáng chưa được phong phú.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "FOOD&DRINKS#STYLE&OPTIONS": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng khách sạn có bồn tắm đẹp, nhưng thiết kế nhìn hơi cũ. Mình thấy phòng cũng sạch sẽ, nhưng không có gì đặc biệt.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "neutral",
+      "ROOMS#CLEANLINESS": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Mình không thích thiết kế phòng, bồn tắm chật chội và không thoải mái, cảm giác không được chăm chút cho lắm.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng có thiết kế đơn giản, bồn tắm cũng bình thường, nhưng nhân viên phục vụ rất tốt và thân thiện. Mình khá hài lòng.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "neutral",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng khách sạn thiết kế đẹp mắt với bồn tắm sang trọng, mình rất thích. Nhân viên cũng nhiệt tình giúp đỡ.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế phòng mình ở rất hiện đại, bồn tắm rộng rãi và thoải mái. Dịch vụ ở đây cũng tốt, mình hài lòng.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng có bồn tắm đẹp, nhưng thiết kế thì không đặc sắc lắm, chỉ vậy thôi. Vị trí khách sạn cũng tiện lợi.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "LOCATION#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Mình không thích thiết kế phòng lắm, bồn tắm chật chội và không thoải mái. Có lẽ mình sẽ không quay lại.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng có thiết kế khá đơn giản, bồn tắm thì cũng bình thường, không có gì nổi bật. Nhân viên thì vui vẻ.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "neutral",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Mình rất thích thiết kế phòng, bồn tắm sang trọng và rộng rãi, cảm giác như được sống trong một khách sạn 5 sao. Nhân viên phục vụ cũng rất nhiệt tình và chu đáo.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế phòng rất đặc sắc, bồn tắm lớn giúp mình thư giãn tuyệt đối. Chỉ tiếc là giá phòng hơi cao một chút, nhưng đáng để trải nghiệm.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "ROOMS#PRICES": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng có bồn tắm đẹp, nhưng thiết kế cần được cải thiện thêm. Nhân viên thì thân thiện, nhưng đồ ăn sáng chưa thực sự phong phú.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "positive",
+      "FOOD&DRINKS#STYLE&OPTIONS": "negative",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Mình không ưng lắm với thiết kế phòng, bồn tắm chật chội khiến mình không thoải mái. Thật sự không như mong đợi.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "negative"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng mình ở thì thiết kế cũng tạm ổn, bồn tắm cũng bình thường, không có gì nổi bật. Nhân viên phục vụ cũng khá tốt.",
+    "labels": {
+      "ROOM_AMENITIES#DESIGN&FEATURES": "neutral",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOM_AMENITIES#DESIGN&FEATURES"
+  },
+  {
+    "review": "Khách sạn rất đẹp, thiết kế hiện đại và sang trọng, tạo cảm giác thoải mái khi ở đây. Bể bơi cũng rất tuyệt.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "FACILITIES#COMFORT": "positive"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Mặc dù khách sạn có thiết kế đẹp, nhưng không gian phòng hơi chật chội, không đủ chỗ để hành lý. Nhân viên phục vụ cũng thân thiện.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "ROOMS#COMFORT": "negative",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế của khách sạn khá cổ điển và ấm cúng, nhưng không có gì đặc sắc lắm. Nói chung, không có gì để phàn nàn.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "neutral"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Khách sạn có thiết kế không hợp lý, cầu thang hẹp và khó di chuyển, khiến tôi cảm thấy không thoải mái. Cần cải thiện nhiều.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "negative",
+      "HOTEL#CLEANLINESS": "negative"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế khách sạn rất ấn tượng với phong cách hiện đại, đặc biệt là khu vực sảnh chào. Tuy nhiên, giá phòng hơi cao.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "HOTEL#PRICES": "negative"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Khách sạn có thiết kế rất đẹp và hiện đại, từ sảnh đến phòng đều tạo cảm giác sang trọng. Bể bơi cũng rất ấn tượng, là điểm cộng lớn.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "FACILITIES#QUALITY": "positive"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Tôi rất thích thiết kế của khách sạn, phong cách tươi mới và bắt mắt. Nhân viên cũng rất nhiệt tình hỗ trợ khi tôi cần.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Khách sạn với thiết kế cổ điển, nhưng không có gì nổi bật lắm. Nói chung là ổn nhưng không để lại ấn tượng sâu sắc.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "neutral"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế khách sạn khá lộn xộn, không gian không hài hòa, khiến tôi cảm thấy không thoải mái khi ở đây. Hy vọng sẽ cải thiện.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "negative",
+      "ROOMS#COMFORT": "negative"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Khách sạn có thiết kế tinh tế, nhưng phòng hơi nhỏ và không đủ ánh sáng tự nhiên. Nhân viên phục vụ cũng cần thân thiện hơn.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "ROOMS#COMFORT": "negative",
+      "SERVICE#GENERAL": "negative"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Khách sạn có thiết kế rất hiện đại và sang trọng, tôi thích cách bố trí không gian mở, tạo cảm giác thoải mái. Nhân viên phục vụ cũng rất nhiệt tình.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Tôi rất ấn tượng với thiết kế của khách sạn, không gian rất đẹp và hiện đại, đặc biệt là khu vực hồ bơi. Tuy nhiên, giá phòng hơi cao.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "HOTEL#PRICES": "neutral"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế khách sạn khá đặc sắc với những chi tiết tinh tế, nhưng không gian phòng thì hơi nhỏ và bí bách. Nhân viên cũng chỉ tạm ổn.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "ROOMS#GENERAL": "neutral",
+      "SERVICE#GENERAL": "neutral"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế khách sạn rất cũ kỹ và không hợp lý, cầu thang chật và khó đi lại, khiến mình cảm thấy không thoải mái. Cần phải cải thiện.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "negative"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế của khách sạn thì cũng bình thường, không có gì đặc sắc lắm, nhưng vẫn đủ tiện nghi để ở qua đêm.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "neutral",
+      "HOTEL#COMFORT": "neutral"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Khách sạn này có thiết kế rất sang trọng và hiện đại, từ sảnh đến phòng đều tạo cảm giác thoải mái. Nhân viên cũng rất nhiệt tình giúp đỡ.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế của khách sạn rất ấn tượng, không gian mở tạo cảm giác thoải mái. Tuy nhiên, bữa sáng hơi đơn điệu.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "FOOD&DRINKS#STYLE&OPTIONS": "negative"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Khách sạn có thiết kế khá độc đáo nhưng nội thất hơi cũ. Phòng tắm cũng cần được nâng cấp một chút.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "ROOMS#QUALITY": "neutral"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Tôi không thích thiết kế của khách sạn lắm, cảm giác khá lộn xộn và không hài hòa. Không gian phòng cũng hơi chật chội.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "negative"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế khách sạn này cũng bình thường, không có gì nổi bật nhưng vẫn đủ tiện nghi để ở qua đêm. Nhân viên thì khá thân thiện.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "neutral",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Khách sạn này có thiết kế rất độc đáo và hiện đại, từ sảnh đến các phòng đều rất đẹp và thoải mái. Nhân viên thì rất nhiệt tình và thân thiện.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Mình rất thích thiết kế của khách sạn, không gian rộng rãi và thông thoáng. Tuy nhiên, phòng mình ở hơi ồn ào do gần đường lớn.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "ROOMS#GENERAL": "negative"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế khách sạn khá bình thường, không có gì nổi bật lắm nhưng vẫn đủ sạch sẽ và tiện nghi. Giá cả cũng chấp nhận được.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "neutral",
+      "HOTEL#PRICES": "positive"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Thiết kế của khách sạn mình thấy không hợp lý, cầu thang chật chội và khó đi lại. Mình không thoải mái khi di chuyển trong khách sạn.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "negative"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Khách sạn có thiết kế rất đẹp và sang trọng, nhưng phòng tắm lại hơi cũ và cần được cải thiện.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "ROOM_AMENITIES#QUALITY": "negative"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Khách sạn có thiết kế rất đẹp, phong cách hiện đại và thanh lịch, từ sảnh cho đến phòng đều tạo cảm giác dễ chịu. Nhân viên thì rất nhiệt tình, khiến mình cảm thấy như ở nhà.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Mình rất ấn tượng với thiết kế của khách sạn, không gian mở rất thoáng đãng và dễ chịu. Một điểm cộng lớn cho trải nghiệm của mình!",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "HOTEL#QUALITY": "positive"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Khách sạn có thiết kế độc đáo nhưng hình như có vấn đề về bảo trì, một số khu vực trông khá cũ kỹ. Dù sao thì vẫn đủ tiện nghi để nghỉ lại.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "positive",
+      "FACILITIES#QUALITY": "neutral"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Mình không thích lắm thiết kế của khách sạn, cảm thấy hơi lộn xộn và không hợp lý, không gian chung cũng không thoải mái. Mong là họ sẽ cải thiện.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "negative"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Khách sạn có thiết kế tương đối bình thường, không có gì đặc biệt nhưng vẫn đủ sạch sẽ. Nhân viên cũng thân thiện và hỗ trợ nhiệt tình.",
+    "labels": {
+      "HOTEL#DESIGN&FEATURES": "neutral",
+      "SERVICE#GENERAL": "positive",
+      "HOTEL#CLEANLINESS": "positive"
+    },
+    "source_aspect": "HOTEL#DESIGN&FEATURES"
+  },
+  {
+    "review": "Phòng đẹp và thoáng, không khí trong lành. Tuy nhiên, có chút tiếng ồn từ bên ngoài, nhưng không ảnh hưởng nhiều đến giấc ngủ. Nhân viên cũng rất thân thiện.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình rất thích phòng ở đây! Không có mùi khó chịu hay côn trùng nào cả, phòng sạch sẽ và sang trọng. Đồ đạc cũng hiện đại và tiện nghi.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "ROOMS#CLEANLINESS": "positive",
+      "ROOMS#DESIGN&FEATURES": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng sạch sẽ nhưng hơi bí, không có cửa sổ lớn nên cảm giác hơi ngột ngạt một chút. Nhân viên phục vụ rất chu đáo.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive",
+      "ROOMS#COMFORT": "neutral"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng mình ở có mùi ẩm mốc, không thoải mái chút nào. Tuy nhiên, giá cả cũng hợp lý. Hy vọng họ sẽ cải thiện vấn đề này.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "negative",
+      "HOTEL#PRICES": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng có trang trí giản dị, không có gì nổi bật nhưng cũng không có vấn đề gì lớn. Cảm giác khá ổn khi ở đây.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "neutral",
+      "ROOMS#GENERAL": "neutral"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng khá thoải mái và sạch sẽ, không hề có côn trùng hay mùi khó chịu. Chỉ có điều tiếng ồn từ hành lang thỉnh thoảng làm mình thức giấc.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình rất thích phòng này, không có mùi lạ và cũng không thấy côn trùng. Nhân viên rất nhiệt tình, giúp mình check-in nhanh chóng.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng không có vấn đề gì đặc biệt, nhưng thi thoảng vẫn nghe thấy tiếng ồn từ bên ngoài. Nhìn chung thì cũng tạm ổn.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "neutral",
+      "ROOMS#GENERAL": "neutral"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình khá thất vọng vì phòng có mùi ẩm mốc, rất khó chịu. Dù giá cả không cao nhưng cảm giác không thoải mái chút nào.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "negative",
+      "ROOMS#CLEANLINESS": "negative",
+      "HOTEL#PRICES": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng đơn giản nhưng không có vấn đề gì lớn, không thấy côn trùng hay mùi gì cả. Nhân viên phục vụ cũng thân thiện.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng ở đây rất sạch sẽ, không có mùi khó chịu hay côn trùng nào. Nhân viên cũng nhiệt tình hỗ trợ khi mình cần.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình khá hài lòng với phòng, không có vấn đề gì lớn. Chỉ có điều là có chút tiếng ồn từ đường phố nhưng cũng chấp nhận được.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng đẹp và thoáng, không có côn trùng, nhưng thi thoảng nghe thấy tiếng cửa phòng mở đóng khá ồn.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "ROOMS#CLEANLINESS": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng mình ở có chút mùi ẩm mốc, rất khó chịu. Mặc dù giá rẻ nhưng trải nghiệm không được thoải mái lắm.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "negative",
+      "HOTEL#PRICES": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng khá ổn, không có côn trùng hay mùi gì đặc biệt, nhưng cũng không có gì nổi bật cho lắm.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "neutral",
+      "ROOMS#GENERAL": "neutral"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng sạch sẽ và thoáng, không có mùi ẩm mốc hay côn trùng gì cả. Nhân viên rất thân thiện và hỗ trợ nhiệt tình.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình rất thích phòng này, không có côn trùng và mùi khó chịu. Đồ đạc trong phòng cũng mới và hiện đại.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "ROOMS#QUALITY": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng có vẻ ổn, không thấy côn trùng hay mùi lạ. Nhưng thỉnh thoảng vẫn nghe thấy tiếng từ ngoài vào.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "ROOMS#COMFORT": "neutral"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Thật sự không hài lòng vì phòng có mùi ẩm mốc, rất khó chịu khi ở. Đúng là giá rẻ nhưng cảm giác không thoải mái.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "negative",
+      "ROOMS#CLEANLINESS": "negative"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng không có vấn đề gì lớn, chỉ có chút mùi nhẹ nhưng cũng không quá ảnh hưởng. Nhân viên thì phục vụ ok.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "neutral",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng sạch sẽ, không có côn trùng và mùi khó chịu gì cả. Nhân viên phục vụ cũng rất nhiệt tình, mình rất hài lòng.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình ở phòng này cả tuần và không có vấn đề gì cả. Không có tiếng ồn, không có mùi lạ, rất dễ chịu.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng mình hơi ồn do có tiếng từ ngoài vào nhưng nhìn chung vẫn ổn. Không có côn trùng hay mùi khó chịu.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "ROOMS#COMFORT": "neutral"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình rất thất vọng vì phòng có mùi ẩm mốc, làm mình không thoải mái khi ở. Dù giá không cao nhưng trải nghiệm không tốt.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "negative",
+      "ROOMS#CLEANLINESS": "negative"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng không có vấn đề gì đặc biệt, chỉ hơi ẩm nhẹ nhưng cũng không đáng kể. Nhân viên thì phục vụ ổn.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "neutral",
+      "SERVICE#GENERAL": "neutral"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng mình rất thoải mái, không có mùi hay côn trùng gì cả. Nhân viên phục vụ cũng rất chu đáo và nhiệt tình.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình ở phòng này thấy yên tĩnh, không có tiếng ồn từ bên ngoài. Thật sự rất thích không gian ở đây.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng có vẻ tạm ổn, không thấy côn trùng nhưng cũng không phải là sạch sẽ hoàn hảo. Nhân viên thì ok.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "neutral",
+      "ROOMS#CLEANLINESS": "neutral",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Thật sự rất thất vọng vì phòng có nhiều muỗi, làm mình không thể ngủ ngon. Giá rẻ nhưng không thoải mái chút nào.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "negative",
+      "HOTEL#PRICES": "negative"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Phòng mình không có vấn đề gì lớn, chỉ có hơi ẩm nhẹ nhưng nhân viên rất dễ thương và nhiệt tình giúp đỡ.",
+    "labels": {
+      "ROOMS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "ROOMS#MISCELLANEOUS"
+  },
+  {
+    "review": "Bữa sáng ở khách sạn rất phong phú và ngon miệng, mình đặc biệt thích món bánh mì tươi và nước ép trái cây. Nhân viên phục vụ nhanh nhẹn và thân thiện nữa!",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Đồ ăn ở đây không quá đặc sắc nhưng cũng không tệ. Thời gian phục vụ hơi chậm một chút nhưng bù lại món ăn cũng vừa miệng.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "HOTEL#COMFORT": "neutral"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Bữa tối hơi ít món và không có nhiều lựa chọn cho người ăn chay. Tuy nhiên, đồ ăn được chế biến cũng khá ok, không có gì chê.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "neutral",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Thực đơn bữa sáng quá ít, chỉ có vài món đơn giản. Mình mong rằng khách sạn có thể đa dạng hơn cho bữa sáng.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "negative",
+      "HOTEL#QUALITY": "negative"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Đồ uống của khách sạn rất ngon, đặc biệt là cà phê. Nhưng thức ăn thì khá bình thường, không có gì đặc sắc.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "ROOMS#DESIGN&FEATURES": "neutral"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Bữa sáng cực kỳ phong phú, có cả món truyền thống và món Âu. Mình rất thích không khí thoải mái ở khu vực ăn. Nhân viên cũng phục vụ nhanh nhẹn, điều này làm cho kỳ nghỉ của mình thêm phần thú vị.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive",
+      "HOTEL#COMFORT": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Đồ ăn ở đây khá tạm, không có gì đặc sắc lắm. Thời gian phục vụ cũng chậm, làm mình hơi thất vọng. Cần cải thiện nhiều hơn về khâu này.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "negative",
+      "SERVICE#GENERAL": "negative"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Thực đơn đồ uống khá đa dạng nhưng đồ ăn thì chưa đủ phong phú. Thời gian phục vụ cũng bình thường, không nhanh không chậm.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "neutral"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Bữa tối có nhiều món để lựa chọn, mình rất thích món hải sản tươi ngon. Nhân viên phục vụ cũng thân thiện và nhiệt tình, tạo cảm giác thoải mái cho khách.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive",
+      "HOTEL#QUALITY": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Món ăn không được đa dạng lắm, đặc biệt là bữa sáng. Hy vọng khách sạn sẽ cải thiện thực đơn trong thời gian tới.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "negative",
+      "HOTEL#GENERAL": "neutral"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Đồ ăn sáng phong phú và ngon, mình thích nhất món phở và bánh xèo. Nhân viên phục vụ rất nhanh nhẹn và thân thiện.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Bữa tối ở đây có nhiều món ăn ngon nhưng thời gian phục vụ hơi lâu một chút. Dù sao thì đồ ăn cũng khá ổn.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "FOOD&DRINKS#QUALITY": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Thực đơn đồ ăn không phong phú lắm, nhưng thời gian phục vụ thì cũng khá nhanh. Mình không có gì phàn nàn.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "neutral"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Đồ ăn phục vụ chậm và không có gì đặc sắc, mình cảm thấy hơi thất vọng. Khách sạn cần cải thiện thực đơn nhiều hơn.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "negative"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Đồ uống rất ngon, đặc biệt là cocktail. Tuy nhiên, món ăn hơi ít lựa chọn và không có gì đặc biệt.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "FOOD&DRINKS#STYLE&OPTIONS": "negative"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Bữa sáng ở khách sạn rất đa dạng, có cả món Việt lẫn món Âu, mình đặc biệt thích món phở ở đây. Nhân viên phục vụ thân thiện và nhanh nhẹn, không gian ăn uống thoải mái.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Mình khá hài lòng với chất lượng đồ ăn ở đây, bữa sáng không quá nhiều món nhưng đều tươi ngon. Thời gian phục vụ cũng ổn, không lâu lắm.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "FOOD&DRINKS#QUALITY": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Thực đơn đồ ăn không phong phú lắm nhưng bữa sáng cũng đủ để mình cảm thấy hài lòng. Nhân viên phục vụ bình thường, không có gì nổi bật.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "neutral",
+      "SERVICE#GENERAL": "neutral"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Đồ ăn ở khách sạn không có gì đặc sắc, thời gian phục vụ cũng hơi lâu, khiến mình cảm thấy không hài lòng. Hy vọng khách sạn sẽ cải thiện thực đơn.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "negative",
+      "FOOD&DRINKS#QUALITY": "negative"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Bữa tối có vài món ngon nhưng lại thiếu sự sáng tạo. Thời gian phục vụ hơi chậm một chút, cảm giác không được đúng giờ lắm.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "FOOD&DRINKS#STYLE&OPTIONS": "neutral"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Đồ ăn ở đây rất ngon, đặc biệt là món hải sản tươi sống. Nhân viên phục vụ nhanh nhẹn và vui vẻ, làm mình rất hài lòng.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Thực đơn bữa sáng đa dạng, mình rất thích món bánh mì và trứng ốp la. Thời gian phục vụ cũng khá nhanh.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "FACILITIES#GENERAL": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Bữa tối có nhiều món ngon, nhưng không có gì đặc sắc. Nhân viên phục vụ hơi chậm nhưng vẫn ổn.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "neutral",
+      "ROOMS#COMFORT": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Đồ ăn phục vụ chậm và không có nhiều lựa chọn. Mình thấy không hài lòng với bữa ăn ở đây.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "negative",
+      "ROOMS#CLEANLINESS": "negative"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Đồ uống ở bar rất ngon, nhưng thực đơn đồ ăn hơi đơn điệu. Mình mong sẽ có nhiều món mới hơn.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "neutral",
+      "FACILITIES#QUALITY": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Đồ ăn ở khách sạn rất ngon, bữa sáng có nhiều món hấp dẫn và nhân viên phục vụ rất nhanh nhẹn. Mình cực kì hài lòng với chất lượng đồ uống ở bar, đặc biệt là cocktail.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "SERVICE#GENERAL": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Bữa sáng ở đây khá phong phú, mình thích món bánh cuốn và xôi gà. Tuy nhiên, thời gian phục vụ có hơi chậm một chút.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "positive",
+      "FOOD&DRINKS#QUALITY": "positive"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Thực đơn đồ ăn không đa dạng lắm, nhưng bữa sáng cũng đủ no. Nhân viên phục vụ thì hơi chậm, không được nhanh nhẹn cho lắm.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "neutral",
+      "SERVICE#GENERAL": "negative"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Đồ ăn không có gì đặc sắc, thời gian phục vụ quá lâu, khiến mình khá thất vọng. Thực sự mong đợi nhiều hơn từ chất lượng ẩm thực ở đây.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "negative"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  },
+  {
+    "review": "Bữa tối có một số món ngon, nhưng không nhiều lựa chọn. Cảm giác như đồ ăn hơi đơn điệu, nên mong sẽ được cải thiện.",
+    "labels": {
+      "FOOD&DRINKS#MISCELLANEOUS": "neutral",
+      "FOOD&DRINKS#QUALITY": "neutral"
+    },
+    "source_aspect": "FOOD&DRINKS#MISCELLANEOUS"
+  }
+]
