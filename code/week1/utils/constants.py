@@ -54,6 +54,20 @@ RARE_ASPECTS = [
     "FOOD&DRINKS#MISCELLANEOUS",     # mới từ EDA: weight pos=426, neg=597
 ]
 
+# Aspects có Combined F1 = 0 hoặc < 0.35 trên test set (PhoBERT cls_only baseline)
+# Dùng làm target cho error-driven augmentation (Phase A+C, 2026-04-09)
+WEAK_ASPECTS = [
+    "FACILITIES#MISCELLANEOUS",       # F1 = 0.000
+    "FOOD&DRINKS#MISCELLANEOUS",      # F1 = 0.000
+    "ROOMS#MISCELLANEOUS",            # F1 = 0.000
+    "ROOM_AMENITIES#MISCELLANEOUS",   # F1 = 0.000
+    "ROOM_AMENITIES#PRICES",          # F1 = 0.000
+    "HOTEL#MISCELLANEOUS",            # F1 = 0.248
+    "FACILITIES#GENERAL",             # F1 = 0.322
+    "FACILITIES#CLEANLINESS",         # F1 = 0.333
+    "FACILITIES#COMFORT",             # F1 = 0.339
+]
+
 # Aspect không có bất kỳ mẫu nào trong train — exclude khỏi Macro-F1
 ZERO_TRAIN_ASPECTS = ["ROOM_AMENITIES#PRICES"]
 
