@@ -40,13 +40,14 @@ def predict_single_phobert(
     tokenizer,
     device: torch.device,
     max_len: int = 256,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Predict 1 review với PhoBERT.
 
     Returns:
         preds: [34] argmax per head
         confidences: [34] max softmax score per head
+        probabilities: [34, 4] softmax probabilities per head
     """
     inputs = tokenizer(
         processed_text,
@@ -65,15 +66,106 @@ def predict_single_phobert(
         outputs = model(**inputs)
 
     logits = outputs["logits"]
+    probabilities = np.stack(
+        [F.softmax(logit, dim=-1)[0].detach().cpu().numpy() for logit in logits],
+        axis=0,
+    )
     preds = np.array(
         [logit.argmax(dim=-1)[0].item() for logit in logits],
         dtype=np.int64,
     )
-    confidences = np.array(
-        [F.softmax(logit, dim=-1)[0].max().item() for logit in logits],
-        dtype=np.float32,
+    confidences = probabilities.max(axis=1).astype(np.float32)
+    return preds, confidences, probabilities
+
+
+def _build_cascade_messages(
+    review_text: str,
+    examples: list[dict],
+    target_aspects: list[str],
+    retry_strict: bool = False,
+) -> list[dict]:
+    """
+    Build a more constrained prompt for cascade.
+
+    Compared with the generic week3 prompt, this version:
+    - disables CoT to reduce verbose outputs that break JSON parsing
+    - asks the LLM to focus only on uncertain weak aspects
+    """
+    messages = build_prompt(review_text, examples, include_cot=False)
+    target_block = ", ".join(target_aspects)
+    strict_tail = (
+        "CHI TRA VE JSON object thuan, khong giai thich, khong markdown, "
+        "khong liet ke buoc suy nghi."
+        if retry_strict else
+        "Chi tra ve JSON object, khong can giai thich."
     )
-    return preds, confidences
+    messages[-1]["content"] = (
+        f"Review: {review_text}\n"
+        f"Chi tap trung vao cac aspect sau: {target_block}\n"
+        "Neu review KHONG de cap aspect nao trong danh sach tren thi tra ve {}.\n"
+        "Chi dua vao output cac aspect trong danh sach tren va duoc de cap ro rang.\n"
+        f"{strict_tail}"
+    )
+    return messages
+
+
+def _should_query_llm(
+    pred_label: int,
+    probs: np.ndarray,
+    threshold: float,
+    absent_threshold: float,
+    min_non_absent_prob: float,
+    margin_threshold: float,
+) -> bool:
+    """
+    Decide whether a weak aspect is uncertain enough to escalate to the LLM.
+
+    We use a looser rule for aspects predicted as `absent`, because the weakest
+    aspects in this project tend to be missed entirely rather than mislabeled.
+    """
+    sorted_probs = np.sort(probs)[::-1]
+    top1 = float(sorted_probs[0])
+    top2 = float(sorted_probs[1])
+    margin = top1 - top2
+
+    if pred_label == 0:
+        absent_prob = float(probs[0])
+        non_absent_prob = float(probs[1:].sum())
+        return (
+            absent_prob < absent_threshold
+            or non_absent_prob >= min_non_absent_prob
+            or margin < margin_threshold
+        )
+
+    return top1 < threshold or margin < margin_threshold
+
+
+def _query_llm_predictions(
+    review_text: str,
+    examples: list[dict],
+    target_aspects: list[str],
+    llm_client: LLMClient,
+) -> tuple[dict, str]:
+    """
+    Query the LLM with a strict JSON-oriented prompt.
+
+    If the first answer cannot be parsed into a useful dict for the target
+    aspects, retry once with an even stricter instruction.
+    """
+    raw_output = ""
+    for retry_strict in (False, True):
+        messages = _build_cascade_messages(
+            review_text=review_text,
+            examples=examples,
+            target_aspects=target_aspects,
+            retry_strict=retry_strict,
+        )
+        raw_output = llm_client.complete(messages, temperature=0.0, use_cache=True)
+        pred_dict = parse_llm_output(raw_output)
+        filtered = {asp: pred_dict[asp] for asp in target_aspects if asp in pred_dict}
+        if filtered or raw_output.strip() == "{}":
+            return filtered, raw_output
+    return {}, raw_output
 
 
 def predict_with_cascade(
@@ -86,6 +178,9 @@ def predict_with_cascade(
     retriever: ABSARetriever,
     llm_client: LLMClient,
     threshold: float = 0.60,
+    absent_threshold: float = 0.90,
+    min_non_absent_prob: float = 0.12,
+    margin_threshold: float = 0.15,
     k: int = 4,
     max_len: int = 256,
 ) -> tuple[np.ndarray, bool, dict]:
@@ -97,7 +192,7 @@ def predict_with_cascade(
         used_llm: True nếu trigger LLM
         debug_info: thông tin override/debug
     """
-    phobert_preds, confidences = predict_single_phobert(
+    phobert_preds, confidences, probabilities = predict_single_phobert(
         processed_text=processed_text,
         model=model,
         tokenizer=tokenizer,
@@ -106,7 +201,16 @@ def predict_with_cascade(
     )
 
     uncertain_indices = [
-        idx for idx in WEAK_ASPECT_INDICES if confidences[idx] < threshold
+        idx
+        for idx in WEAK_ASPECT_INDICES
+        if _should_query_llm(
+            pred_label=int(phobert_preds[idx]),
+            probs=probabilities[idx],
+            threshold=threshold,
+            absent_threshold=absent_threshold,
+            min_non_absent_prob=min_non_absent_prob,
+            margin_threshold=margin_threshold,
+        )
     ]
     if not uncertain_indices:
         return phobert_preds, False, {
@@ -122,9 +226,13 @@ def predict_with_cascade(
             aspect_aware=True,
         )
         examples = df_to_examples(train_df, retrieved_indices)
-        messages = build_prompt(review_text or processed_text, examples)
-        raw_output = llm_client.complete(messages, temperature=0.0, use_cache=True)
-        llm_pred_dict = parse_llm_output(raw_output)
+        target_aspects = [ASPECT_COLUMNS[idx] for idx in uncertain_indices]
+        llm_pred_dict, raw_output = _query_llm_predictions(
+            review_text=review_text or processed_text,
+            examples=examples,
+            target_aspects=target_aspects,
+            llm_client=llm_client,
+        )
         llm_preds = np.array(labels_dict_to_array(llm_pred_dict), dtype=np.int64)
     except Exception as exc:
         return phobert_preds, False, {
@@ -152,6 +260,7 @@ def predict_with_cascade(
                     "phobert": phobert_label,
                     "llm": llm_label,
                     "confidence": float(confidences[idx]),
+                    "non_absent_prob": float(probabilities[idx][1:].sum()),
                 }
             )
 
@@ -159,6 +268,8 @@ def predict_with_cascade(
         "uncertain_count": len(uncertain_indices),
         "uncertain_aspects": [ASPECT_COLUMNS[idx] for idx in uncertain_indices],
         "overridden_aspects": overridden,
+        "llm_returned_empty": len(llm_pred_dict) == 0,
+        "raw_output_preview": raw_output[:200],
     }
 
 
@@ -171,6 +282,9 @@ def run_cascade_on_dataset(
     retriever: ABSARetriever,
     llm_client: LLMClient,
     threshold: float = 0.60,
+    absent_threshold: float = 0.90,
+    min_non_absent_prob: float = 0.12,
+    margin_threshold: float = 0.15,
     k: int = 4,
     max_len: int = 256,
     sleep_sec: float = 0.5,
@@ -187,6 +301,7 @@ def run_cascade_on_dataset(
     y_pred_list = []
     llm_call_count = 0
     total_overrides = 0
+    empty_llm_responses = 0
     weak_trigger_counts = {aspect: 0 for aspect in WEAK_ASPECTS}
     weak_override_counts = {aspect: 0 for aspect in WEAK_ASPECTS}
     sample_records = []
@@ -205,6 +320,9 @@ def run_cascade_on_dataset(
             retriever=retriever,
             llm_client=llm_client,
             threshold=threshold,
+            absent_threshold=absent_threshold,
+            min_non_absent_prob=min_non_absent_prob,
+            margin_threshold=margin_threshold,
             k=k,
             max_len=max_len,
         )
@@ -221,6 +339,8 @@ def run_cascade_on_dataset(
         if used_llm:
             llm_call_count += 1
             total_overrides += len(debug.get("overridden_aspects", []))
+            if debug.get("llm_returned_empty"):
+                empty_llm_responses += 1
             for override in debug.get("overridden_aspects", []):
                 aspect_name = override["aspect"]
                 if aspect_name in weak_override_counts:
@@ -259,10 +379,14 @@ def run_cascade_on_dataset(
             total_overrides / llm_call_count if llm_call_count > 0 else 0.0
         ),
         "threshold": threshold,
+        "absent_threshold": absent_threshold,
+        "min_non_absent_prob": min_non_absent_prob,
+        "margin_threshold": margin_threshold,
         "k": k,
         "weak_aspects": WEAK_ASPECTS,
         "weak_trigger_counts": weak_trigger_counts,
         "weak_override_counts": weak_override_counts,
+        "empty_llm_responses": empty_llm_responses,
     }
     if return_records:
         stats["sample_records"] = sample_records
@@ -278,6 +402,9 @@ def run_cascade_on_test(
     retriever: ABSARetriever,
     llm_client: LLMClient,
     threshold: float = 0.60,
+    absent_threshold: float = 0.90,
+    min_non_absent_prob: float = 0.12,
+    margin_threshold: float = 0.15,
     k: int = 4,
     sleep_sec: float = 0.5,
     max_len: int = 256,
@@ -296,6 +423,9 @@ def run_cascade_on_test(
         retriever=retriever,
         llm_client=llm_client,
         threshold=threshold,
+        absent_threshold=absent_threshold,
+        min_non_absent_prob=min_non_absent_prob,
+        margin_threshold=margin_threshold,
         k=k,
         max_len=max_len,
         sleep_sec=sleep_sec,
