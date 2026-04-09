@@ -54,15 +54,21 @@ The codebase was inspected before making any edits, using the actual files in th
 
 ### Notebook State
 
-- `notebooks/week4_demo.ipynb` is now simplified for the final Kaggle run
-- The notebook now keeps only the v2 cascade flow in the final section:
-  - `Cell 15`: setup for PhoBERT v2 cascade
-  - `Cell 16`: load v2 checkpoint and run a 10-review smoke test
-  - `Cell 17`: run full cascade on the test set with RAG `k=4`
-- Removed from the final notebook flow:
-  - PhoBERT v1 retrain cell
-  - PhoBERT v1 evaluation/comparison cell
-  - PhoBERT v1 learning-curve cell
+- `notebooks/week4_demo.ipynb` is now a final-only Kaggle notebook
+- The notebook has been rewritten to 8 cells total:
+  - markdown title/instructions
+  - Kaggle GPU and dependency setup
+  - clone/pull latest GitHub repo
+  - load `OPENAI_API_KEY` from Kaggle Secrets
+  - verify final-run files
+  - setup PhoBERT v2 cascade
+  - 10-review smoke test
+  - full cascade test run
+- Removed entirely from this notebook:
+  - augmentation flow
+  - explainability flow
+  - PhoBERT v1 retrain/eval flow
+  - old week4 branch-specific cells
 
 ### Verified Baseline V2 Paths
 
