@@ -92,7 +92,9 @@ CLASS_WEIGHTS_PATH  = f"{EDA_DIR}/class_weights.json"
 ENCODER_CONFIG_PATH = f"{EDA_DIR}/encoder_config.json"
 
 # ─── PhoBERT Config ────────────────────────────────────────────────────────────
-PHOBERT_MODEL_NAME = "vinai/phobert-base-v2"
+PHOBERT_V1         = "vinai/phobert-base"     # SOTA Huynh 2022 dùng v1
+PHOBERT_V2         = "vinai/phobert-base-v2"  # v2 tokenizer/training data khác
+PHOBERT_MODEL_NAME = PHOBERT_V2
 MAX_SEQ_LEN        = 256
 
 # ─── Model Architecture Config (QUAN TRỌNG — insight từ ds4v SOTA) ────────────
