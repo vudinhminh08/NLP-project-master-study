@@ -60,8 +60,14 @@ class ABSARetriever:
         except Exception as e:
             print(f"[WARN] {self.model_name} failed: {e}")
             print(f"[Retriever] Fallback: {EMBEDDING_MODEL_FALLBACK}")
-            from sentence_transformers import SentenceTransformer
-            self.model = SentenceTransformer(EMBEDDING_MODEL_FALLBACK)
+            try:
+                from sentence_transformers import SentenceTransformer
+                self.model = SentenceTransformer(EMBEDDING_MODEL_FALLBACK)
+            except Exception as e2:
+                raise RuntimeError(
+                    "Failed to load Vietnamese SBERT or multilingual sentence-transformers fallback. "
+                    "Fix Kaggle package versions in Cell 1 so sentence-transformers works correctly."
+                ) from e2
 
     def fit(self, train_df: pd.DataFrame, text_col: str = "processed_review"):
         """
