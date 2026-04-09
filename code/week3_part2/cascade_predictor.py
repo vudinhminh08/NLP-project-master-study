@@ -10,6 +10,7 @@ cascade_predictor.py — Hybrid inference: PhoBERT + LLM cascade.
 import os
 import sys
 import time
+from collections import Counter
 from typing import Optional
 
 import numpy as np
@@ -147,27 +148,58 @@ def _query_llm_predictions(
     examples: list[dict],
     target_aspects: list[str],
     llm_client: LLMClient,
-) -> tuple[dict, str]:
+    num_votes: int = 1,
+) -> tuple[dict, list[str]]:
     """
     Query the LLM with a strict JSON-oriented prompt.
 
     If the first answer cannot be parsed into a useful dict for the target
     aspects, retry once with an even stricter instruction.
     """
-    raw_output = ""
-    for retry_strict in (False, True):
-        messages = _build_cascade_messages(
-            review_text=review_text,
-            examples=examples,
-            target_aspects=target_aspects,
-            retry_strict=retry_strict,
-        )
-        raw_output = llm_client.complete(messages, temperature=0.0, use_cache=True)
-        pred_dict = parse_llm_output(raw_output)
-        filtered = {asp: pred_dict[asp] for asp in target_aspects if asp in pred_dict}
-        if filtered or raw_output.strip() == "{}":
-            return filtered, raw_output
-    return {}, raw_output
+    vote_outputs: list[str] = []
+    vote_dicts: list[dict] = []
+
+    for vote_idx in range(max(1, num_votes)):
+        raw_output = ""
+        # Shuffle example order per vote so the LLM sees slightly different context.
+        if len(examples) > 1 and num_votes > 1:
+            rng = np.random.default_rng(abs(hash((review_text, vote_idx))) % (2**32))
+            perm = rng.permutation(len(examples))
+            vote_examples = [examples[i] for i in perm]
+        else:
+            vote_examples = examples
+
+        for retry_strict in (False, True):
+            messages = _build_cascade_messages(
+                review_text=review_text,
+                examples=vote_examples,
+                target_aspects=target_aspects,
+                retry_strict=retry_strict,
+            )
+            raw_output = llm_client.complete(messages, temperature=0.0, use_cache=True)
+            pred_dict = parse_llm_output(raw_output)
+            filtered = {asp: pred_dict[asp] for asp in target_aspects if asp in pred_dict}
+            if filtered or raw_output.strip() == "{}":
+                vote_dicts.append(filtered)
+                vote_outputs.append(raw_output)
+                break
+        else:
+            vote_dicts.append({})
+            vote_outputs.append(raw_output)
+
+    merged: dict = {}
+    for aspect in target_aspects:
+        labels = [pred.get(aspect) for pred in vote_dicts if aspect in pred]
+        if not labels:
+            continue
+        winner, winner_count = Counter(labels).most_common(1)[0]
+        # Require only a simple plurality. With num_votes=3 this is either 2/3
+        # or 1/3 when the other votes are empty, which is acceptable for this
+        # exploratory cascade setting.
+        if winner_count >= 1:
+            merged[aspect] = winner
+
+    return merged, vote_outputs
 
 
 def predict_with_cascade(
@@ -184,6 +216,7 @@ def predict_with_cascade(
     min_non_absent_prob: float = 0.12,
     margin_threshold: float = 0.15,
     override_only_from_absent: bool = True,
+    num_votes: int = 1,
     k: int = 4,
     max_len: int = 256,
 ) -> tuple[np.ndarray, bool, dict]:
@@ -230,11 +263,12 @@ def predict_with_cascade(
         )
         examples = df_to_examples(train_df, retrieved_indices)
         target_aspects = [ASPECT_COLUMNS[idx] for idx in uncertain_indices]
-        llm_pred_dict, raw_output = _query_llm_predictions(
+        llm_pred_dict, raw_outputs = _query_llm_predictions(
             review_text=review_text or processed_text,
             examples=examples,
             target_aspects=target_aspects,
             llm_client=llm_client,
+            num_votes=num_votes,
         )
         llm_preds = np.array(labels_dict_to_array(llm_pred_dict), dtype=np.int64)
     except Exception as exc:
@@ -276,7 +310,8 @@ def predict_with_cascade(
         "uncertain_aspects": [ASPECT_COLUMNS[idx] for idx in uncertain_indices],
         "overridden_aspects": overridden,
         "llm_returned_empty": len(llm_pred_dict) == 0,
-        "raw_output_preview": raw_output[:200],
+        "raw_output_preview": raw_outputs[0][:200] if raw_outputs else "",
+        "num_votes": num_votes,
         "override_only_from_absent": override_only_from_absent,
     }
 
@@ -294,6 +329,7 @@ def run_cascade_on_dataset(
     min_non_absent_prob: float = 0.12,
     margin_threshold: float = 0.15,
     override_only_from_absent: bool = True,
+    num_votes: int = 1,
     k: int = 4,
     max_len: int = 256,
     sleep_sec: float = 0.5,
@@ -333,6 +369,7 @@ def run_cascade_on_dataset(
             min_non_absent_prob=min_non_absent_prob,
             margin_threshold=margin_threshold,
             override_only_from_absent=override_only_from_absent,
+            num_votes=num_votes,
             k=k,
             max_len=max_len,
         )
@@ -393,6 +430,7 @@ def run_cascade_on_dataset(
         "min_non_absent_prob": min_non_absent_prob,
         "margin_threshold": margin_threshold,
         "override_only_from_absent": override_only_from_absent,
+        "num_votes": num_votes,
         "k": k,
         "weak_aspects": WEAK_ASPECTS,
         "weak_trigger_counts": weak_trigger_counts,
@@ -417,6 +455,7 @@ def run_cascade_on_test(
     min_non_absent_prob: float = 0.12,
     margin_threshold: float = 0.15,
     override_only_from_absent: bool = True,
+    num_votes: int = 1,
     k: int = 4,
     sleep_sec: float = 0.5,
     max_len: int = 256,
@@ -439,6 +478,7 @@ def run_cascade_on_test(
         min_non_absent_prob=min_non_absent_prob,
         margin_threshold=margin_threshold,
         override_only_from_absent=override_only_from_absent,
+        num_votes=num_votes,
         k=k,
         max_len=max_len,
         sleep_sec=sleep_sec,
