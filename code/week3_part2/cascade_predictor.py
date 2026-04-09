@@ -104,6 +104,8 @@ def _build_cascade_messages(
         f"Chi tap trung vao cac aspect sau: {target_block}\n"
         "Neu review KHONG de cap aspect nao trong danh sach tren thi tra ve {}.\n"
         "Chi dua vao output cac aspect trong danh sach tren va duoc de cap ro rang.\n"
+        "Gia tri hop le chi duoc la: positive, negative, neutral. "
+        "KHONG duoc dung gia tri absent trong JSON output.\n"
         f"{strict_tail}"
     )
     return messages
@@ -181,6 +183,7 @@ def predict_with_cascade(
     absent_threshold: float = 0.90,
     min_non_absent_prob: float = 0.12,
     margin_threshold: float = 0.15,
+    override_only_from_absent: bool = True,
     k: int = 4,
     max_len: int = 256,
 ) -> tuple[np.ndarray, bool, dict]:
@@ -252,7 +255,11 @@ def predict_with_cascade(
 
         # Giữ safeguard hiện tại: chỉ override khi LLM khác PhoBERT
         # và dự đoán non-absent để tránh xóa detection của classifier.
-        if llm_label != phobert_label and llm_label != 0:
+        if (
+            llm_label != phobert_label
+            and llm_label != 0
+            and (not override_only_from_absent or phobert_label == 0)
+        ):
             final_preds[idx] = llm_label
             overridden.append(
                 {
@@ -270,6 +277,7 @@ def predict_with_cascade(
         "overridden_aspects": overridden,
         "llm_returned_empty": len(llm_pred_dict) == 0,
         "raw_output_preview": raw_output[:200],
+        "override_only_from_absent": override_only_from_absent,
     }
 
 
@@ -285,6 +293,7 @@ def run_cascade_on_dataset(
     absent_threshold: float = 0.90,
     min_non_absent_prob: float = 0.12,
     margin_threshold: float = 0.15,
+    override_only_from_absent: bool = True,
     k: int = 4,
     max_len: int = 256,
     sleep_sec: float = 0.5,
@@ -323,6 +332,7 @@ def run_cascade_on_dataset(
             absent_threshold=absent_threshold,
             min_non_absent_prob=min_non_absent_prob,
             margin_threshold=margin_threshold,
+            override_only_from_absent=override_only_from_absent,
             k=k,
             max_len=max_len,
         )
@@ -382,6 +392,7 @@ def run_cascade_on_dataset(
         "absent_threshold": absent_threshold,
         "min_non_absent_prob": min_non_absent_prob,
         "margin_threshold": margin_threshold,
+        "override_only_from_absent": override_only_from_absent,
         "k": k,
         "weak_aspects": WEAK_ASPECTS,
         "weak_trigger_counts": weak_trigger_counts,
@@ -405,6 +416,7 @@ def run_cascade_on_test(
     absent_threshold: float = 0.90,
     min_non_absent_prob: float = 0.12,
     margin_threshold: float = 0.15,
+    override_only_from_absent: bool = True,
     k: int = 4,
     sleep_sec: float = 0.5,
     max_len: int = 256,
@@ -426,6 +438,7 @@ def run_cascade_on_test(
         absent_threshold=absent_threshold,
         min_non_absent_prob=min_non_absent_prob,
         margin_threshold=margin_threshold,
+        override_only_from_absent=override_only_from_absent,
         k=k,
         max_len=max_len,
         sleep_sec=sleep_sec,
