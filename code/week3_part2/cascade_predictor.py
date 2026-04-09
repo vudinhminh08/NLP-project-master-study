@@ -7,7 +7,9 @@ cascade_predictor.py — Hybrid inference: PhoBERT + LLM cascade.
     có chọn lọc cho đúng các aspects yếu đó.
 """
 
+import json
 import os
+import re
 import sys
 import time
 from collections import Counter
@@ -112,6 +114,125 @@ def _build_cascade_messages(
     return messages
 
 
+def _extract_json_dict(raw_output: str) -> Optional[dict]:
+    """
+    Extract the first JSON object from a raw LLM response.
+
+    This mirrors the tolerant parsing approach used in week3 prompts, but keeps
+    the raw dict so the cascade can support custom control labels such as
+    `keep_absent` in rerank mode.
+    """
+    raw = raw_output.strip()
+    raw = re.sub(r"```(?:json)?\s*", "", raw)
+    raw = re.sub(r"```\s*$", "", raw)
+
+    parsed = None
+    brace_matches = list(re.finditer(r"\{", raw))
+    for start_match in brace_matches:
+        start = start_match.start()
+        depth = 0
+        for i, ch in enumerate(raw[start:]):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    candidate = raw[start : start + i + 1]
+                    try:
+                        parsed = json.loads(candidate)
+                        if isinstance(parsed, dict):
+                            return parsed
+                    except json.JSONDecodeError:
+                        pass
+
+    if "{}" in raw:
+        return {}
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _build_rerank_messages(
+    review_text: str,
+    examples: list[dict],
+    target_aspects: list[str],
+    phobert_preds: np.ndarray,
+    probabilities: np.ndarray,
+    retry_strict: bool = False,
+) -> list[dict]:
+    """
+    Build a more controlled prompt for aspect-level reranking.
+
+    The LLM is not asked to freely enumerate all aspects. Instead, it receives a
+    short candidate list for each uncertain aspect and must choose one of:
+    - keep_absent
+    - positive
+    - negative
+    - neutral
+    """
+    messages = build_prompt(review_text, examples, include_cot=False)
+    label_names = ["absent", "positive", "negative", "neutral"]
+    aspect_lines = []
+    for aspect in target_aspects:
+        idx = ASPECT_COLUMNS.index(aspect)
+        probs = probabilities[idx]
+        phobert_label = int(phobert_preds[idx])
+        aspect_lines.append(
+            f'- {aspect}: PhoBERT={label_names[phobert_label]} | '
+            f'P(absent)={probs[0]:.3f}, P(pos)={probs[1]:.3f}, '
+            f'P(neg)={probs[2]:.3f}, P(neu)={probs[3]:.3f}'
+        )
+
+    strict_tail = (
+        "CHI TRA VE JSON object thuan, khong giai thich, khong markdown. "
+        "Moi aspect chi duoc chon 1 trong 4 gia tri: keep_absent, positive, negative, neutral."
+        if retry_strict
+        else
+        "Chi tra ve JSON object. Moi value phai la keep_absent, positive, negative hoac neutral."
+    )
+
+    messages[-1]["content"] = (
+        f"Review: {review_text}\n"
+        "Hay danh gia CHI cac aspect duoi day.\n"
+        "Voi moi aspect, chon duy nhat 1 gia tri trong: keep_absent, positive, negative, neutral.\n"
+        "Dung keep_absent khi review khong de cap ro rang aspect do.\n"
+        "KHONG them aspect moi ngoai danh sach duoi day.\n"
+        f"{chr(10).join(aspect_lines)}\n"
+        "Tra ve JSON object voi key la aspect, value la lua chon cua ban.\n"
+        "Neu tat ca deu keep_absent thi van tra ve day du cac key.\n"
+        f"{strict_tail}"
+    )
+    return messages
+
+
+def _parse_rerank_output(raw_output: str, target_aspects: list[str]) -> dict:
+    """
+    Parse rerank output with control labels.
+
+    Returns only non-absent labels. `keep_absent` means do not override that
+    aspect, so it is intentionally omitted from the returned dict.
+    """
+    parsed = _extract_json_dict(raw_output)
+    if parsed is None:
+        if raw_output.strip() == "{}":
+            return {}
+        print(f"[WARN] Không tìm thấy JSON rerank trong output: {raw_output[:100]}")
+        return {}
+    if not isinstance(parsed, dict):
+        return {}
+
+    valid_labels = {"keep_absent", "positive", "negative", "neutral"}
+    result = {}
+    for aspect in target_aspects:
+        if aspect not in parsed:
+            continue
+        label = str(parsed[aspect]).lower().strip()
+        if label not in valid_labels:
+            print(f"[WARN] Invalid rerank label '{label}' for {aspect}")
+            continue
+        if label != "keep_absent":
+            result[aspect] = label
+    return result
+
+
 def _should_query_llm(
     pred_label: int,
     probs: np.ndarray,
@@ -148,7 +269,10 @@ def _query_llm_predictions(
     examples: list[dict],
     target_aspects: list[str],
     llm_client: LLMClient,
+    phobert_preds: Optional[np.ndarray] = None,
+    probabilities: Optional[np.ndarray] = None,
     num_votes: int = 1,
+    llm_strategy: str = "free_json",
 ) -> tuple[dict, list[str]]:
     """
     Query the LLM with a strict JSON-oriented prompt.
@@ -170,16 +294,39 @@ def _query_llm_predictions(
             vote_examples = examples
 
         for retry_strict in (False, True):
-            messages = _build_cascade_messages(
-                review_text=review_text,
-                examples=vote_examples,
-                target_aspects=target_aspects,
-                retry_strict=retry_strict,
-            )
+            if llm_strategy == "candidate_rerank":
+                if phobert_preds is None or probabilities is None:
+                    raise ValueError(
+                        "candidate_rerank cần phobert_preds và probabilities"
+                    )
+                messages = _build_rerank_messages(
+                    review_text=review_text,
+                    examples=vote_examples,
+                    target_aspects=target_aspects,
+                    phobert_preds=phobert_preds,
+                    probabilities=probabilities,
+                    retry_strict=retry_strict,
+                )
+            else:
+                messages = _build_cascade_messages(
+                    review_text=review_text,
+                    examples=vote_examples,
+                    target_aspects=target_aspects,
+                    retry_strict=retry_strict,
+                )
             raw_output = llm_client.complete(messages, temperature=0.0, use_cache=True)
-            pred_dict = parse_llm_output(raw_output)
+            if llm_strategy == "candidate_rerank":
+                pred_dict = _parse_rerank_output(raw_output, target_aspects)
+                is_success = any(asp in pred_dict for asp in target_aspects)
+                is_success = is_success or all(
+                    asp in (_extract_json_dict(raw_output) or {})
+                    for asp in target_aspects
+                )
+            else:
+                pred_dict = parse_llm_output(raw_output)
+                is_success = bool(pred_dict) or raw_output.strip() == "{}"
             filtered = {asp: pred_dict[asp] for asp in target_aspects if asp in pred_dict}
-            if filtered or raw_output.strip() == "{}":
+            if filtered or is_success:
                 vote_dicts.append(filtered)
                 vote_outputs.append(raw_output)
                 break
@@ -217,6 +364,7 @@ def predict_with_cascade(
     margin_threshold: float = 0.15,
     override_only_from_absent: bool = True,
     num_votes: int = 1,
+    llm_strategy: str = "free_json",
     k: int = 4,
     max_len: int = 256,
 ) -> tuple[np.ndarray, bool, dict]:
@@ -268,7 +416,10 @@ def predict_with_cascade(
             examples=examples,
             target_aspects=target_aspects,
             llm_client=llm_client,
+            phobert_preds=phobert_preds,
+            probabilities=probabilities,
             num_votes=num_votes,
+            llm_strategy=llm_strategy,
         )
         llm_preds = np.array(labels_dict_to_array(llm_pred_dict), dtype=np.int64)
     except Exception as exc:
@@ -312,6 +463,7 @@ def predict_with_cascade(
         "llm_returned_empty": len(llm_pred_dict) == 0,
         "raw_output_preview": raw_outputs[0][:200] if raw_outputs else "",
         "num_votes": num_votes,
+        "llm_strategy": llm_strategy,
         "override_only_from_absent": override_only_from_absent,
     }
 
@@ -330,6 +482,7 @@ def run_cascade_on_dataset(
     margin_threshold: float = 0.15,
     override_only_from_absent: bool = True,
     num_votes: int = 1,
+    llm_strategy: str = "free_json",
     k: int = 4,
     max_len: int = 256,
     sleep_sec: float = 0.5,
@@ -370,6 +523,7 @@ def run_cascade_on_dataset(
             margin_threshold=margin_threshold,
             override_only_from_absent=override_only_from_absent,
             num_votes=num_votes,
+            llm_strategy=llm_strategy,
             k=k,
             max_len=max_len,
         )
@@ -431,6 +585,7 @@ def run_cascade_on_dataset(
         "margin_threshold": margin_threshold,
         "override_only_from_absent": override_only_from_absent,
         "num_votes": num_votes,
+        "llm_strategy": llm_strategy,
         "k": k,
         "weak_aspects": WEAK_ASPECTS,
         "weak_trigger_counts": weak_trigger_counts,
@@ -456,6 +611,7 @@ def run_cascade_on_test(
     margin_threshold: float = 0.15,
     override_only_from_absent: bool = True,
     num_votes: int = 1,
+    llm_strategy: str = "free_json",
     k: int = 4,
     sleep_sec: float = 0.5,
     max_len: int = 256,
@@ -479,6 +635,7 @@ def run_cascade_on_test(
         margin_threshold=margin_threshold,
         override_only_from_absent=override_only_from_absent,
         num_votes=num_votes,
+        llm_strategy=llm_strategy,
         k=k,
         max_len=max_len,
         sleep_sec=sleep_sec,
