@@ -34,6 +34,15 @@ outputs/llm_cache/
 *.npy
 outputs/results/embeddings_cache*
 
+# Ignore almost all generated result artifacts under outputs/results,
+# but keep the two canonical Week 2 result folders tracked.
+outputs/results/*
+!outputs/results/week2_results_NO_ VNcoreNLP/
+!outputs/results/week2_results_NO_ VNcoreNLP/**
+!outputs/results/week2_results_VNcoreNLP/
+!outputs/results/week2_results_VNcoreNLP/**
+outputs/results/**/*.pt
+
 # Auto-generated output reports (md in outputs)
 outputs/**/*.md
 outputs/*.md

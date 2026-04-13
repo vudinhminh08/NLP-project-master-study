@@ -114,6 +114,7 @@ class ABSAPhoBERT(nn.Module):
         attention_mask: torch.Tensor,
         labels: Optional[torch.Tensor] = None,
         class_weights: Optional[list] = None,
+        token_type_ids: Optional[torch.Tensor] = None,  # ignored: PhoBERT is RoBERTa-based
     ) -> dict:
         """
         Forward pass.
