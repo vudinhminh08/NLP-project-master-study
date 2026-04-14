@@ -64,14 +64,20 @@ class GuidedVerifierConfig:
 
     add_threshold: float = 0.08
     spc_entropy_threshold: float = 0.75
+    enable_add: bool = True
+    enable_spc: bool = True
     delete_enabled: bool = False
     delete_max_confidence: float = 0.55
     k_rag: int = 6
     max_candidates_per_review: int = 5
     sleep_sec: float = 0.3
     temperature: float = 0.0
-    require_evidence: bool = True
+    require_evidence_for_add: bool = True
+    require_evidence_for_spc: bool = False
     use_cache: bool = True
+    apply_label_prior: bool = True
+    min_train_count_for_sentiment: int = 2
+    allow_neutral_if_train_count_at_least: int = 4
     weak_add_aspects: list[str] = field(
         default_factory=lambda: [
             aspect for aspect in RARE_ASPECTS if aspect not in ZERO_TRAIN_ASPECTS
@@ -133,7 +139,12 @@ def select_candidates_for_review(
         max_conf = float(probs_single[aspect_idx].max())
         top_sent = _top_sentiments(probs_single[aspect_idx], top_n=2)
 
-        if pred_label_idx == 0 and aspect in weak_add and p_present >= config.add_threshold:
+        if (
+            config.enable_add
+            and pred_label_idx == 0
+            and aspect in weak_add
+            and p_present >= config.add_threshold
+        ):
             candidates.append(
                 {
                     "aspect_idx": aspect_idx,
@@ -151,7 +162,8 @@ def select_candidates_for_review(
             )
 
         if (
-            pred_label_idx != 0
+            config.enable_spc
+            and pred_label_idx != 0
             and aspect in weak_spc
             and float(entropy[aspect_idx]) >= config.spc_entropy_threshold
         ):
@@ -241,6 +253,95 @@ def _retrieve_aspect_examples(
     return examples
 
 
+def build_label_prior(
+    train_df: pd.DataFrame,
+    config: GuidedVerifierConfig,
+) -> dict[str, dict]:
+    """
+    Build aspect-level sentiment priors from train labels.
+
+    This is a pragmatic calibration trick for small, imbalanced ABSA data:
+    if a sentiment is absent or nearly absent in train for a specific aspect,
+    do not let inference decode to that sentiment unless there is enough
+    training support. It never changes ACD, only sentiment among 1/2/3.
+    """
+    priors: dict[str, dict] = {}
+    for aspect in ASPECT_COLUMNS:
+        counts = {
+            label_idx: int((train_df[aspect].astype(int) == label_idx).sum())
+            for label_idx in (1, 2, 3)
+        }
+        total_present = sum(counts.values())
+        if total_present == 0:
+            priors[aspect] = {
+                "counts": counts,
+                "allowed_labels": [],
+                "majority_label": None,
+                "total_present": 0,
+            }
+            continue
+
+        allowed = [
+            label_idx for label_idx, count in counts.items()
+            if count >= config.min_train_count_for_sentiment
+        ]
+        if counts[3] < config.allow_neutral_if_train_count_at_least and 3 in allowed:
+            allowed.remove(3)
+
+        # Always keep at least the majority sentiment so present predictions
+        # are not turned into absent by calibration.
+        majority_label = max(counts, key=lambda label_idx: counts[label_idx])
+        if not allowed:
+            allowed = [majority_label]
+
+        priors[aspect] = {
+            "counts": counts,
+            "allowed_labels": allowed,
+            "majority_label": majority_label,
+            "total_present": total_present,
+        }
+    return priors
+
+
+def calibrate_sentiments_with_prior(
+    preds_single: np.ndarray,
+    label_prior: dict[str, dict],
+) -> tuple[np.ndarray, list[dict]]:
+    """
+    Apply class-prior constrained decoding to present predictions.
+
+    This never changes absent/present status. If a present sentiment is not
+    supported by train for that aspect, replace it with the aspect majority.
+    """
+    calibrated = preds_single.copy()
+    changes = []
+
+    for aspect_idx, aspect in enumerate(ASPECT_COLUMNS):
+        label_idx = int(calibrated[aspect_idx])
+        if label_idx == 0:
+            continue
+
+        prior = label_prior.get(aspect, {})
+        allowed = prior.get("allowed_labels") or []
+        majority = prior.get("majority_label")
+        if not allowed or majority is None:
+            continue
+
+        if label_idx not in allowed:
+            calibrated[aspect_idx] = int(majority)
+            changes.append(
+                {
+                    "aspect": aspect,
+                    "old": IDX_TO_LABEL[label_idx],
+                    "new": IDX_TO_LABEL[int(majority)],
+                    "reason": "unsupported_sentiment_by_train_prior",
+                    "counts": prior.get("counts", {}),
+                }
+            )
+
+    return calibrated, changes
+
+
 def build_guided_verifier_prompt(
     review_text: str,
     processed_text: str,
@@ -293,7 +394,7 @@ def build_guided_verifier_prompt(
         "processed_review": processed_text,
         "instructions": [
             "Với task verify_add: chọn absent nếu review không nói rõ aspect; nếu chọn positive/negative/neutral thì evidence bắt buộc không rỗng.",
-            "Với task verify_sentiment: aspect đã được xem là present; chỉ chọn label trong allowed_labels.",
+            "Với task verify_sentiment: aspect đã được xem là present; chỉ chọn label trong allowed_labels. Evidence nên có nếu thấy rõ, nhưng không bắt buộc.",
             "Không suy diễn từ kiến thức ngoài review.",
             "Không trả lời markdown, chỉ JSON.",
         ],
@@ -411,20 +512,30 @@ def apply_guided_decisions(
 
         label = dec["label"]
         evidence = dec.get("evidence", "")
-        if config.require_evidence and label != "absent" and len(evidence) < 2:
-            skipped.append({"aspect": aspect, "reason": "missing_evidence", "label": label})
-            continue
-
         idx = cand["aspect_idx"]
         old_label_idx = int(final_preds[idx])
         old_label = IDX_TO_LABEL[old_label_idx]
 
         if cand["task"] == "verify_add":
+            if config.require_evidence_for_add and label != "absent" and len(evidence) < 2:
+                skipped.append({
+                    "aspect": aspect,
+                    "reason": "missing_evidence_for_add",
+                    "label": label,
+                })
+                continue
             if old_label_idx != 0 or label == "absent":
                 skipped.append({"aspect": aspect, "reason": "no_add", "label": label})
                 continue
             final_preds[idx] = LABEL_TO_IDX[label]
         elif cand["task"] == "verify_sentiment":
+            if config.require_evidence_for_spc and len(evidence) < 2:
+                skipped.append({
+                    "aspect": aspect,
+                    "reason": "missing_evidence_for_spc",
+                    "label": label,
+                })
+                continue
             if old_label_idx == 0 or label == "absent":
                 skipped.append({"aspect": aspect, "reason": "invalid_spc_label", "label": label})
                 continue
@@ -559,6 +670,9 @@ def run_guided_verifier_on_dataset(
     sample_records = []
     task_counts = {"verify_add": 0, "verify_sentiment": 0, "verify_delete": 0}
     aspect_override_counts = {aspect: 0 for aspect in ASPECT_COLUMNS}
+    label_prior = build_label_prior(train_df, config) if config.apply_label_prior else {}
+    total_prior_changes = 0
+    prior_aspect_change_counts = {aspect: 0 for aspect in ASPECT_COLUMNS}
 
     for i in range(n):
         row = test_df.iloc[i]
@@ -575,6 +689,19 @@ def run_guided_verifier_on_dataset(
             llm_client=llm_client,
             config=config,
         )
+
+        prior_changes = []
+        if config.apply_label_prior:
+            pred_i, prior_changes = calibrate_sentiments_with_prior(
+                preds_single=pred_i,
+                label_prior=label_prior,
+            )
+            total_prior_changes += len(prior_changes)
+            for change in prior_changes:
+                aspect = change.get("aspect")
+                if aspect in prior_aspect_change_counts:
+                    prior_aspect_change_counts[aspect] += 1
+
         final_preds[i] = pred_i
 
         candidate_count = int(debug.get("candidate_count", 0))
@@ -616,6 +743,7 @@ def run_guided_verifier_on_dataset(
                     "candidate_aspects": debug.get("candidate_aspects", []),
                     "candidate_tasks": debug.get("candidate_tasks", []),
                     "applied": applied,
+                    "prior_changes": prior_changes,
                     "skipped": debug.get("skipped", []),
                     "error": debug.get("error"),
                     "raw_output_preview": debug.get("raw_output_preview", ""),
@@ -629,6 +757,7 @@ def run_guided_verifier_on_dataset(
                 f"({llm_call_count / max(1, i + 1):.0%}) "
                 f"| candidates: {total_candidates} "
                 f"| changed: {total_changed} "
+                f"| prior: {total_prior_changes} "
                 f"| parse_fail: {parse_fails}"
             )
 
@@ -647,6 +776,12 @@ def run_guided_verifier_on_dataset(
         "add_overrides": add_overrides,
         "spc_overrides": spc_overrides,
         "delete_overrides": delete_overrides,
+        "prior_changes": total_prior_changes,
+        "prior_aspect_change_counts": {
+            aspect: count for aspect, count in prior_aspect_change_counts.items()
+            if count > 0
+        },
+        "label_prior": label_prior,
         "parse_fails": parse_fails,
         "parse_fail_rate": parse_fails / llm_call_count if llm_call_count else 0.0,
         "invalid_items": invalid_items,

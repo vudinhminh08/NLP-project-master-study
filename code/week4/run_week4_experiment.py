@@ -82,11 +82,18 @@ class Week4Config:
 
     # Variant D — PhoBERT-guided LLM verifier
     run_guided_verifier: bool = True
+    guided_enable_add: bool = False
+    guided_enable_spc: bool = True
     guided_add_threshold: float = 0.08
-    guided_spc_entropy_threshold: float = 0.75
+    guided_spc_entropy_threshold: float = 0.55
     guided_k_rag: int = 6
-    guided_max_candidates_per_review: int = 5
+    guided_max_candidates_per_review: int = 8
     guided_delete_enabled: bool = False
+    guided_require_evidence_for_add: bool = True
+    guided_require_evidence_for_spc: bool = False
+    guided_apply_label_prior: bool = True
+    guided_min_train_count_for_sentiment: int = 2
+    guided_allow_neutral_if_train_count_at_least: int = 4
     guided_return_records: bool = True
 
 
@@ -282,10 +289,19 @@ def run_week4(
         guided_config = GuidedVerifierConfig(
             add_threshold=config.guided_add_threshold,
             spc_entropy_threshold=config.guided_spc_entropy_threshold,
+            enable_add=config.guided_enable_add,
+            enable_spc=config.guided_enable_spc,
             delete_enabled=config.guided_delete_enabled,
             k_rag=config.guided_k_rag,
             max_candidates_per_review=config.guided_max_candidates_per_review,
             sleep_sec=config.sleep_sec,
+            require_evidence_for_add=config.guided_require_evidence_for_add,
+            require_evidence_for_spc=config.guided_require_evidence_for_spc,
+            apply_label_prior=config.guided_apply_label_prior,
+            min_train_count_for_sentiment=config.guided_min_train_count_for_sentiment,
+            allow_neutral_if_train_count_at_least=(
+                config.guided_allow_neutral_if_train_count_at_least
+            ),
         )
         y_true_d, preds_d, stats_d = run_guided_verifier_on_dataset(
             test_df=test_df,
