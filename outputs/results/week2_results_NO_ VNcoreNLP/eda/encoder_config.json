@@ -1,7 +1,0 @@
-{
-  "recommended_max_seq_len": 256,
-  "p99_word_count": 243,
-  "encoder_option": "concat_4_layers",
-  "encoder_hidden_size": 3072,
-  "note": "PhoBERT max_position_embeddings=258, safe max=256"
-}

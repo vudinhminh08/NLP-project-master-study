@@ -25,7 +25,7 @@ vncorenlp/
 # Model outputs (large files)
 outputs/models/*.pt
 **/*.pt
-outputs/week2_results_version1/
+outputs/legacy_results/
 
 # LLM cache (large, local only)
 outputs/llm_cache/
@@ -35,12 +35,10 @@ outputs/llm_cache/
 outputs/results/embeddings_cache*
 
 # Ignore almost all generated result artifacts under outputs/results,
-# but keep the two canonical Week 2 result folders tracked.
+# but keep the canonical PhoBERT single-model result folder tracked.
 outputs/results/*
-!outputs/results/week2_results_NO_ VNcoreNLP/
-!outputs/results/week2_results_NO_ VNcoreNLP/**
-!outputs/results/week2_results_VNcoreNLP/
-!outputs/results/week2_results_VNcoreNLP/**
+!outputs/results/phobert_best_single/
+!outputs/results/phobert_best_single/**
 outputs/results/**/*.pt
 
 # Auto-generated output reports (md in outputs)
@@ -57,6 +55,7 @@ outputs/*.md
 models/
 
 
+
 # Directive / guide files (local notes, not for repo)
 ANALYSIS_DIRECTIVE*.md
 GUIDE_RUN*.md
@@ -65,3 +64,7 @@ GUIDE_RUN*.md
 # Local working directories (not for repo)
 coding-directive/
 Tài liệu/
+draft/
+
+
+CHANGELOG.md
