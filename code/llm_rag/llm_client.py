@@ -1,8 +1,8 @@
 """
-llm_client.py — Wrapper thống nhất cho GPT-4o-mini và Gemini 1.5 Flash.
+llm_client.py — Wrapper thống nhất cho OpenAI, Gemini, và Ollama.
 
 Thiết kế:
-- Interface giống nhau cho cả 2 model
+- Interface giống nhau cho các provider
 - Rate limiting tự động (tránh bị block)
 - Retry với exponential backoff
 - Cache responses để tiết kiệm API cost
@@ -10,23 +10,25 @@ Thiết kế:
 """
 
 import os, time, json, hashlib
+import urllib.request
+import urllib.error
 from typing import Optional
 
 
 class LLMClient:
     """
-    Unified client cho OpenAI GPT và Google Gemini.
+    Unified client cho OpenAI GPT, Google Gemini, và Ollama.
 
     Usage:
         client = LLMClient(provider="openai", api_key="sk-...")
         response = client.complete(messages=[...])
     """
 
-    SUPPORTED = {"openai", "gemini"}
+    SUPPORTED = {"openai", "gemini", "ollama"}
 
     def __init__(
         self,
-        provider: str,                    # "openai" hoặc "gemini"
+        provider: str,                    # "openai" | "gemini" | "ollama"
         api_key: Optional[str] = None,    # None → đọc từ env
         model: Optional[str] = None,      # None → dùng default
         cache_dir: str = "outputs/llm_cache",
@@ -58,9 +60,23 @@ class LLMClient:
             from google import genai
             self.client = genai.Client(api_key=self.api_key)
 
+        elif provider == "ollama":
+            self.model = model or os.environ.get("OLLAMA_MODEL", "llama3.1:8b")
+            # Optional for local Ollama; commonly required for cloud endpoints.
+            self.api_key = api_key or os.environ.get("OLLAMA_API_KEY")
+            self.base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+
     def _cache_key(self, messages: list) -> str:
         """Hash messages làm cache key."""
-        content = json.dumps(messages, ensure_ascii=False, sort_keys=True)
+        content = json.dumps(
+            {
+                "provider": self.provider,
+                "model": self.model,
+                "messages": messages,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
         return hashlib.md5(content.encode()).hexdigest()
 
     def _load_cache(self, key: str) -> Optional[str]:
@@ -117,7 +133,7 @@ class LLMClient:
                 time.sleep(wait)
 
     def _call_api(self, messages: list, temperature: float) -> str:
-        """Actual API call — khác nhau giữa OpenAI và Gemini."""
+        """Actual API call — khác nhau giữa OpenAI, Gemini và Ollama."""
         if self.provider == "openai":
             resp = self.client.chat.completions.create(
                 model=self.model,
@@ -155,13 +171,97 @@ class LLMClient:
             )
             return resp.text
 
+        elif self.provider == "ollama":
+            headers = {"Content-Type": "application/json"}
+            if self.api_key:
+                headers["Authorization"] = f"Bearer {self.api_key}"
+
+            payload = {
+                "model": self.model,
+                "messages": messages,
+                "stream": False,
+                "options": {
+                    "temperature": temperature,
+                },
+            }
+
+            # 1) Native Ollama endpoint (local + some hosted setups)
+            native_resp = self._post_json(
+                url=f"{self.base_url}/api/chat",
+                payload=payload,
+                headers=headers,
+                timeout=120,
+                swallow_http_errors=True,
+            )
+            if native_resp is not None:
+                prompt_tokens = int(native_resp.get("prompt_eval_count", 0) or 0)
+                completion_tokens = int(native_resp.get("eval_count", 0) or 0)
+                self.total_tokens += prompt_tokens + completion_tokens
+                message = native_resp.get("message", {})
+                return str(message.get("content", ""))
+
+            # 2) OpenAI-compatible fallback (common for cloud gateways)
+            compat_payload = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": 512,
+                "stream": False,
+            }
+            compat_resp = self._post_json(
+                url=f"{self.base_url}/v1/chat/completions",
+                payload=compat_payload,
+                headers=headers,
+                timeout=120,
+                swallow_http_errors=False,
+            )
+            usage = compat_resp.get("usage", {}) if isinstance(compat_resp, dict) else {}
+            self.total_tokens += int(usage.get("total_tokens", 0) or 0)
+
+            choices = compat_resp.get("choices", []) if isinstance(compat_resp, dict) else []
+            if not choices:
+                return "{}"
+            message = choices[0].get("message", {})
+            return str(message.get("content", ""))
+
+    def _post_json(
+        self,
+        url: str,
+        payload: dict,
+        headers: dict,
+        timeout: int,
+        swallow_http_errors: bool,
+    ) -> Optional[dict]:
+        body = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url=url,
+            data=body,
+            headers=headers,
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError:
+            if swallow_http_errors:
+                return None
+            raise
+        except urllib.error.URLError:
+            if swallow_http_errors:
+                return None
+            raise
+
     def get_usage_stats(self) -> dict:
+        if self.provider == "ollama":
+            est_cost = 0.0
+        else:
+            est_cost = self.total_tokens / 1_000_000 * (
+                0.15 if "gpt-4o-mini" in self.model else
+                0.10 if "gemini-2.0-flash" in self.model else 0.075
+            )
         return {
             "provider": self.provider,
             "model": self.model,
             "total_tokens": self.total_tokens,
-            "estimated_cost_usd": self.total_tokens / 1_000_000 * (
-                0.15 if "gpt-4o-mini" in self.model else
-                0.10 if "gemini-2.0-flash" in self.model else 0.075
-            ),
+            "estimated_cost_usd": est_cost,
         }

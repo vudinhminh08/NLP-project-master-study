@@ -11,10 +11,29 @@ from rag_predictor import run_rag_ablation
 from compare_results import generate_comparison_table
 
 
+def resolve_providers(api_keys: dict) -> list[str]:
+    providers = []
+    if api_keys.get("openai"):
+        providers.append("openai")
+    if api_keys.get("gemini"):
+        providers.append("gemini")
+
+    # Enable Ollama explicitly via env to avoid accidental local calls.
+    if os.environ.get("OLLAMA_ENABLE", "0") == "1":
+        providers.append("ollama")
+
+    return providers
+
+
 def main(api_keys: dict, max_samples: int = None):
-    if not api_keys:
-        print("[ERROR] Không có API key nào. Set OPENAI_API_KEY hoặc GEMINI_API_KEY.")
+    providers = resolve_providers(api_keys)
+    if not providers:
+        print(
+            "[ERROR] Không có provider nào khả dụng. "
+            "Set OPENAI_API_KEY/GEMINI_API_KEY hoặc OLLAMA_ENABLE=1."
+        )
         return
+
     set_seed(42)
     train_df = pd.read_csv("data/train_preprocessed.csv")
     test_df  = pd.read_csv("data/test_preprocessed.csv")
@@ -22,7 +41,7 @@ def main(api_keys: dict, max_samples: int = None):
     results = run_rag_ablation(
         test_df=test_df,
         train_df=train_df,
-        providers=["openai", "gemini"],
+        providers=providers,
         k_values=[2, 4, 8],
         api_keys=api_keys,
         results_dir="outputs/results",

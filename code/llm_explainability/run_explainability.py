@@ -8,6 +8,9 @@ Example:
     python code/llm_explainability/run_explainability.py \
         --predictions_json outputs/results/final_predictions.json \
         --provider openai --max_samples 20
+    python code/llm_explainability/run_explainability.py \
+        --predictions_json outputs/results/final_predictions.json \
+        --provider ollama --max_samples 20
 """
 
 from __future__ import annotations
@@ -44,17 +47,23 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Explain PhoBERT ABSA predictions")
     parser.add_argument("--test_csv", default="data/test_preprocessed.csv")
     parser.add_argument("--predictions_json", required=True)
-    parser.add_argument("--provider", default="openai", choices=["openai", "gemini"])
+    parser.add_argument("--provider", default="openai", choices=["openai", "gemini", "ollama"])
     parser.add_argument("--api_key", default=None)
     parser.add_argument("--max_samples", type=int, default=20)
     parser.add_argument("--output_dir", default="outputs/results/llm_explainability")
     args = parser.parse_args()
 
-    api_key = args.api_key or os.environ.get(
-        "OPENAI_API_KEY" if args.provider == "openai" else "GEMINI_API_KEY"
-    )
-    if not api_key:
-        raise ValueError("Missing API key. Set OPENAI_API_KEY/GEMINI_API_KEY or pass --api_key.")
+    if args.provider == "openai":
+        api_key = args.api_key or os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("Missing API key. Set OPENAI_API_KEY or pass --api_key.")
+    elif args.provider == "gemini":
+        api_key = args.api_key or os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("Missing API key. Set GEMINI_API_KEY or pass --api_key.")
+    else:
+        # Ollama local server does not require API key.
+        api_key = args.api_key
 
     test_df = pd.read_csv(args.test_csv)
     pred_matrix = load_prediction_matrix(args.predictions_json)

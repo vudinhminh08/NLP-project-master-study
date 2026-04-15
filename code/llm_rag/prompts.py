@@ -1,12 +1,11 @@
 """
 prompts.py — Prompt templates tiếng Việt cho ABSA VLSP 2018 Hotel.
 
-Nguyên tắc thiết kế prompt:
-1. System prompt: định nghĩa rõ vai trò + 34 aspects hợp lệ
-2. Liệt kê RARE_ASPECTS riêng: nhắc model chú ý aspects hiếm
-3. Chain-of-Thought: yêu cầu model giải thích trước khi ra output
-4. Output format: JSON chặt chẽ, dễ parse
-5. Few-shot examples: minh họa cả trường hợp có và không có aspect
+This module supports both:
+- Legacy one-shot prompt (aspect + sentiment in one call)
+- Two-stage prompting:
+    1) ACD: detect present aspects
+    2) SPC: predict sentiment for detected aspects
 """
 
 import sys, os
@@ -40,6 +39,48 @@ Nhiệm vụ: Phân tích review và xác định Aspect Category Sentiment Anal
     aspect_list="\n".join(f"  - {a}" for a in ASPECT_COLUMNS),
     rare_aspects_list="\n".join(f"  - {a} (rất hiếm, chỉ đưa vào nếu chắc chắn)" for a in RARE_ASPECTS),
 )
+
+
+ACD_SYSTEM_PROMPT = """Bạn là chuyên gia nhận diện khía cạnh (ACD) cho review khách sạn tiếng Việt.
+
+Nhiệm vụ:
+- Chỉ xác định aspect nào ĐƯỢC ĐỀ CẬP trong review.
+- KHÔNG dự đoán sentiment ở bước này.
+
+34 aspect hợp lệ:
+{aspect_list}
+
+Lưu ý aspect hiếm:
+{rare_aspects_list}
+
+Quy tắc output:
+- Trả JSON object đúng format: {{"aspects_present": ["ENTITY#ATTRIBUTE", ...]}}
+- Chỉ chứa aspect có trong danh sách hợp lệ
+- Không trùng lặp
+- Nếu không có aspect: {{"aspects_present": []}}
+- Không trả markdown, không trả text ngoài JSON
+""".format(
+        aspect_list="\n".join(f"  - {a}" for a in ASPECT_COLUMNS),
+        rare_aspects_list="\n".join(f"  - {a} (rất hiếm, chỉ đưa vào nếu chắc chắn)" for a in RARE_ASPECTS),
+)
+
+
+SPC_SYSTEM_PROMPT = """Bạn là chuyên gia gán sentiment (SPC) cho review khách sạn tiếng Việt.
+
+Nhiệm vụ:
+- Input đã có danh sách aspect_present.
+- Chỉ gán sentiment cho chính các aspect trong danh sách đó.
+- KHÔNG thêm aspect mới.
+
+Sentiment hợp lệ: positive, negative, neutral.
+
+Quy tắc output:
+- Trả JSON object đúng format:
+    {{"sentiments": {{"ENTITY#ATTRIBUTE": "positive|negative|neutral", ...}}}}
+- Key trong sentiments phải là tập con của aspect_present
+- Nếu aspect_present rỗng: {{"sentiments": {{}}}}
+- Không trả markdown, không trả text ngoài JSON
+"""
 
 
 # ─── Chain-of-Thought Template ────────────────────────────────────────────────
@@ -132,7 +173,118 @@ Trả về JSON output (BẮT BUỘC kết thúc bằng JSON, ví dụ: {{"SERVI
     return messages
 
 
+def build_acd_prompt(
+    test_review: str,
+    examples: list[dict],
+) -> list[dict]:
+    """Build prompt for stage-1 ACD (aspect detection only)."""
+    messages = [{"role": "system", "content": ACD_SYSTEM_PROMPT}]
+
+    for ex in examples:
+        labels = ex.get("labels", {})
+        aspects_present = sorted([asp for asp in labels.keys() if asp in ASPECT_COLUMNS])
+
+        messages.append({
+            "role": "user",
+            "content": f"Review: {ex['review']}\nHãy liệt kê aspects được đề cập.",
+        })
+        messages.append({
+            "role": "assistant",
+            "content": str({"aspects_present": aspects_present}).replace("'", '"'),
+        })
+
+    messages.append({
+        "role": "user",
+        "content": (
+            f"Review: {test_review}\n"
+            "Trả về JSON theo format {\"aspects_present\": [...]}"
+        ),
+    })
+    return messages
+
+
+def build_spc_prompt(
+    test_review: str,
+    aspects_present: list[str],
+    examples: list[dict],
+) -> list[dict]:
+    """Build prompt for stage-2 SPC (sentiment for provided aspects)."""
+    aspects_present = [asp for asp in aspects_present if asp in ASPECT_COLUMNS]
+    messages = [{"role": "system", "content": SPC_SYSTEM_PROMPT}]
+
+    for ex in examples:
+        labels = ex.get("labels", {})
+        ex_aspects = sorted([asp for asp in labels.keys() if asp in ASPECT_COLUMNS])
+        ex_sentiments = {asp: labels[asp] for asp in ex_aspects}
+
+        user_payload = {
+            "review": ex["review"],
+            "aspect_present": ex_aspects,
+        }
+        assistant_payload = {
+            "sentiments": ex_sentiments,
+        }
+
+        messages.append({"role": "user", "content": str(user_payload).replace("'", '"')})
+        messages.append({"role": "assistant", "content": str(assistant_payload).replace("'", '"')})
+
+    test_payload = {
+        "review": test_review,
+        "aspect_present": aspects_present,
+    }
+    messages.append({
+        "role": "user",
+        "content": (
+            f"{str(test_payload).replace("'", '"')}\n"
+            "Trả về JSON theo format {\"sentiments\": {\"ASPECT\": \"positive|negative|neutral\"}}"
+        ),
+    })
+    return messages
+
+
 # ─── Parse LLM Output ─────────────────────────────────────────────────────────
+
+def _extract_first_json_object(raw_output: str) -> dict | None:
+    """Try extracting first JSON object from noisy LLM output."""
+    import ast
+    import json
+    import re
+
+    raw = (raw_output or "").strip()
+    raw = re.sub(r'```(?:json)?\s*', '', raw)
+    raw = re.sub(r'```\s*$', '', raw)
+
+    parsed = None
+    brace_matches = list(re.finditer(r'\{', raw))
+    for start_match in brace_matches:
+        start = start_match.start()
+        depth = 0
+        for i, ch in enumerate(raw[start:]):
+            if ch == '{':
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+                if depth == 0:
+                    candidate = raw[start:start + i + 1]
+                    try:
+                        parsed = json.loads(candidate)
+                        if isinstance(parsed, dict):
+                            return parsed
+                    except json.JSONDecodeError:
+                        pass
+        if parsed is not None:
+            break
+
+    sq_match = re.search(r'\{[^{}]*\}', raw, re.DOTALL)
+    if sq_match:
+        try:
+            parsed = ast.literal_eval(sq_match.group())
+            if isinstance(parsed, dict):
+                return parsed
+        except (ValueError, SyntaxError):
+            pass
+    return None
+
 
 def parse_llm_output(raw_output: str) -> dict:
     """
@@ -147,54 +299,14 @@ def parse_llm_output(raw_output: str) -> dict:
     Returns:
         dict {aspect: sentiment} chỉ gồm valid aspects và valid sentiments
     """
-    import json, re
-
     valid_sentiments = {"positive", "negative", "neutral"}
     valid_aspects    = set(ASPECT_COLUMNS)
 
-    # Strip markdown fences
-    raw = raw_output.strip()
-    raw = re.sub(r'```(?:json)?\s*', '', raw)
-    raw = re.sub(r'```\s*$', '', raw)
-
-    # Tìm JSON object trong output — thử từ outermost đến innermost
-    parsed = None
-    # Tìm tất cả cặp {} và thử parse từ ngoài vào trong
-    brace_matches = list(re.finditer(r'\{', raw))
-    for start_match in brace_matches:
-        start = start_match.start()
-        # Tìm closing brace tương ứng (đếm depth)
-        depth = 0
-        for i, ch in enumerate(raw[start:]):
-            if ch == '{':
-                depth += 1
-            elif ch == '}':
-                depth -= 1
-                if depth == 0:
-                    candidate = raw[start: start + i + 1]
-                    try:
-                        parsed = json.loads(candidate)
-                        if isinstance(parsed, dict):
-                            break
-                    except json.JSONDecodeError:
-                        pass
-        if parsed is not None:
-            break
-
-    # Fallback: ast.literal_eval cho Python-style single-quote dict
+    parsed = _extract_first_json_object(raw_output)
     if parsed is None:
-        import ast
-        sq_match = re.search(r'\{[^{}]*\}', raw, re.DOTALL)
-        if sq_match:
-            try:
-                parsed = ast.literal_eval(sq_match.group())
-            except (ValueError, SyntaxError):
-                pass
-
-    if parsed is None:
-        if '{}' in raw:
+        if '{}' in (raw_output or ''):
             return {}
-        print(f"[WARN] Không tìm thấy JSON trong output: {raw[:100]}")
+        print(f"[WARN] Không tìm thấy JSON trong output: {(raw_output or '')[:100]}")
         return {}
 
     if not isinstance(parsed, dict):
@@ -226,6 +338,53 @@ def parse_llm_output(raw_output: str) -> dict:
             print(f"[WARN] Invalid sentiment '{sent}' for {asp}")
             continue
         result[asp] = sent
+
+    return result
+
+
+def parse_acd_output(raw_output: str) -> list[str]:
+    """Parse stage-1 ACD output into validated list of aspects."""
+    parsed = _extract_first_json_object(raw_output)
+    if not isinstance(parsed, dict):
+        return []
+
+    aspects = parsed.get("aspects_present", [])
+    if not isinstance(aspects, list):
+        return []
+
+    seen = set()
+    result = []
+    for asp in aspects:
+        asp = str(asp).strip()
+        if asp in ASPECT_COLUMNS and asp not in seen:
+            seen.add(asp)
+            result.append(asp)
+    return result
+
+
+def parse_spc_output(raw_output: str, aspects_present: list[str]) -> dict:
+    """Parse stage-2 SPC output into {aspect: sentiment} dict."""
+    valid_sentiments = {"positive", "negative", "neutral"}
+    allowed_aspects = {asp for asp in aspects_present if asp in ASPECT_COLUMNS}
+
+    parsed = _extract_first_json_object(raw_output)
+    if not isinstance(parsed, dict):
+        return {}
+
+    sentiments = parsed.get("sentiments", parsed)
+    if not isinstance(sentiments, dict):
+        return {}
+
+    result = {}
+    for asp, sent in sentiments.items():
+        asp = str(asp).strip()
+        sent = str(sent).lower().strip()
+        if asp in allowed_aspects and sent in valid_sentiments:
+            result[asp] = sent
+
+    # Preserve ACD detections even when SPC misses some keys.
+    for asp in allowed_aspects:
+        result.setdefault(asp, "neutral")
 
     return result
 

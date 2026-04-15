@@ -16,7 +16,13 @@ from utils.constants import ASPECT_COLUMNS
 from utils.helpers import set_seed, save_json
 from step4_eval import evaluate_predictions
 
-from prompts import build_prompt, parse_llm_output, labels_dict_to_array
+from prompts import (
+    build_acd_prompt,
+    build_spc_prompt,
+    parse_acd_output,
+    parse_spc_output,
+    labels_dict_to_array,
+)
 from llm_client import LLMClient
 from rag_retriever import ABSARetriever
 from icl_predictor import df_to_examples
@@ -33,10 +39,10 @@ def predict_rag(
     sleep_sec: float = 7.0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    RAG prediction với semantic retrieval.
+    RAG prediction với semantic retrieval + two-stage prompting.
 
-    Khác icl_predictor duy nhất 1 điểm: cách chọn examples
-    → random (ICL) vs semantic retrieval (RAG)
+    Stage 1 (ACD): detect present aspects.
+    Stage 2 (SPC): predict sentiment for detected aspects only.
     """
     test_df = test_df.head(max_samples) if max_samples else test_df
 
@@ -52,10 +58,18 @@ def predict_rag(
         )
         examples = df_to_examples(train_df, indices)
 
-        # Phần còn lại giống hệt ICL
-        messages = build_prompt(query, examples)
-        raw_output = client.complete(messages)
-        pred_dict = parse_llm_output(raw_output)
+        # Stage 1: ACD
+        acd_messages = build_acd_prompt(query, examples)
+        acd_raw = client.complete(acd_messages)
+        aspects_present = parse_acd_output(acd_raw)
+
+        # Stage 2: SPC (only if at least one aspect is detected)
+        if aspects_present:
+            spc_messages = build_spc_prompt(query, aspects_present, examples)
+            spc_raw = client.complete(spc_messages)
+            pred_dict = parse_spc_output(spc_raw, aspects_present)
+        else:
+            pred_dict = {}
 
         y_pred_list.append(labels_dict_to_array(pred_dict))
         y_true_list.append([int(test_row[asp]) for asp in ASPECT_COLUMNS])
