@@ -33,6 +33,31 @@
 4. **Dataset nhỏ (3000 train):** khó học tốt các aspect hiếm
 5. **Single model:** báo cáo chính giữ bản single để dễ giải thích và so sánh công bằng
 
+## Vai trò của VnCoreNLP
+
+VnCoreNLP là yếu tố tiền xử lý quan trọng nhất trong pipeline PhoBERT. PhoBERT
+được pretrain trên tiếng Việt đã word-segmented, nên review đầu vào cũng cần có
+dạng gần tương tự.
+
+So sánh ablation:
+
+| Setting | ACD F1 | SPC F1 | Combined F1 |
+|---|---:|---:|---:|
+| Không VnCoreNLP | 0.3592 | 0.2371 | 0.2981 |
+| Có VnCoreNLP | 0.6360 | 0.4727 | 0.5543 |
+
+VnCoreNLP giúp nối đúng các từ ghép tiếng Việt như `khách_sạn`, `dịch_vụ`,
+`chất_lượng`, `nhân_viên`, đồng thời vẫn giữ khoảng trắng giữa các từ. Nhờ đó
+PhoBERT nhận được chuỗi token tự nhiên hơn, ít nhiễu hơn và gần với dữ liệu
+pretraining hơn.
+
+Tác động chính:
+
+- ACD tăng mạnh vì model nhận diện aspect phrase tốt hơn.
+- SPC tăng vì sentiment cue như `sạch_sẽ`, `thân_thiện`, `khó_chịu`, `hợp_lý`
+  được gắn với đúng aspect ổn định hơn.
+- Combined F1 tăng `+0.2562`, từ `0.2981` lên `0.5543`.
+
 ## Bottom 5 Aspects (ACD F1 thấp nhất — Test set)
 
 | Aspect | ACD F1 | SPC F1 | Support | Ghi chú |

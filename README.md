@@ -56,6 +56,24 @@ Train/evaluate single PhoBERT:
 python code/phobert/run_experiment.py --encoder cls_only
 ```
 
+Notebook minh chứng đã chạy có output:
+
+```text
+notebooks/phase_phobert_vncorenlp_executed.ipynb
+```
+
+Notebook ablation không dùng VnCoreNLP:
+
+```text
+notebooks/phase_phobert_no_vncorenlp_executed.ipynb
+```
+
+So sánh chi tiết:
+
+```text
+docs/phobert_vncorenlp_ablation.md
+```
+
 Kết quả report chính dùng:
 
 ```text
@@ -73,6 +91,12 @@ Chạy RAG few-shot predictor:
 
 ```bash
 OPENAI_API_KEY=... python code/llm_rag/run_llm_rag.py
+```
+
+Notebook minh chứng đã chạy có output:
+
+```text
+notebooks/phase_llm_rag_executed.ipynb
 ```
 
 Các file chính:
