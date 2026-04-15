@@ -65,6 +65,8 @@ class LLMClient:
             # Optional for local Ollama; commonly required for cloud endpoints.
             self.api_key = api_key or os.environ.get("OLLAMA_API_KEY")
             self.base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+            # Optional explicit endpoint override for cloud gateways.
+            self.chat_url_override = os.environ.get("OLLAMA_CHAT_URL", "").strip()
 
     def _cache_key(self, messages: list) -> str:
         """Hash messages làm cache key."""
@@ -185,22 +187,6 @@ class LLMClient:
                 },
             }
 
-            # 1) Native Ollama endpoint (local + some hosted setups)
-            native_resp = self._post_json(
-                url=f"{self.base_url}/api/chat",
-                payload=payload,
-                headers=headers,
-                timeout=120,
-                swallow_http_errors=True,
-            )
-            if native_resp is not None:
-                prompt_tokens = int(native_resp.get("prompt_eval_count", 0) or 0)
-                completion_tokens = int(native_resp.get("eval_count", 0) or 0)
-                self.total_tokens += prompt_tokens + completion_tokens
-                message = native_resp.get("message", {})
-                return str(message.get("content", ""))
-
-            # 2) OpenAI-compatible fallback (common for cloud gateways)
             compat_payload = {
                 "model": self.model,
                 "messages": messages,
@@ -208,21 +194,72 @@ class LLMClient:
                 "max_tokens": 512,
                 "stream": False,
             }
-            compat_resp = self._post_json(
-                url=f"{self.base_url}/v1/chat/completions",
-                payload=compat_payload,
-                headers=headers,
-                timeout=120,
-                swallow_http_errors=False,
-            )
-            usage = compat_resp.get("usage", {}) if isinstance(compat_resp, dict) else {}
-            self.total_tokens += int(usage.get("total_tokens", 0) or 0)
 
-            choices = compat_resp.get("choices", []) if isinstance(compat_resp, dict) else []
-            if not choices:
-                return "{}"
-            message = choices[0].get("message", {})
-            return str(message.get("content", ""))
+            # Try multiple URL patterns for Ollama cloud/local variants.
+            # kind=native expects /api/chat response shape, kind=compat expects OpenAI shape.
+            candidates = self._get_ollama_candidates()
+            last_err: Optional[Exception] = None
+            tried: list[str] = []
+
+            for kind, url in candidates:
+                tried.append(url)
+                try:
+                    resp = self._post_json(
+                        url=url,
+                        payload=payload if kind == "native" else compat_payload,
+                        headers=headers,
+                        timeout=120,
+                        swallow_http_errors=False,
+                    )
+                except Exception as e:
+                    last_err = e
+                    continue
+
+                if kind == "native":
+                    prompt_tokens = int(resp.get("prompt_eval_count", 0) or 0)
+                    completion_tokens = int(resp.get("eval_count", 0) or 0)
+                    self.total_tokens += prompt_tokens + completion_tokens
+                    message = resp.get("message", {})
+                    return str(message.get("content", ""))
+
+                usage = resp.get("usage", {}) if isinstance(resp, dict) else {}
+                self.total_tokens += int(usage.get("total_tokens", 0) or 0)
+                choices = resp.get("choices", []) if isinstance(resp, dict) else []
+                if not choices:
+                    return "{}"
+                message = choices[0].get("message", {})
+                return str(message.get("content", ""))
+
+            tried_str = " | ".join(tried)
+            if last_err is None:
+                raise RuntimeError(f"Ollama request failed. Tried URLs: {tried_str}")
+            raise RuntimeError(f"Ollama request failed after trying URLs: {tried_str}. Last error: {last_err}")
+
+    def _get_ollama_candidates(self) -> list[tuple[str, str]]:
+        """Return candidate URLs for native and OpenAI-compatible Ollama APIs."""
+        if self.chat_url_override:
+            # Respect explicit override first.
+            return [("compat", self.chat_url_override)]
+
+        base = self.base_url
+        lower_base = base.lower()
+
+        # If base already points to an endpoint, do not append paths again.
+        if lower_base.endswith("/api/chat"):
+            return [("native", base)]
+        if (
+            lower_base.endswith("/v1/chat/completions")
+            or lower_base.endswith("/api/v1/chat/completions")
+            or lower_base.endswith("/chat/completions")
+        ):
+            return [("compat", base)]
+
+        return [
+            ("native", f"{base}/api/chat"),
+            ("compat", f"{base}/v1/chat/completions"),
+            ("compat", f"{base}/api/v1/chat/completions"),
+            ("compat", f"{base}/chat/completions"),
+        ]
 
     def _post_json(
         self,
