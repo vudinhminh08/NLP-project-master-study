@@ -35,6 +35,20 @@ Relative to the no-VnCoreNLP run:
 0.2562 / 0.2981 ≈ +85.9%
 ```
 
+## Giải thích tham số so sánh
+
+| Tham số | Cách giữ cố định | Lý do |
+|---------|------------------|-------|
+| Dataset split | Cùng train/dev/test của VLSP 2018 Hotel | Đảm bảo chênh lệch đến từ preprocessing, không phải đổi dữ liệu. |
+| Metric | Cùng ACD F1, SPC F1, Combined F1 | So sánh trực tiếp với SVM, PhoBERT và LLM/RAG. |
+| Model family | Đều dùng PhoBERT supervised | Không trộn thêm model khác để tránh nhiễu kết luận. |
+| Encoder candidates | So sánh `concat_4_layers` và `cls_only` trong cả hai setting | Kiểm tra xem lợi ích của VnCoreNLP có ổn định với các cách lấy representation khác nhau không. |
+| Word segmentation | Chỉ thay phần có/không có VnCoreNLP | Đây là biến chính của ablation. |
+
+Ablation này được thiết kế theo nguyên tắc chỉ thay một yếu tố quan trọng:
+chất lượng word segmentation. Vì vậy phần tăng điểm có thể giải thích rõ ràng
+hơn so với các thí nghiệm thay nhiều thứ cùng lúc.
+
 ## Evidence From Notebook Outputs
 
 The no-VnCoreNLP executed notebook shows a processed sample like:

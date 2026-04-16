@@ -1,5 +1,3 @@
-"""File upload helpers for the Streamlit app."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,11 +10,10 @@ SUPPORTED_EXTENSIONS = {".csv", ".xlsx", ".xls"}
 
 
 class ReviewFileError(ValueError):
-    """Raised when an uploaded review file does not match the expected schema."""
+    pass
 
 
 def read_review_file(uploaded_file) -> pd.DataFrame:
-    """Read and validate an uploaded CSV/XLS/XLSX file."""
     filename = getattr(uploaded_file, "name", "")
     suffix = Path(filename).suffix.lower()
     if suffix not in SUPPORTED_EXTENSIONS:
@@ -34,7 +31,6 @@ def read_review_file(uploaded_file) -> pd.DataFrame:
 
 
 def validate_review_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """Require a review_text column and return cleaned review rows."""
     if REVIEW_TEXT_COLUMN not in df.columns:
         raise ReviewFileError(
             "File phải có cột bắt buộc 'review_text'. "
@@ -53,7 +49,6 @@ def validate_review_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def make_review_options(df: pd.DataFrame) -> list[tuple[int, str]]:
-    """Return (row_index, label) pairs for a compact Streamlit selectbox."""
     options = []
     for idx, row in df.iterrows():
         text = str(row[REVIEW_TEXT_COLUMN])

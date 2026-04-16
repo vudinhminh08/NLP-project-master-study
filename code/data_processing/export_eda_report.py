@@ -1,12 +1,3 @@
-"""
-export_eda_report.py — Xuất báo cáo EDA ra file Word (.docx).
-
-Chạy từ root project:
-    python code/data_processing/export_eda_report.py
-
-Output:
-    outputs/eda/EDA_Report_ABSA_VLSP2018.docx
-"""
 import os
 import sys
 import json
@@ -34,7 +25,6 @@ OUTPUT_PATH = "outputs/eda/EDA_Report_ABSA_VLSP2018.docx"
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
 def set_cell_bg(cell, hex_color: str):
-    """Set background color cho table cell."""
     tc = cell._tc
     tcPr = tc.get_or_add_tcPr()
     shd = OxmlElement("w:shd")
@@ -73,7 +63,6 @@ def add_image(doc: Document, img_path: str, width_inches: float = 6.0, caption: 
 
 
 def styled_table_header(table, header_row: list, bg_hex: str = "2E4057"):
-    """Style header row với màu nền đậm và chữ trắng."""
     row = table.rows[0]
     for i, text in enumerate(header_row):
         cell = row.cells[i]
@@ -421,7 +410,7 @@ def build_report():
     # Save
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     doc.save(OUTPUT_PATH)
-    print(f"✅ Báo cáo đã lưu tại: {OUTPUT_PATH}")
+    print(f"Báo cáo đã lưu tại: {OUTPUT_PATH}")
 
 
 if __name__ == "__main__":

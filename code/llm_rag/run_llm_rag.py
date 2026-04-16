@@ -1,4 +1,3 @@
-"""Entry point for LLM + RAG experiments."""
 import os, sys
 import pandas as pd
 
@@ -28,13 +27,13 @@ def main(api_keys: dict, max_samples: int = None):
         results_dir="outputs/results",
         max_samples=max_samples,
     )
-    print("\n✅ LLM + RAG hoàn tất")
+    print("\nLLM + RAG hoàn tất")
     for exp, m in results.items():
         print(f"  {exp}: Combined F1 = {m['macro_combined_f1']:.4f}")
 
     # Tạo bảng so sánh tổng hợp
     generate_comparison_table()
-    print("\n📊 Bảng so sánh: outputs/results/final_four_direction_comparison.md")
+    print("\nBảng so sánh: outputs/results/final_four_direction_comparison.md")
 
 
 if __name__ == "__main__":

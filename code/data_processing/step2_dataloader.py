@@ -1,11 +1,3 @@
-"""
-step2_dataloader.py — PyTorch Dataset + DataLoader cho ABSA VLSP 2018.
-
-Tái sử dụng cho tuần 2 và 3.
-
-Chạy từ root project:
-    python code/data_processing/step2_dataloader.py
-"""
 import os
 import sys
 from typing import Optional
@@ -33,21 +25,6 @@ from utils.helpers import set_seed, log_versions
 # ─── Dataset ─────────────────────────────────────────────────────────────────
 
 class ABSADataset(torch.utils.data.Dataset):
-    """
-    Dataset cho ABSA VLSP 2018.
-
-    Args:
-        df:        DataFrame với cột text và 34 cột aspect
-        tokenizer: PhoBERT AutoTokenizer
-        max_len:   max sequence length
-        text_col:  tên cột text ('processed_review' hoặc 'Review')
-
-    __getitem__ trả về:
-        input_ids:      LongTensor [max_len]
-        attention_mask: LongTensor [max_len]
-        labels:         LongTensor [34]  — values 0-3
-        review_text:    str  — giữ lại để debug/error analysis
-    """
 
     def __init__(
         self,
@@ -96,22 +73,6 @@ def create_dataloaders(
     num_workers: int = 2,
     use_preprocessed: bool = True,
 ) -> tuple:
-    """
-    Tạo DataLoader cho train/dev/test.
-
-    Args:
-        train_path:       path đến train CSV
-        dev_path:         path đến dev CSV
-        test_path:        path đến test CSV
-        tokenizer:        PhoBERT tokenizer
-        batch_size:       batch size
-        max_len:          max sequence length
-        num_workers:      số worker processes
-        use_preprocessed: dùng cột 'processed_review' hay 'Review'
-
-    Returns:
-        tuple (train_loader, dev_loader, test_loader) — None nếu file không tồn tại
-    """
     text_col = "processed_review" if use_preprocessed else "Review"
     loaders = []
 
@@ -143,13 +104,6 @@ def create_dataloaders(
 # ─── Sanity check ────────────────────────────────────────────────────────────
 
 def verify_dataloader(dataloader: DataLoader, split_name: str) -> None:
-    """
-    Sanity check: shape, label range, NaN, sample review.
-
-    Args:
-        dataloader: DataLoader to verify
-        split_name: name for logging
-    """
     batch = next(iter(dataloader))
 
     print(f"\n[Verify] {split_name}")
@@ -160,7 +114,7 @@ def verify_dataloader(dataloader: DataLoader, split_name: str) -> None:
     labels = batch["labels"]
     assert labels.min() >= 0 and labels.max() <= 3, "Label ngoài range [0,3]!"
     assert not torch.isnan(batch["input_ids"].float()).any(), "NaN trong input_ids!"
-    print(f"  Label range: [{labels.min()}, {labels.max()}] ✓")
+    print(f"  Label range: [{labels.min()}, {labels.max()}] ")
     print(f"\n  Sample review:\n  {batch['review_text'][0][:200]}")
     aspects_present = [ASPECT_COLUMNS[i] for i, v in enumerate(labels[0]) if v > 0]
     print(f"  Aspects mentioned: {aspects_present}")
@@ -176,14 +130,14 @@ def main() -> None:
     from utils.constants import NUM_ASPECTS
     print(f"\n[Constants] NUM_ASPECTS = {NUM_ASPECTS}")
     assert NUM_ASPECTS == 34, f"Expected 34, got {NUM_ASPECTS}"
-    print("[Constants] OK ✓")
+    print("[Constants] OK ")
 
     # Load tokenizer
     try:
         from transformers import AutoTokenizer
         print(f"\n[Tokenizer] Loading {PHOBERT_MODEL_NAME}...")
         tokenizer = AutoTokenizer.from_pretrained(PHOBERT_MODEL_NAME)
-        print("[Tokenizer] Loaded ✓")
+        print("[Tokenizer] Loaded ")
     except Exception as e:
         print(f"[ERROR] Không thể load tokenizer: {e}")
         print("  → Đảm bảo đã cài: pip install transformers")
@@ -214,7 +168,7 @@ def main() -> None:
     if dev_loader is not None:
         verify_dataloader(dev_loader, "dev")
 
-    print("\n✅ DataLoader verification hoàn tất.")
+    print("\nDataLoader verification hoàn tất.")
 
 
 if __name__ == "__main__":

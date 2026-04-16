@@ -12,6 +12,23 @@ Tài liệu này chỉ giữ phần cần thiết cho hướng LLM + RAG trong b
 | **RAG GPT-4o-mini** | **8** | **0.4034** | **0.3031** | **0.3532** | Best LLM predictor |
 | RAG GPT-4o-mini | 16 | 0.3988 | 0.2879 | 0.3433 | Context overload / diminishing returns |
 
+## Giải thích tham số và cách lựa chọn
+
+| Tham số | Cách chọn | Lý do |
+|---------|----------|-------|
+| `model=gpt-4o-mini` | Chọn model LLM chi phí thấp, tốc độ ổn | Thí nghiệm cần gọi nhiều request trên 600 test reviews; model quá đắt không phù hợp bài tập lớn. |
+| `k=2,4,8,16` | Chạy ablation theo số ví dụ retrieved | Dùng nhiều mức k để kiểm tra trade-off: ít ví dụ thì thiếu ngữ cảnh, quá nhiều ví dụ thì prompt nhiễu. |
+| `k=8` | Chọn vì Combined F1 cao nhất trong các run RAG | Đây là điểm cân bằng giữa đủ ví dụ domain và prompt chưa quá dài. |
+| Sentence embedding retriever | Dùng embedding similarity thay vì random examples | Review tương tự thường có aspect/sentiment cue tương tự, giúp LLM hiểu schema nhanh hơn ICL ngẫu nhiên. |
+| JSON output schema | Ép LLM trả về cấu trúc parse được | ABSA cần evaluate tự động; output tự do sẽ khó map về 34 aspect labels. |
+| Cache response | Lưu output LLM theo prompt | Tránh tốn API khi rerun, đồng thời giúp notebook executed giữ kết quả ổn định. |
+| `sleep_sec=1.0` | Thêm khoảng nghỉ giữa request | Giảm rủi ro rate limit khi chạy nhiều sample trên Kaggle. |
+| `max_samples=None` | Chạy full test set khi lấy kết quả chính | Dùng 600 test reviews để metric so sánh công bằng với SVM và PhoBERT. |
+
+Các tham số của LLM+RAG không nhằm cạnh tranh bằng mọi giá với PhoBERT. Mục
+tiêu là kiểm tra một hướng predictor không train supervised model, từ đó chứng
+minh retrieval có ích nhưng vẫn chưa đủ thay thế PhoBERT.
+
 ## Quy trình xử lý
 
 LLM + RAG được thử như một hướng predictor không train thêm model supervised.

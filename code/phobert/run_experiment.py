@@ -1,17 +1,3 @@
-"""
-run_experiment.py — Entry point cho phase PhoBERT.
-
-Chạy từ root project:
-    python code/phobert/run_experiment.py                           # concat_4_layers (SOTA)
-    python code/phobert/run_experiment.py --encoder cls_only        # ablation
-
-Output:
-    outputs/models/best_model.pt                 (hoặc outputs/models_cls_only/)
-    outputs/results/training_history.json
-    outputs/results/phobert_dev_metrics.json
-    outputs/results/phobert_test_metrics.json
-    outputs/results/phobert_summary.md
-"""
 
 import os
 import sys
@@ -32,17 +18,6 @@ from predict import load_best_model, predict_and_evaluate, generate_summary_repo
 
 
 def main(encoder_option: str = None, use_amp: bool = True) -> dict:
-    """
-    Full pipeline: load data → build model → train → evaluate → report.
-
-    Args:
-        encoder_option: "concat_4_layers" (SOTA) hoặc "cls_only" (ablation).
-                        None = đọc từ encoder_config.json (mặc định concat_4_layers).
-        use_amp:        True để dùng Mixed Precision training (tự động tắt nếu CPU).
-
-    Returns:
-        test_metrics dict với các keys: macro_acd_f1, macro_spc_f1, macro_combined_f1, ...
-    """
     # === Setup ===
     set_seed(TRAIN_CONFIG["seed"])
     device = get_device()
@@ -75,7 +50,7 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
     # === Tokenizer ===
     print(f"\n[Tokenizer] Loading {PHOBERT_MODEL_NAME}...")
     tokenizer = AutoTokenizer.from_pretrained(PHOBERT_MODEL_NAME)
-    print("[Tokenizer] Loaded ✓")
+    print("[Tokenizer] Loaded ")
 
     # === DataLoaders — dùng preprocessed cache từ phase data_processing ===
     print("\n[Data] Creating DataLoaders...")

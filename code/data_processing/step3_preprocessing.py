@@ -1,16 +1,3 @@
-"""
-step3_preprocessing.py — Preprocessing pipeline cho ABSA VLSP 2018 Hotel.
-
-Pipeline (deterministic + idempotent):
-    1. normalize_unicode  — NFC normalization
-    2. normalize_whitespace — xóa khoảng trắng thừa
-    3. replace_teencode   — từ dài nhất đến ngắn nhất
-    4. remove_special_chars — giữ dấu câu cơ bản
-    5. segment_words      — VnCoreNLP hoặc underthesea fallback
-
-Chạy từ root project:
-    python code/data_processing/step3_preprocessing.py
-"""
 import os
 import re
 import sys
@@ -131,24 +118,16 @@ TEENCODE_DICT = {
 # ─── Preprocessing functions ─────────────────────────────────────────────────
 
 def normalize_unicode(text: str) -> str:
-    """NFC normalization — critical cho tiếng Việt."""
     return unicodedata.normalize("NFC", text)
 
 
 def normalize_whitespace(text: str) -> str:
-    """Xóa whitespace thừa, normalize newline/tab."""
     text = re.sub(r'[\r\n\t]+', ' ', text)
     text = re.sub(r' +', ' ', text)
     return text.strip()
 
 
 def replace_teencode(text: str, teencode_dict: dict = TEENCODE_DICT) -> str:
-    """
-    Thay thế teencode bằng từ chuẩn.
-    - Xử lý từ dài nhất trước (tránh partial match)
-    - Case-insensitive
-    - Dùng word boundary \\b
-    """
     # Sort by length desc để tránh "bthg" bị match "bt" trước
     sorted_keys = sorted(teencode_dict.keys(), key=len, reverse=True)
     for key in sorted_keys:
@@ -158,11 +137,6 @@ def replace_teencode(text: str, teencode_dict: dict = TEENCODE_DICT) -> str:
 
 
 def remove_special_chars(text: str, keep_punctuation: bool = True) -> str:
-    """
-    Xóa ký tự không cần thiết.
-    Giữ: chữ cái (kể cả tiếng Việt), số, khoảng trắng.
-    Nếu keep_punctuation: giữ thêm .,!?;:-/()
-    """
     if keep_punctuation:
         pattern = r'[^\w\s\.,!?;:\-/\(\)]'
     else:
@@ -175,10 +149,6 @@ def preprocess_text(
     segmenter: Optional["VnCoreNLPSegmenter"] = None,
     do_segment: bool = True,
 ) -> str:
-    """
-    Full pipeline: unicode → whitespace → teencode → special_chars → segment.
-    Nếu do_segment=False hoặc segmenter=None: bỏ qua bước segment.
-    """
     text = normalize_unicode(str(text))
     text = normalize_whitespace(text)
     text = replace_teencode(text)
@@ -196,12 +166,6 @@ def preprocess_dataframe(
     output_col: str = "processed_review",
     cache_path: Optional[str] = None,
 ) -> pd.DataFrame:
-    """
-    Apply preprocess_text cho toàn bộ DataFrame.
-    - Thêm cột output_col (giữ nguyên cột gốc)
-    - Nếu cache_path tồn tại: load cache, không chạy lại
-    - Lưu cache sau khi xong
-    """
     if cache_path and os.path.exists(cache_path):
         print(f"[Cache] Load preprocessed từ {cache_path}")
         cached = pd.read_csv(cache_path)
@@ -225,15 +189,6 @@ def preprocess_dataframe(
 # ─── VnCoreNLP Segmenter ─────────────────────────────────────────────────────
 
 class VnCoreNLPSegmenter:
-    """
-    Wrapper VnCoreNLP với lazy loading + graceful fallback.
-
-    Priority: VnCoreNLP (chính xác hơn) → underthesea (fallback)
-    Lý do fallback: VnCoreNLP yêu cầu Java 8+, download model riêng (~200MB).
-
-    Từ ghép được nối bằng '_': "khách_sạn", "nhân_viên", "lễ_tân"
-    PhoBERT được train với định dạng này — BẮT BUỘC dùng word segment.
-    """
 
     def __init__(
         self,
@@ -246,7 +201,6 @@ class VnCoreNLPSegmenter:
         self.use_fallback = use_fallback
 
     def _load(self) -> None:
-        """Lazy load — chỉ load lần đầu gọi segment()."""
         if self._segmenter is not None or self._using_fallback:
             return
         try:
@@ -273,7 +227,6 @@ class VnCoreNLPSegmenter:
                 raise
 
     def segment(self, text: str) -> str:
-        """Segment 1 text, trả về string với từ ghép nối bằng '_'."""
         self._load()
         if self._using_fallback:
             from underthesea import word_tokenize
@@ -284,7 +237,6 @@ class VnCoreNLPSegmenter:
         return result
 
     def segment_batch(self, texts: list[str], batch_size: int = 64) -> list[str]:
-        """Segment batch với progress bar tqdm."""
         results = []
         for i in tqdm(range(0, len(texts), batch_size), desc="Word segmenting"):
             batch = texts[i:i + batch_size]
@@ -292,7 +244,6 @@ class VnCoreNLPSegmenter:
         return results
 
     def close(self) -> None:
-        """Giải phóng VnCoreNLP process."""
         if self._segmenter and not self._using_fallback:
             try:
                 self._segmenter.close()
@@ -351,7 +302,7 @@ def main() -> None:
                 print(f"  Example {idx}: {df.iloc[idx]['processed_review'][:120]}")
 
     segmenter.close()
-    print("\n✅ Preprocessing hoàn tất.")
+    print("\nPreprocessing hoàn tất.")
 
 
 if __name__ == "__main__":

@@ -3,5 +3,5 @@
   "p99_word_count": 243,
   "encoder_option": "concat_4_layers",
   "encoder_hidden_size": 3072,
-  "note": "PhoBERT base (ca v1 lan v2) co max_position_embeddings=258, hard limit seq_len=256"
+  "note": "max_seq_len=256"
 }

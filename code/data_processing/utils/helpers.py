@@ -1,6 +1,3 @@
-"""
-helpers.py — Utility functions dùng chung toàn bộ dự án.
-"""
 import os
 import json
 import random
@@ -11,7 +8,6 @@ from tabulate import tabulate
 
 
 def set_seed(seed: int = 42) -> None:
-    """Set random seed cho reproducibility (random, numpy, torch, cuda)."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -21,7 +17,6 @@ def set_seed(seed: int = 42) -> None:
 
 
 def get_device() -> torch.device:
-    """Trả về cuda nếu có, ngược lại cpu. In thông tin device."""
     if torch.cuda.is_available():
         device = torch.device("cuda")
         print(f"[Device] GPU: {torch.cuda.get_device_name(0)}")
@@ -32,20 +27,17 @@ def get_device() -> torch.device:
 
 
 def save_json(data: dict, path: str) -> None:
-    """Lưu dict thành JSON, tạo thư mục nếu chưa có."""
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
 def load_json(path: str) -> dict:
-    """Load JSON file."""
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def log_versions() -> None:
-    """In Python + PyTorch + CUDA version để đảm bảo reproducibility."""
     import sys
     print(f"[Env] Python {sys.version}")
     print(f"[Env] PyTorch {torch.__version__}")
@@ -59,19 +51,6 @@ def format_metrics_table(
     sort_by: str = "acd_f1",
     highlight_rare: list = None,
 ) -> str:
-    """
-    Tạo bảng ASCII đẹp từ metrics dict.
-
-    Args:
-        per_aspect_metrics: dict aspect_name → {acd_f1, spc_f1, support, ...}
-        macro_acd_f1: float
-        macro_spc_f1: float
-        sort_by: cột sort ('acd_f1' hoặc 'spc_f1'), tăng dần để thấy aspect yếu
-        highlight_rare: list tên aspects cần highlight (dùng * prefix)
-
-    Returns:
-        str bảng ASCII sẵn để print
-    """
     highlight_rare = highlight_rare or []
     rows = []
     for aspect, m in sorted(

@@ -1,9 +1,3 @@
-"""
-rag_predictor.py — RAG + LLM prediction.
-
-Cùng interface với icl_predictor nhưng dùng retrieval thay vì random.
-So sánh fair: cùng LLM, cùng k, cùng prompt format.
-"""
 
 import numpy as np
 import pandas as pd
@@ -32,12 +26,6 @@ def predict_rag(
     max_samples: int = None,
     sleep_sec: float = 7.0,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    RAG prediction với semantic retrieval.
-
-    Khác icl_predictor duy nhất 1 điểm: cách chọn examples
-    → random (ICL) vs semantic retrieval (RAG)
-    """
     test_df = test_df.head(max_samples) if max_samples else test_df
 
     y_true_list, y_pred_list = [], []
@@ -71,11 +59,6 @@ def run_rag_ablation(
     models: dict = None,
     sleep_sec: float = 7.0,
 ) -> dict:
-    """Chạy ablation RAG: k=2,4,8 × GPT+Gemini.
-
-    Args:
-        models: {"gemini": "gemini-2.0-flash", "openai": "gpt-4o-mini"} (optional)
-    """
     os.makedirs(results_dir, exist_ok=True)
     models = models or {}
 

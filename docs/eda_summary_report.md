@@ -38,6 +38,24 @@ Thiết kế cache giúp notebook/training chạy lại ổn định: nếu file
 `data/*_preprocessed.csv` đã tồn tại thì phase sau có thể load trực tiếp thay
 vì preprocess lại toàn bộ dataset.
 
+### Giải thích tham số và cách lựa chọn
+
+| Tham số | Giá trị/cách dùng | Lý do |
+|---------|-------------------|-------|
+| Unicode normalization | NFC | Tiếng Việt có nhiều cách mã hóa dấu. NFC giúp cùng một chữ được biểu diễn thống nhất trước khi tokenize. |
+| Teencode dictionary | Khoảng 60 cụm domain khách sạn | Dataset có nhiều viết tắt như `ks`, `nv`, `ko`. Chỉ thay các cụm chắc chắn để giảm noise mà không làm biến dạng review. |
+| Thứ tự replace teencode | Từ dài đến ngắn | Tránh trường hợp cụm ngắn match trước làm hỏng cụm dài hơn. |
+| Special characters | Giữ chữ, số và dấu câu cơ bản | Dấu câu như `!`, `?`, `,`, `.` vẫn có thể mang thông tin cảm xúc; ký tự rác như `@#$%` ít giá trị cho ABSA. |
+| Word segmentation | Ưu tiên VnCoreNLP | PhoBERT được pretrain trên văn bản tiếng Việt đã word-segmented, nên input fine-tuning cần gần với format đó. |
+| Cache file | `data/*_preprocessed.csv` | Giúp notebook chạy lại nhanh và đảm bảo SVM/PhoBERT/LLM dùng cùng phiên bản data đã xử lý. |
+| `MAX_SEQ_LEN` phân tích EDA | p99 length làm mốc tham khảo | p99 giúp nhận diện review dài bất thường và ước lượng nhu cầu VRAM. Khi train PhoBERT thực tế, giá trị cuối cùng còn phải khớp giới hạn model và GPU. |
+| Class weight | Tính từ phân phối nhãn train | Chỉ dùng train split để tránh leak thông tin từ dev/test. Weight giúp các class hiếm không bị model bỏ qua hoàn toàn. |
+
+Các tham số preprocessing được chọn theo nguyên tắc bảo toàn nghĩa review trước,
+sau đó mới chuẩn hóa. Vì bài toán cần trích aspect và sentiment, việc xóa quá
+nhiều ký tự hoặc thay thế quá mạnh có thể làm mất cue quan trọng như phủ định,
+so sánh giá, hoặc cảm xúc tiêu cực.
+
 ### Pipeline 5 bước (deterministic + idempotent)
 
 | Bước | Tên | Mô tả | Ví dụ |

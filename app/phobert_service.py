@@ -1,11 +1,3 @@
-"""
-PhoBERT inference service for the Streamlit demo app.
-
-This module intentionally uses the trained PhoBERT checkpoint. There is no
-rule-based fallback: missing checkpoint, VnCoreNLP, or model dependencies should
-surface as clear errors in the UI.
-"""
-
 from __future__ import annotations
 
 import os
@@ -57,8 +49,6 @@ class PhoBERTPrediction:
 
 
 class PhoBERTService:
-    """Load the trained PhoBERT model and predict one review at a time."""
-
     def __init__(
         self,
         checkpoint_path: str | os.PathLike = DEFAULT_CHECKPOINT_PATH,
@@ -141,7 +131,6 @@ class PhoBERTService:
 
 
 def labels_to_full_table(raw_labels: list[int], probabilities: list[list[float]]) -> list[dict]:
-    """Build a full 34-aspect table for debugging/inspection if needed."""
     rows = []
     for idx, aspect in enumerate(ASPECT_COLUMNS):
         label = int(raw_labels[idx])

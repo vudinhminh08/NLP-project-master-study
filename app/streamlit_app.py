@@ -3,17 +3,20 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-import pandas as pd
 import streamlit as st
 
 try:
     from .explanation_service import ExplanationService, has_openai_api_key
     from .file_loader import REVIEW_TEXT_COLUMN, ReviewFileError, make_review_options, read_review_file
     from .phobert_service import DEFAULT_CHECKPOINT_PATH, PhoBERTService
+    from .styles import CUSTOM_CSS
+    from .ui_components import render_explanation, render_prediction_table
 except ImportError:
     from explanation_service import ExplanationService, has_openai_api_key
     from file_loader import REVIEW_TEXT_COLUMN, ReviewFileError, make_review_options, read_review_file
     from phobert_service import DEFAULT_CHECKPOINT_PATH, PhoBERTService
+    from styles import CUSTOM_CSS
+    from ui_components import render_explanation, render_prediction_table
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -25,59 +28,6 @@ st.set_page_config(
     page_icon="",
     layout="wide",
 )
-
-
-CUSTOM_CSS = """
-<style>
-    #MainMenu,
-    footer,
-    header,
-    [data-testid="stToolbar"],
-    [data-testid="stDecoration"] {
-        visibility: hidden;
-        height: 0;
-    }
-    .main .block-container {
-        max-width: 1120px;
-        padding-top: 2rem;
-    }
-    .start-spacer { height: 20vh; }
-    .start-title { text-align: center; font-size: 2.4rem; font-weight: 780; }
-    .start-subtitle { text-align: center; color: #4b5563; margin: 0.5rem 0 1.5rem; }
-    .stButton > button {
-        border-radius: 8px;
-    }
-    .app-title {
-        font-size: 2rem;
-        font-weight: 750;
-        margin-bottom: 0.25rem;
-    }
-    .app-subtitle {
-        color: #4b5563;
-        margin-bottom: 1.25rem;
-    }
-    .metric-strip {
-        display: flex;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-        margin: 0.75rem 0 1rem;
-    }
-    .metric-chip {
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        padding: 0.55rem 0.75rem;
-        background: #f9fafb;
-        color: #111827;
-    }
-    .sentiment-positive { color: #047857; font-weight: 700; }
-    .sentiment-negative { color: #b91c1c; font-weight: 700; }
-    .sentiment-neutral { color: #92400e; font-weight: 700; }
-    .small-note {
-        color: #6b7280;
-        font-size: 0.92rem;
-    }
-</style>
-"""
 
 
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
@@ -106,68 +56,6 @@ def render_header() -> None:
         '</div>',
         unsafe_allow_html=True,
     )
-
-
-def render_prediction_table(predictions: list[dict]) -> None:
-    if not predictions:
-        st.info("PhoBERT không phát hiện aspect nào trong review này.")
-        return
-
-    df = pd.DataFrame(predictions)
-    df = df[["aspect", "sentiment", "confidence"]]
-    df["confidence"] = df["confidence"].map(lambda x: f"{float(x):.4f}")
-    st.dataframe(
-        df,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "aspect": "Aspect",
-            "sentiment": "Sentiment",
-            "confidence": "Confidence",
-        },
-    )
-
-
-def render_explanation(explanation: dict) -> None:
-    validation = explanation.get("validation", {})
-    if validation.get("skipped_llm"):
-        st.info(explanation.get("overall_summary", "Không có aspect nào để giải thích."))
-        return
-
-    if validation.get("parse_fail"):
-        st.error("LLM không trả về JSON hợp lệ. Hãy thử chạy lại hoặc kiểm tra API.")
-        preview = explanation.get("raw_output_preview")
-        if preview:
-            st.code(preview)
-        return
-
-    items = explanation.get("items", [])
-    if items:
-        st.subheader("Giải thích theo từng aspect")
-        for item in items:
-            aspect = item.get("aspect", "")
-            sentiment = item.get("sentiment", "")
-            css_class = f"sentiment-{sentiment}" if sentiment in {"positive", "negative", "neutral"} else ""
-            st.markdown(
-                f"**{aspect}** - <span class='{css_class}'>{sentiment}</span>",
-                unsafe_allow_html=True,
-            )
-            evidence = item.get("evidence") or "Không có bằng chứng rõ trong câu."
-            st.write(f"**Bằng chứng:** {evidence}")
-            st.write(item.get("explanation", ""))
-            if item.get("evidence_uncertain"):
-                st.caption("Bằng chứng chưa chắc chắn, nhưng prediction PhoBERT vẫn được giữ nguyên.")
-            st.divider()
-
-    summary = explanation.get("overall_summary")
-    if summary:
-        st.subheader("Tóm tắt")
-        st.write(summary)
-
-    action = explanation.get("recommended_action")
-    if action:
-        st.subheader("Gợi ý hành động")
-        st.write(action)
 
 
 def run_analysis(review: str, phobert: PhoBERTService, api_key: str | None) -> None:

@@ -1,15 +1,3 @@
-"""
-train.py — Training loop với early stopping, gradient clipping, LR scheduling.
-
-Fixes so với version cũ:
-    1. Gradient accumulation: flush final batch (tránh bỏ gradient của batch cuối)
-    2. Mixed Precision (AMP): dùng torch.cuda.amp để tăng tốc 2x trên T4
-    3. class_weights được truyền đúng vào model.forward() (fix theo model.py mới)
-
-Chạy từ root project (qua run_experiment.py):
-    python code/phobert/run_experiment.py                    # concat_4_layers
-    python code/phobert/run_experiment.py --encoder cls_only # ablation
-"""
 
 import os
 import sys
@@ -42,19 +30,6 @@ def load_class_weights(
     weight_clip: float = 10.0,
     device: Optional[torch.device] = None,
 ) -> list:
-    """
-    Load per-aspect class weights từ class_weights.json (tạo bởi step1_eda.py).
-    Clip tại weight_clip để tránh gradient instability (neutral global weight=154).
-
-    Args:
-        weights_path: đường dẫn tới outputs/eda/class_weights.json
-        weight_clip:  giá trị tối đa cho mỗi weight (mặc định 10.0)
-        device:       torch device để đặt tensor lên (None = cpu)
-
-    Returns:
-        list of 34 tensors [4] — mỗi tensor là [w0, w1, w2, w3] cho 1 aspect
-        w0=absent, w1=positive, w2=negative, w3=neutral
-    """
     data = load_json(weights_path)
     per_aspect = data["per_aspect_weights"]
     device = device or torch.device("cpu")
@@ -90,28 +65,6 @@ def run_epoch(
     use_amp: bool = False,
     scaler=None,
 ) -> tuple:
-    """
-    Chạy 1 epoch train hoặc eval.
-
-    FIX: Gradient accumulation flush final batch — không bỏ gradient batch cuối.
-    FIX: AMP support — faster training trên T4 GPU (~2x speedup).
-
-    Args:
-        model:         ABSAPhoBERT
-        dataloader:    DataLoader (train hoặc dev/test)
-        device:        torch device
-        class_weights: list of 34 tensors [4] — per-aspect weights
-        optimizer:     Adam optimizer (None khi eval)
-        scheduler:     LR scheduler (None khi eval)
-        grad_accum:    gradient accumulation steps
-        is_train:      True để train, False để eval
-        use_amp:       True để dùng mixed precision (chỉ có ích khi GPU)
-        scaler:        GradScaler instance (cần thiết khi use_amp=True)
-
-    Returns:
-        (mean_loss, y_true, y_pred)
-        y_true/y_pred: np.ndarray [N, 34] khi eval, None khi train
-    """
     model.train() if is_train else model.eval()
     total_loss  = 0.0
     all_preds:  list = []
@@ -202,26 +155,6 @@ def train(
     results_dir: str = "outputs/results",
     use_amp: bool = False,
 ) -> dict:
-    """
-    Full training loop với early stopping.
-
-    Monitor: dev combined_f1 (ACD F1 + SPC F1) / 2, exclude ZERO_TRAIN_ASPECTS.
-    Save: best checkpoint + training_history.json mỗi epoch (an toàn khi Colab mất kết nối).
-
-    Args:
-        model:        ABSAPhoBERT
-        train_loader: DataLoader train
-        dev_loader:   DataLoader dev
-        class_weights: list of 34 weight tensors
-        device:       torch device
-        config:       dict từ TRAIN_CONFIG (merged với encoder_config.json)
-        save_dir:     thư mục lưu best_model.pt
-        results_dir:  thư mục lưu training_history.json
-        use_amp:      True để dùng Mixed Precision (khuyến nghị khi có GPU)
-
-    Returns:
-        history dict: train_loss, dev_loss, dev_acd_f1, dev_spc_f1, dev_combined_f1 theo epoch
-    """
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
@@ -249,7 +182,7 @@ def train(
     print(f"\n[Model] {n_params:,} trainable parameters")
     print(f"[Scheduler] Total={total_steps} optimizer steps, Warmup={warmup_steps}")
     print(f"[LR] Adam lr={config['learning_rate']:.2e}, scheduler=cosine_warmup")
-    print(f"[AMP] Mixed precision: {'ON ✓' if amp_active else 'OFF'}")
+    print(f"[AMP] Mixed precision: {'ON' if amp_active else 'OFF'}")
     print(f"[Config] encoder={config.get('encoder_option')}, "
           f"seq_len={config.get('max_seq_len')}, "
           f"batch={config['batch_size']}×{config['grad_accumulation_steps']}="
@@ -328,11 +261,11 @@ def train(
                 "config":           config,
             }
             torch.save(ckpt, os.path.join(save_dir, "best_model.pt"))
-            print(f"  ✅ Best model saved (dev_loss={best_loss:.4f}, combined_f1={combined:.4f})")
+            print(f"  Best model saved (dev_loss={best_loss:.4f}, combined_f1={combined:.4f})")
             patience = 0
         else:
             patience += 1
-            print(f"  ⚠️  No improvement [{patience}/{config['early_stop_patience']}]")
+            print(f"  No improvement [{patience}/{config['early_stop_patience']}]")
 
         # --- Lưu history sau mỗi epoch (safe nếu Colab disconnect) ---
         save_json(history, os.path.join(results_dir, "training_history.json"))
@@ -340,14 +273,14 @@ def train(
         # --- Early stopping ---
         if patience >= config["early_stop_patience"]:
             print(
-                f"\n🛑 Early stopping tại epoch {epoch}. "
+                f"\nEarly stopping tại epoch {epoch}. "
                 f"Best: epoch={history['best_epoch']}, "
                 f"dev_loss={best_loss:.4f}, Combined F1={history['best_combined_f1']:.4f}"
             )
             break
 
     print(
-        f"\n✅ Training xong. "
+        f"\nTraining xong. "
         f"Best dev_loss={best_loss:.4f}, Combined F1={history['best_combined_f1']:.4f}"
         f" @ epoch {history['best_epoch']}"
     )

@@ -1,9 +1,3 @@
-"""
-prediction_formatter.py — Convert PhoBERT outputs into explanation inputs.
-
-The LLM explanation layer receives only present aspects. It must not act as a
-classifier or add labels outside the PhoBERT prediction.
-"""
 
 from __future__ import annotations
 
@@ -23,16 +17,6 @@ def predictions_to_present_items(
     probs_row: Optional[np.ndarray] = None,
     aspect_columns: list[str] = ASPECT_COLUMNS,
 ) -> list[dict]:
-    """
-    Convert one `[34]` prediction row to present-aspect records.
-
-    Args:
-        pred_row:  34 labels, 0=absent, 1=positive, 2=negative, 3=neutral.
-        probs_row: optional [34, 4] probabilities for confidence display.
-
-    Returns:
-        list of {"aspect", "sentiment", "label", "confidence"} records.
-    """
     items: list[dict] = []
     for idx, aspect in enumerate(aspect_columns):
         label = int(pred_row[idx])
@@ -56,7 +40,6 @@ def prediction_matrix_to_records(
     probs: Optional[np.ndarray] = None,
     max_samples: Optional[int] = None,
 ) -> list[dict]:
-    """Build explanation-ready records for a batch of reviews."""
     n = min(len(reviews), len(pred_matrix))
     if max_samples is not None:
         n = min(n, max_samples)

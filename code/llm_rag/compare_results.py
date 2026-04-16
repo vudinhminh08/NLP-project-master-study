@@ -1,12 +1,3 @@
-"""
-compare_results.py — Compact report table for the four retained directions.
-
-The main report intentionally keeps only:
-1. SVM baseline
-2. Best single PhoBERT
-3. LLM + RAG
-4. LLM explanation direction
-"""
 
 from __future__ import annotations
 
@@ -57,7 +48,6 @@ REPORT_RESULTS = [
 def generate_comparison_table(
     save_path: str = "outputs/results/final_four_direction_comparison.md",
 ) -> str:
-    """Generate a compact markdown table for the report."""
     rows = []
     for item in REPORT_RESULTS:
         rows.append(

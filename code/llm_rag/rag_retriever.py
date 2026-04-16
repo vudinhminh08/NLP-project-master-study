@@ -1,15 +1,3 @@
-"""
-rag_retriever.py — Embedding train set + semantic retrieval.
-
-Model embedding: keepitreal/vietnamese-sbert
-  - Được train trên tiếng Việt
-  - Tốt hơn all-MiniLM-L6-v2 (tiếng Anh) cho domain này
-
-Aspect-aware pool:
-  - Sau khi lấy top-K candidates bằng cosine similarity
-  - Đảm bảo examples có đa dạng aspects
-  - Tránh k examples đều về cùng 1 aspect
-"""
 
 import numpy as np
 import pandas as pd
@@ -28,13 +16,6 @@ EMBEDDING_MODEL_FALLBACK = "paraphrase-multilingual-MiniLM-L12-v2"
 
 
 class ABSARetriever:
-    """
-    Semantic retriever cho ABSA few-shot examples.
-
-    1. Embed toàn bộ train reviews (1 lần, cache kết quả)
-    2. Với mỗi test review: tìm k train reviews tương đồng nhất
-    3. Aspect-aware filter: đảm bảo k examples phủ đa dạng aspects
-    """
 
     def __init__(
         self,
@@ -50,7 +31,6 @@ class ABSARetriever:
         self.train_df    = None
 
     def _load_model(self):
-        """Lazy load sentence transformer model."""
         if self.model is not None:
             return
         try:
@@ -70,10 +50,6 @@ class ABSARetriever:
                 ) from e2
 
     def fit(self, train_df: pd.DataFrame, text_col: str = "processed_review"):
-        """
-        Embed toàn bộ train set và lưu cache.
-        Nếu cache đã tồn tại: load thay vì tính lại.
-        """
         self._load_model()
         self.train_df = train_df.reset_index(drop=True)
 
@@ -109,7 +85,6 @@ class ABSARetriever:
         return self
 
     def _build_faiss_index(self):
-        """Build FAISS index cho fast retrieval (optional)."""
         try:
             import faiss
             dim = self.train_embeds.shape[1]
@@ -127,18 +102,6 @@ class ABSARetriever:
         aspect_aware: bool = True,
         candidate_pool: int = 50,
     ) -> list[int]:
-        """
-        Tìm k train indices gần nhất với query.
-
-        Args:
-            query:          text review cần tìm examples cho
-            k:              số examples cần lấy
-            aspect_aware:   nếu True → đảm bảo đa dạng aspects
-            candidate_pool: lấy top N candidates trước khi filter
-
-        Returns:
-            list of k train DataFrame indices
-        """
         self._load_model()
 
         # Embed query
@@ -165,15 +128,6 @@ class ABSARetriever:
         return self._aspect_aware_select(candidates, k)
 
     def _aspect_aware_select(self, candidates: list[int], k: int) -> list[int]:
-        """
-        Chọn k examples đảm bảo đa dạng aspects.
-
-        Thuật toán greedy:
-        1. Luôn lấy candidate top-1 (giống nhất)
-        2. Với mỗi candidate tiếp theo: tính "aspect coverage score"
-           = số aspects mới mà candidate này thêm vào pool
-        3. Ưu tiên candidates tăng coverage nhiều nhất
-        """
         selected = []
         covered_aspects = set()
 

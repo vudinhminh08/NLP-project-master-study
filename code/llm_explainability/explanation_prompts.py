@@ -1,6 +1,3 @@
-"""
-explanation_prompts.py — Prompts for LLM explanation, not prediction.
-"""
 
 from __future__ import annotations
 
@@ -41,11 +38,6 @@ def build_explanation_prompt(
     predictions: list[dict],
     rag_examples: list[dict] | None = None,
 ) -> list[dict]:
-    """
-    Build messages for LLM explanation.
-
-    predictions must contain present PhoBERT predictions only.
-    """
     user_payload = {
         "review": review,
         "phobert_predictions": [

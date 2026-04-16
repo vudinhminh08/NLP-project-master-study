@@ -1,6 +1,3 @@
-"""
-error_analyzer.py — Compact error analysis for report artifacts.
-"""
 
 from __future__ import annotations
 
@@ -20,7 +17,6 @@ def analyze_errors(
     reviews: list[str],
     max_examples: int = 20,
 ) -> dict:
-    """Summarize ACD/SPC errors for report use."""
     acd_fp = {aspect: 0 for aspect in ASPECT_COLUMNS}
     acd_fn = {aspect: 0 for aspect in ASPECT_COLUMNS}
     spc_err = {aspect: 0 for aspect in ASPECT_COLUMNS}

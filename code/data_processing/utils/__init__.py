@@ -1,6 +1,3 @@
-"""
-utils package cho ABSA VLSP 2018 Hotel project.
-"""
 from .constants import (
     ASPECT_COLUMNS,
     NUM_ASPECTS,

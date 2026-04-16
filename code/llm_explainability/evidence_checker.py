@@ -1,6 +1,3 @@
-"""
-evidence_checker.py — Lightweight evidence validation for explanations.
-"""
 
 from __future__ import annotations
 
@@ -9,7 +6,6 @@ import string
 
 
 def normalize_text(text: str) -> str:
-    """Lowercase, strip punctuation, and collapse whitespace."""
     text = str(text).lower()
     text = text.translate(str.maketrans("", "", string.punctuation))
     text = re.sub(r"\s+", " ", text).strip()
@@ -17,7 +13,6 @@ def normalize_text(text: str) -> str:
 
 
 def evidence_in_review(evidence: str, review: str) -> bool:
-    """Return True if normalized evidence appears in normalized review."""
     evidence_norm = normalize_text(evidence)
     if not evidence_norm:
         return False
@@ -29,13 +24,6 @@ def validate_explanation_items(
     predictions: list[dict],
     items: list[dict],
 ) -> tuple[list[dict], dict]:
-    """
-    Enforce explanation guardrails.
-
-    - Drop aspects not predicted by PhoBERT.
-    - Restore sentiment if the LLM changed it.
-    - Mark invalid evidence as uncertain.
-    """
     pred_by_aspect = {p["aspect"]: p for p in predictions}
     valid_items = []
     dropped = 0

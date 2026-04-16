@@ -1,14 +1,3 @@
-"""
-run_explainability.py — Generate LLM explanations for PhoBERT predictions.
-
-This script expects saved PhoBERT predictions. It intentionally does not run a
-new LLM classifier; the LLM explains PhoBERT outputs only.
-
-Example:
-    python code/llm_explainability/run_explainability.py \
-        --predictions_json outputs/results/final_predictions.json \
-        --provider openai --max_samples 20
-"""
 
 from __future__ import annotations
 
@@ -32,7 +21,6 @@ from utils.helpers import save_json  # noqa: E402
 
 
 def load_prediction_matrix(path: str) -> np.ndarray:
-    """Load predictions from JSON list or NPY array."""
     if path.endswith(".npy"):
         return np.load(path)
     with open(path, encoding="utf-8") as f:

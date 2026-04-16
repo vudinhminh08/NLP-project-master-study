@@ -1,7 +1,3 @@
-"""
-constants.py — Toàn bộ hằng số của dự án ABSA VLSP 2018 Hotel.
-Mọi file khác đều import từ đây, không hardcode lại.
-"""
 
 # ─── 34 Aspect Columns (đúng thứ tự cột trong CSV ds4v) ───────────────────────
 ASPECT_COLUMNS = [

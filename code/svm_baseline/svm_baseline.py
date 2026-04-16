@@ -1,21 +1,3 @@
-"""
-svm_baseline.py - Traditional baseline: TF-IDF + LinearSVC cho ABSA.
-
-Moi aspect la 1 classifier rieng (4-class: 0=absent, 1=pos, 2=neg, 3=neu).
-Dung chung evaluate_predictions() tu step4_eval.py.
-
-Paper reference:
-    Nguyen T.M.H. et al. (2018). VLSP Shared Task: Sentiment Analysis.
-    Journal of Computer Science and Cybernetics, 34(4), 295-310.
-
-Chay:
-    python code/svm_baseline/svm_baseline.py
-
-Output:
-    outputs/results/svm_baseline_test_metrics.json
-    outputs/results/svm_baseline_dev_metrics.json
-    outputs/results/svm_baseline_summary.md
-"""
 
 import os
 import re
@@ -49,7 +31,6 @@ VI_CLEAN_PATTERN = re.compile(
 
 
 def _normalize_review_column(df: pd.DataFrame, split_name: str) -> pd.DataFrame:
-    """Dam bao split co cot Review (fallback tu review neu can)."""
     if "Review" in df.columns:
         review_col = "Review"
     elif "review" in df.columns:
@@ -67,7 +48,6 @@ def _normalize_review_column(df: pd.DataFrame, split_name: str) -> pd.DataFrame:
 
 
 def _validate_aspect_columns(df: pd.DataFrame, split_name: str) -> None:
-    """Kiem tra 34 aspect columns ton tai day du."""
     missing = [col for col in ASPECT_COLUMNS if col not in df.columns]
     if missing:
         raise ValueError(
@@ -77,13 +57,6 @@ def _validate_aspect_columns(df: pd.DataFrame, split_name: str) -> None:
 
 
 def load_data(data_dir: str = "data") -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    Load train/dev/test CSV.
-    Dung cot 'Review' goc (raw text), KHONG dung preprocessed.
-
-    Returns:
-        (train_df, dev_df, test_df)
-    """
     train_path = os.path.join(data_dir, "train.csv")
     dev_path = os.path.join(data_dir, "dev.csv")
     test_path = os.path.join(data_dir, "test.csv")
@@ -112,14 +85,6 @@ def load_data(data_dir: str = "data") -> tuple[pd.DataFrame, pd.DataFrame, pd.Da
 
 
 def preprocess_for_tfidf(text: str) -> str:
-    """
-    Preprocessing nhe cho TF-IDF.
-
-    Steps:
-        1. Lowercase
-        2. Bo ky tu dac biet, giu chu cai tieng Viet + so + khoang trang
-        3. Collapse multiple spaces
-    """
     text = str(text).lower()
     text = VI_CLEAN_PATTERN.sub(" ", text)
     text = re.sub(r"\s+", " ", text).strip()
@@ -131,12 +96,6 @@ def train_svm_per_aspect(
     y_train: np.ndarray,
     aspect_columns: list[str] = ASPECT_COLUMNS,
 ) -> list[tuple[str, Any]]:
-    """
-    Train 34 SVM classifiers, moi aspect 1 model.
-
-    Returns:
-        list of tuples: ("svm", clf) or ("majority", class_id)
-    """
     models: list[tuple[str, Any]] = []
 
     for i, aspect in enumerate(aspect_columns):
@@ -166,12 +125,6 @@ def predict_all_aspects(
     X: Any,
     n_samples: int,
 ) -> np.ndarray:
-    """
-    Predict 34 aspects cho tat ca samples.
-
-    Returns:
-        ndarray [N, 34] values 0-3
-    """
     y_pred = np.zeros((n_samples, NUM_ASPECTS), dtype=int)
     for i, (model_type, model) in enumerate(models):
         if model_type == "majority":
@@ -186,7 +139,6 @@ def generate_summary(
     test_metrics: dict,
     save_path: str = "outputs/results/svm_baseline_summary.md",
 ) -> None:
-    """Tao markdown summary cho SVM baseline."""
     content = f"""# Ket qua SVM + TF-IDF Baseline
 
 ## Config
@@ -229,9 +181,6 @@ def generate_summary(
 
 
 def main() -> None:
-    """
-    Full pipeline: load -> preprocess -> TF-IDF -> train -> evaluate -> save.
-    """
     # Touch import to avoid accidental cleanup and document optional calibration path.
     _ = CalibratedClassifierCV
 

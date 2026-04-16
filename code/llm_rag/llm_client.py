@@ -1,26 +1,9 @@
-"""
-llm_client.py — Wrapper thống nhất cho GPT-4o-mini và Gemini 1.5 Flash.
-
-Thiết kế:
-- Interface giống nhau cho cả 2 model
-- Rate limiting tự động (tránh bị block)
-- Retry với exponential backoff
-- Cache responses để tiết kiệm API cost
-- Log số tokens dùng
-"""
 
 import os, time, json, hashlib
 from typing import Optional
 
 
 class LLMClient:
-    """
-    Unified client cho OpenAI GPT và Google Gemini.
-
-    Usage:
-        client = LLMClient(provider="openai", api_key="sk-...")
-        response = client.complete(messages=[...])
-    """
 
     SUPPORTED = {"openai", "gemini"}
 
@@ -59,7 +42,6 @@ class LLMClient:
             self.client = genai.Client(api_key=self.api_key)
 
     def _cache_key(self, messages: list) -> str:
-        """Hash messages làm cache key."""
         content = json.dumps(messages, ensure_ascii=False, sort_keys=True)
         return hashlib.md5(content.encode()).hexdigest()
 
@@ -81,17 +63,6 @@ class LLMClient:
         temperature: float = 0.0,   # 0 = deterministic
         use_cache: bool = True,
     ) -> str:
-        """
-        Gửi messages → nhận text response.
-
-        Args:
-            messages: list of {"role": ..., "content": ...}
-            temperature: 0.0 cho reproducibility
-            use_cache: True → cache responses (tiết kiệm API cost)
-
-        Returns:
-            str response text
-        """
         # Check cache
         if use_cache:
             key = self._cache_key(messages)
@@ -117,7 +88,6 @@ class LLMClient:
                 time.sleep(wait)
 
     def _call_api(self, messages: list, temperature: float) -> str:
-        """Actual API call — khác nhau giữa OpenAI và Gemini."""
         if self.provider == "openai":
             resp = self.client.chat.completions.create(
                 model=self.model,

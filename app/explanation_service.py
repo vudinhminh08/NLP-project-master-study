@@ -1,10 +1,3 @@
-"""
-LLM explanation service for PhoBERT predictions.
-
-The LLM receives only PhoBERT predictions and is not allowed to add or modify
-aspect/sentiment labels. Guardrails from code/llm_explainability are reused.
-"""
-
 from __future__ import annotations
 
 import os
@@ -33,8 +26,6 @@ def has_openai_api_key(api_key: str | None = None) -> bool:
 
 
 class ExplanationService:
-    """Thin wrapper around the existing explanation pipeline."""
-
     def __init__(
         self,
         api_key: str | None = None,

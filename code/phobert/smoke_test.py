@@ -1,20 +1,3 @@
-"""
-smoke_test.py — Kiểm tra toàn bộ pipeline PhoBERT mà KHÔNG cần GPU hay download PhoBERT.
-
-Dùng MockPhoBERT (random weights, cùng interface) để test nhanh:
-    - Import paths đúng
-    - Data loading & class weights
-    - Model forward pass + weighted loss
-    - Gradient flow (không NaN)
-    - Eval metrics (ACD F1, SPC F1, Combined F1)
-    - File save/load (training_history.json, metrics.json)
-    - Report generation (phobert_summary.md)
-
-Chạy từ ROOT PROJECT:
-    python code/phobert/smoke_test.py
-
-Thời gian: ~30–60 giây trên CPU.
-"""
 
 import os
 import sys
@@ -34,13 +17,12 @@ os.chdir(ROOT)
 sys.path.insert(0, "code/data_processing")
 sys.path.insert(0, "code/phobert")
 
-PASS = "✅"
+PASS = ""
 FAIL = "❌"
 results = []
 
 
 def check(name: str, fn):
-    """Chạy 1 test, in kết quả."""
     try:
         fn()
         print(f"  {PASS} {name}")
@@ -58,7 +40,6 @@ def check(name: str, fn):
 # ══════════════════════════════════════════════════════════════════════════════
 
 class MockPhoBERTOutput:
-    """Giả lập output của AutoModel với output_hidden_states=True."""
     def __init__(self, batch_size: int, seq_len: int, hidden: int = 768, n_layers: int = 13):
         self.hidden_states = tuple(
             torch.randn(batch_size, seq_len, hidden)
@@ -67,7 +48,6 @@ class MockPhoBERTOutput:
 
 
 class MockPhoBERTBase(nn.Module):
-    """Mini backbone không cần download, cùng API."""
     def __init__(self):
         super().__init__()
         self.dummy = nn.Linear(1, 1)  # để có parameters
@@ -78,7 +58,6 @@ class MockPhoBERTBase(nn.Module):
 
 
 def make_mock_model(encoder_option: str = "concat_4_layers") -> "ABSAPhoBERT":
-    """Tạo ABSAPhoBERT với backbone giả."""
     from model import ABSAPhoBERT
     with patch("model.AutoModel.from_pretrained", return_value=MockPhoBERTBase()):
         m = ABSAPhoBERT(
@@ -229,7 +208,6 @@ def t_model_cls_only_forward():
     assert out["preds"].shape == (BATCH, 34)
 
 def t_weighted_loss_computed():
-    """Loss phải > 0 và không NaN khi có labels + class_weights."""
     from train import load_class_weights
     model = make_mock_model("concat_4_layers")
     weights = load_class_weights("outputs/eda/class_weights.json", weight_clip=10.0)
@@ -246,7 +224,6 @@ def t_weighted_loss_computed():
     assert loss.item() > 0, f"Loss = {loss.item()} không hợp lý"
 
 def t_unweighted_loss_fallback():
-    """Loss hoạt động đúng khi KHÔNG có class_weights."""
     model  = make_mock_model("concat_4_layers")
     ids    = torch.randint(0, 1000, (BATCH, SEQ))
     mask   = torch.ones(BATCH, SEQ, dtype=torch.long)
@@ -255,7 +232,6 @@ def t_unweighted_loss_fallback():
     assert not torch.isnan(out["loss"])
 
 def t_gradient_flows():
-    """Gradient phải lan truyền về classifiers và encoder."""
     from train import load_class_weights
     model  = make_mock_model("concat_4_layers")
     weights = load_class_weights("outputs/eda/class_weights.json", weight_clip=10.0)
@@ -273,7 +249,6 @@ def t_gradient_flows():
     assert not torch.isnan(clf_weight_grad).any(), "Gradient NaN trong classifiers!"
 
 def t_weighted_vs_unweighted_loss_differ():
-    """Weighted loss và unweighted loss phải cho giá trị khác nhau."""
     from train import load_class_weights
     model   = make_mock_model("concat_4_layers")
     weights = load_class_weights("outputs/eda/class_weights.json", weight_clip=10.0)
@@ -305,7 +280,6 @@ for fn in [t_model_concat4_forward, t_model_cls_only_forward,
 print("\n[Block 4] Training Loop (2 optimizer steps)\n" + "─"*50)
 
 def t_train_loop_2steps():
-    """Chạy đúng 2 bước train và 1 eval với MockPhoBERT."""
     import torch
     from torch.utils.data import DataLoader, TensorDataset
     from train import run_epoch, load_class_weights
@@ -363,7 +337,6 @@ def t_train_loop_2steps():
     assert not np.isnan(loss2)
 
 def t_grad_accum_final_batch_flushed():
-    """Kiểm tra gradient không bị mất ở batch cuối (odd số batch)."""
     from torch.utils.data import DataLoader
     from train import run_epoch, load_class_weights
     from torch.optim import AdamW
@@ -462,7 +435,6 @@ def t_save_load_json():
         assert loaded == data
 
 def t_training_history_schema():
-    """Kiểm tra cấu trúc training_history đúng schema."""
     from utils.helpers import save_json, load_json
     history = {
         "train_loss": [0.5, 0.4, 0.35],
@@ -480,7 +452,6 @@ def t_training_history_schema():
         assert k in history, f"Missing key: {k}"
 
 def t_report_generation():
-    """generate_summary_report tạo được file .md hợp lệ."""
     from predict import generate_summary_report
     from utils.constants import ASPECT_COLUMNS
 
@@ -542,10 +513,10 @@ if failed:
     print("\n❌ FAILED TESTS:")
     for name, err in failed:
         print(f"   • {name}: {err[:100]}")
-    print("\n⚠️  Sửa các lỗi trên trước khi chạy trên Kaggle!")
+    print("\nSửa các lỗi trên trước khi chạy trên Kaggle.")
     sys.exit(1)
 else:
-    print("\n✅ TẤT CẢ TESTS PASSED — Code ổn định, sẵn sàng chạy trên Kaggle!")
+    print("\nAll tests passed. Code ready for Kaggle.")
     print("   Việc cần làm tiếp theo:")
     print("   1. git push origin master")
     print("   2. Upload notebook phase PhoBERT lên Kaggle")

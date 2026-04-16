@@ -1,16 +1,3 @@
-"""
-step1_eda.py — EDA cho ABSA VLSP 2018 Hotel dataset.
-
-Chạy từ root project:
-    python code/data_processing/step1_eda.py
-
-Output:
-    outputs/eda/{split}_aspect_presence.png
-    outputs/eda/{split}_label_breakdown.png
-    outputs/eda/{split}_review_length.png
-    outputs/eda/class_weights.json
-    outputs/eda/encoder_config.json
-"""
 import os
 import sys
 import math
@@ -45,17 +32,6 @@ from utils.helpers import set_seed, log_versions, save_json, format_metrics_tabl
 # ─── A. Load splits ────────────────────────────────────────────────────────────
 
 def load_splits() -> dict[str, pd.DataFrame]:
-    """
-    Load train/dev/test CSV.
-
-    Validates:
-        - Cột 'Review' (hoặc lowercase variant) tồn tại
-        - Đủ 34 cột aspect
-        - In shape, missing values, dtypes
-
-    Returns:
-        dict split_name → DataFrame
-    """
     splits = {}
     paths = {"train": TRAIN_PATH, "dev": DEV_PATH, "test": TEST_PATH}
 
@@ -88,7 +64,7 @@ def load_splits() -> dict[str, pd.DataFrame]:
         if missing.any():
             print(f"  Missing values:\n{missing[missing > 0]}")
         else:
-            print(f"  No missing values ✓")
+            print(f"  No missing values ")
         print(f"  Review dtype: {df['Review'].dtype}")
         print(f"  Label sample (first row): {df[ASPECT_COLUMNS].iloc[0].tolist()[:5]}...")
 
@@ -100,12 +76,6 @@ def load_splits() -> dict[str, pd.DataFrame]:
 # ─── B. Label distribution analysis ──────────────────────────────────────────
 
 def analyze_label_distribution(df: pd.DataFrame, split_name: str) -> pd.DataFrame:
-    """
-    Phân tích phân phối nhãn cho 34 aspects.
-
-    Returns:
-        DataFrame: index=aspect_name, columns=[count_0, count_1, count_2, count_3, pct_present]
-    """
     records = []
     for col in ASPECT_COLUMNS:
         counts = df[col].value_counts().to_dict()
@@ -155,12 +125,6 @@ def plot_aspect_distribution(
     split_name: str,
     save_dir: str,
 ) -> None:
-    """
-    Vẽ và lưu 2 biểu đồ phân phối aspect.
-
-    Biểu đồ 1: {split}_aspect_presence.png — horizontal bar, % presence
-    Biểu đồ 2: {split}_label_breakdown.png — stacked horizontal bar, 4 nhãn
-    """
     os.makedirs(save_dir, exist_ok=True)
 
     # Chuẩn bị data
@@ -234,13 +198,6 @@ def plot_aspect_distribution(
 # ─── D. Review length analysis ────────────────────────────────────────────────
 
 def analyze_review_length(df: pd.DataFrame, split_name: str, save_dir: str = EDA_DIR) -> dict:
-    """
-    Phân tích độ dài review: số từ + số ký tự.
-    Gợi ý MAX_SEQ_LEN dựa trên p99 × 1.5, round lên bội số 64.
-
-    Returns:
-        dict gồm percentile stats + recommended_max_seq_len
-    """
     os.makedirs(save_dir, exist_ok=True)
 
     word_counts = df["Review"].astype(str).str.split().str.len()
@@ -291,13 +248,6 @@ def analyze_review_length(df: pd.DataFrame, split_name: str, save_dir: str = EDA
 # ─── E. Class imbalance analysis ─────────────────────────────────────────────
 
 def analyze_class_imbalance(df: pd.DataFrame) -> dict:
-    """
-    Tính class weights theo công thức ds4v:
-        majority_count / class_count
-
-    Returns:
-        dict với global_weights và per_aspect_weights
-    """
     # Global weights
     all_labels = df[ASPECT_COLUMNS].values.flatten()
     counter = Counter(all_labels)
@@ -341,13 +291,6 @@ def analyze_class_imbalance(df: pd.DataFrame) -> dict:
 # ─── F. Data quality check ───────────────────────────────────────────────────
 
 def check_data_quality(df: pd.DataFrame, split_name: str) -> None:
-    """
-    Kiểm tra chất lượng dữ liệu:
-        - Review trùng lặp
-        - Review quá ngắn (<10 ký tự)
-        - Review toàn nhãn 0
-        - Patterns teencode phổ biến
-    """
     import re
 
     n_total = len(df)
@@ -381,11 +324,6 @@ def check_data_quality(df: pd.DataFrame, split_name: str) -> None:
 # ─── G. Save encoder config ──────────────────────────────────────────────────
 
 def save_encoder_config(recommended_max_seq_len: int, split_stats: dict) -> None:
-    """
-    Lưu encoder config cho tuần 2.
-
-    File: outputs/eda/encoder_config.json
-    """
     encoder_info = ENCODER_OPTIONS[DEFAULT_ENCODER]
     config = {
         "recommended_max_seq_len": recommended_max_seq_len,
@@ -418,7 +356,7 @@ def main() -> None:
             weights = analyze_class_imbalance(df)
             save_encoder_config(len_stats["recommended_max_seq_len"], len_stats)
 
-    print(f"\n✅ EDA hoàn tất. Files đã lưu tại {EDA_DIR}/")
+    print(f"\nEDA hoàn tất. Files đã lưu tại {EDA_DIR}/")
     print(f"   → class_weights.json: dùng cho weighted loss (tuần 2)")
     print(f"   → encoder_config.json: dùng cho model config (tuần 2)")
 

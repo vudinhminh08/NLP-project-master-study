@@ -1,6 +1,3 @@
-"""
-llm_explainer.py — LLM layer for explaining PhoBERT predictions.
-"""
 
 from __future__ import annotations
 
@@ -18,7 +15,6 @@ except ImportError:  # script-style execution
 
 
 def _extract_json(raw_text: str) -> Optional[dict]:
-    """Parse JSON object from direct or fenced LLM output."""
     if not raw_text:
         return None
     text = raw_text.strip()
@@ -48,12 +44,6 @@ def explain_review(
     temperature: float = 0.0,
     use_cache: bool = True,
 ) -> dict:
-    """
-    Explain one review's PhoBERT predictions.
-
-    Returns a validated JSON-like dict with stats. Empty predictions are handled
-    without calling the LLM.
-    """
     if not predictions:
         return {
             "items": [],
@@ -104,7 +94,6 @@ def explain_batch(
     max_samples: int | None = None,
     sleep_sec: float = 0.5,
 ) -> tuple[list[dict], dict]:
-    """Explain a batch of prediction records."""
     n = min(len(records), max_samples) if max_samples is not None else len(records)
     outputs = []
     parse_fails = 0

@@ -1,9 +1,3 @@
-"""
-icl_predictor.py — In-Context Learning với random example selection.
-
-Ablation: k = 2, 4, 8 examples
-Provider: openai, gemini
-"""
 
 import random
 import numpy as np
@@ -21,13 +15,6 @@ from llm_client import LLMClient
 
 
 def df_to_examples(df: pd.DataFrame, indices: list[int]) -> list[dict]:
-    """
-    Chuyển DataFrame rows → list examples cho prompt.
-
-    Returns:
-        list of {"review": str, "labels": {aspect: sentiment}}
-        Chỉ gồm aspects PRESENT (label != 0)
-    """
     examples = []
     for idx in indices:
         row = df.iloc[idx]
@@ -49,20 +36,6 @@ def predict_icl(
     max_samples: int = None,
     sleep_sec: float = 7.0,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Random few-shot ICL prediction.
-
-    Args:
-        test_df:     test DataFrame
-        train_df:    train DataFrame (pool to sample examples from)
-        client:      LLMClient
-        k:           số examples per prompt
-        seed:        random seed
-        max_samples: giới hạn số test samples (None = tất cả, dùng 100 để test nhanh)
-
-    Returns:
-        (y_true [N, 34], y_pred [N, 34])
-    """
     set_seed(seed)
     test_df = test_df.head(max_samples) if max_samples else test_df
 
@@ -103,18 +76,6 @@ def run_icl_ablation(
     models: dict = None,
     sleep_sec: float = 7.0,
 ) -> dict:
-    """
-    Chạy ablation: k=2,4,8 × GPT+Gemini.
-
-    Args:
-        providers: ["openai", "gemini"]
-        k_values:  [2, 4, 8]
-        api_keys:  {"openai": "sk-...", "gemini": "AIza..."}
-        models:    {"gemini": "gemini-2.0-flash", "openai": "gpt-4o-mini"} (optional)
-
-    Returns:
-        dict tất cả kết quả
-    """
     os.makedirs(results_dir, exist_ok=True)
     models = models or {}
     all_results = {}

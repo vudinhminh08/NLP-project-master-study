@@ -55,6 +55,24 @@ Current app flow:
 The app intentionally does not use a fallback predictor. If PhoBERT checkpoint
 or VnCoreNLP is missing, it reports an error instead of producing fake labels.
 
+## Parameter Choices For The Explanation Layer
+
+| Parameter | Choice | Reason |
+|---|---|---|
+| PhoBERT checkpoint | `outputs/results/phobert_best_single/models_cls_only/best_model.pt` | Use the best saved single model. The app should demonstrate the actual trained model, not a fallback or retrained variant. |
+| Encoder option | `cls_only` | Matches the selected checkpoint and keeps inference simpler than `concat_4_layers`. |
+| Input mode | One review at a time, or selecting one review from CSV/XLSX | The demo is easier to explain and avoids unnecessary API cost from batch LLM calls. |
+| File schema | Require `review_text` column | Keeps import deterministic and prevents ambiguous spreadsheet layouts. |
+| LLM role | Explanation only | Prevents the LLM from changing PhoBERT labels, which keeps the system defensible. |
+| Evidence check | Substring/normalized match against the original review | Simple, transparent validation that can be explained in a report. |
+| RAG examples for explanation | Small k such as 4 or 6 if used | Enough to provide domain style examples without making the prompt long or expensive. |
+| JSON output | Fixed schema with `items`, `overall_summary`, `recommended_action` | Makes the explanation parseable, displayable in the app, and easier to evaluate. |
+| Temperature | Low value, preferably 0 to 0.2 | Explanation should be consistent and factual, not creative. |
+
+The main design choice is to keep the classifier and explainer separated:
+PhoBERT owns prediction, while the LLM owns human-readable reasoning. This makes
+the app useful in practice without weakening the evaluation claim.
+
 Older ADD/cascade/verifier/ensemble experiments are archived under `draft/`.
 They can be mentioned briefly as negative experiments, but they should not be
 main methods in the final report.

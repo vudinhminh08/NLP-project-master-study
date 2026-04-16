@@ -11,6 +11,21 @@
 | Preprocessing | lowercase + remove special chars |
 | Word segmentation | Khong (co tinh giu don gian) |
 
+## Giai thich tham so va cach chon
+
+| Tham so | Ly do chon |
+|---------|------------|
+| `LinearSVC` | SVM tuyen tinh phu hop voi vector TF-IDF sparse, train nhanh tren 34 classifiers va la baseline truyen thong de giai thich. |
+| `unigram + bigram` | Unigram bat tu don nhu `phong`, `sach`; bigram bat cum tu co nghia hon nhu `phong sach`, `nhan vien`, `gan trung tam`. |
+| `max_features=50000` | Gioi han so feature de tranh ma tran qua lon. 50k du lon de giu cac tu/cum tu pho bien trong 5,600 review nhung van train nhanh. |
+| `C=1.0` | Gia tri mac dinh can bang giua margin va loi phan loai. Baseline can on dinh, khong toi uu qua muc de tranh bien thanh mot phase tuning rieng. |
+| `class_weight=balanced` | Dataset lech nhan manh, nhat la `absent` chiem da so. Balanced weight giup SVM khong hoc cach doan tat ca la `absent`. |
+| Khong word segmentation | Co tinh giu baseline doc lap va don gian. Neu baseline thap hon PhoBERT thi co the giai thich do thieu contextual embedding va thieu preprocessing tieng Viet sau. |
+
+Cach chon tham so cua SVM mang tinh baseline, khong nham toi uu tuyet doi.
+Muc tieu la tao moc so sanh hop ly: model co the train nhanh, de giai thich,
+va du khac PhoBERT de cho thay gia tri cua pretrained representation.
+
 ## Ket qua
 
 | Split | ACD F1 | SPC F1 | Combined F1 |

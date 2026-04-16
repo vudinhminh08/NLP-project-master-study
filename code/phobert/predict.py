@@ -1,8 +1,3 @@
-"""
-predict.py — Load best model → evaluate → generate summary report.
-
-Chạy qua run_experiment.py (không chạy trực tiếp).
-"""
 
 import os
 import sys
@@ -23,17 +18,6 @@ def load_best_model(
     model: torch.nn.Module,
     device: torch.device,
 ) -> torch.nn.Module:
-    """
-    Load best checkpoint vào model.
-
-    Args:
-        checkpoint_path: đường dẫn tới best_model.pt
-        model:           ABSAPhoBERT instance (chưa load weights)
-        device:          torch device
-
-    Returns:
-        model đã load weights, ở eval mode
-    """
     ckpt = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(ckpt["model_state_dict"])
     model.to(device).eval()
@@ -52,20 +36,6 @@ def predict_and_evaluate(
     split_name: str = "test",
     save_path: Optional[str] = None,
 ) -> tuple:
-    """
-    Inference + compute metrics + optionally save JSON.
-
-    Args:
-        model:        ABSAPhoBERT (đã load best weights)
-        dataloader:   DataLoader cho split cần evaluate
-        class_weights: list of 34 weight tensors
-        device:       torch device
-        split_name:   tên split để in trong report ("dev" hoặc "test")
-        save_path:    nếu không None, lưu metrics JSON
-
-    Returns:
-        (metrics dict, y_true np.ndarray [N,34], y_pred np.ndarray [N,34])
-    """
     _, y_true, y_pred = run_epoch(
         model, dataloader, device, class_weights, is_train=False
     )
@@ -85,19 +55,6 @@ def generate_summary_report(
     config: dict,
     save_path: str = "outputs/results/phobert_summary.md",
 ) -> None:
-    """
-    Tạo markdown report cho báo cáo cuối kỳ.
-
-    Bao gồm: config thực tế, kết quả dev/test, gap so với SOTA,
-    bottom 5 aspects, nguyên nhân gap, learning curve reference.
-
-    Args:
-        history:      dict từ train() — train_loss, dev_f1 theo epoch
-        dev_metrics:  dict từ evaluate_predictions trên dev set
-        test_metrics: dict từ evaluate_predictions trên test set
-        config:       dict config training thực tế
-        save_path:    đường dẫn lưu file .md
-    """
     gap_acd  = 0.8255 - test_metrics["macro_acd_f1"]
     gap_comb = 0.7732 - test_metrics["macro_combined_f1"]
 

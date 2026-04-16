@@ -13,6 +13,25 @@
 | Weight clip | 10.0 |
 | Best epoch | 16 / 20 |
 
+## Giải thích tham số và cách lựa chọn
+
+| Tham số | Cách chọn | Lý do |
+|---------|----------|-------|
+| `vinai/phobert-base-v2` | Dùng PhoBERT base v2 thay vì model lớn hơn | Phù hợp tiếng Việt, đủ mạnh cho ABSA nhưng vẫn chạy được trên GPU Kaggle T4. Model lớn hơn tăng chi phí VRAM và rủi ro OOM. |
+| `encoder=cls_only` | So sánh với `concat_4_layers`, chọn bản có test Combined F1 cao nhất | `cls_only` dùng vector 768 chiều nên classification heads ít tham số hơn, giảm overfit trên dataset chỉ 3,000 train samples. |
+| `MAX_SEQ_LEN=256` | Chọn theo giới hạn an toàn của PhoBERT và độ dài review sau preprocessing | Phần lớn review nằm dưới ngưỡng này; 256 giúp tiết kiệm VRAM và tránh vượt giới hạn position embedding của PhoBERT. |
+| `batch_size=16` | Chọn mức vừa với GPU T4 khi dùng `cls_only` | Batch 16 đủ ổn định cho gradient nhưng không quá lớn gây OOM. |
+| `learning_rate=0.0001` | Lấy từ run best đã lưu, khớp notebook executed | LR này cho convergence tốt hơn các run nhỏ hơn trong thí nghiệm hiện tại. Với dataset nhỏ, LR quá thấp dễ học chậm, LR quá cao dễ dao động. |
+| `warmup_ratio=0.15` | Warmup 15% tổng training steps | Warmup giúp tránh bước cập nhật quá mạnh ở đầu fine-tuning, đặc biệt khi dùng pretrained encoder. |
+| `max_epochs=20` | Đặt trần đủ dài để model hội tụ | Kết hợp early stopping nên không buộc model train hết nếu dev metric xấu đi. |
+| `early_stop_patience=7` | Cho phép metric dao động vài epoch trước khi dừng | Macro F1 trên dataset nhỏ dao động mạnh, patience quá thấp dễ dừng sớm khi model chưa ổn định. |
+| `weight_clip=10.0` | Giới hạn class weight cực lớn từ các class hiếm | Neutral và rare aspects có weight rất cao; giới hạn weight giúp loss không bị một số mẫu hiếm chi phối quá mạnh. |
+| `seed=42` | Cố định seed cho train/evaluate | Giúp kết quả dễ tái lập hơn, dù GPU vẫn có thể còn nondeterminism. |
+
+Các tham số này được chọn theo nguyên tắc thực dụng: giữ một single model dễ
+giải thích, chạy được trên Kaggle, không ensemble, và dùng lại checkpoint tốt
+nhất đã được notebook executed ghi nhận.
+
 ## Kết quả
 
 | Split | ACD F1 | SPC F1 | Combined F1 |
