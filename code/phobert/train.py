@@ -19,8 +19,7 @@ from typing import Optional
 
 import torch
 import numpy as np
-from torch.optim import AdamW
-from torch.optim.lr_scheduler import LambdaLR
+from torch.optim import Adam
 from transformers import get_cosine_schedule_with_warmup
 from tqdm import tqdm
 
@@ -102,7 +101,7 @@ def run_epoch(
         dataloader:    DataLoader (train hoặc dev/test)
         device:        torch device
         class_weights: list of 34 tensors [4] — per-aspect weights
-        optimizer:     AdamW optimizer (None khi eval)
+        optimizer:     Adam optimizer (None khi eval)
         scheduler:     LR scheduler (None khi eval)
         grad_accum:    gradient accumulation steps
         is_train:      True để train, False để eval
@@ -226,40 +225,20 @@ def train(
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
-    # === Optimizer: AdamW uniform LR (v2.6) ===
-    # Khởi tạo với initial_lr = peak_lr / 2 (ds4v: 1e-4, warmup lên 2e-4)
-    # Scheduler sẽ warmup từ initial lên peak rồi decay về alpha × initial
-    peak_lr    = config["learning_rate"]          # 3e-5 (đặt là peak trong config)
-    initial_lr = peak_lr / 2.0                    # 1.5e-5 — bắt đầu warmup từ đây
-    alpha      = config.get("lr_alpha", 0.1)      # min LR = alpha × initial = 1.5e-6
-
-    optimizer = AdamW(
+    # === Optimizer/Scheduler: khớp best_result notebook ===
+    optimizer = Adam(
         model.parameters(),
-        lr=initial_lr,
-        weight_decay=0.01,
+        lr=config["learning_rate"],
         eps=1e-8,
     )
 
-    # === Scheduler: warmup lên peak → cosine decay về alpha×initial (ds4v style) ===
-    # Phase 1 (0 → warmup_steps):   linear ramp initial_lr → peak_lr
-    # Phase 2 (warmup → total):     cosine decay peak_lr   → alpha × initial_lr
     total_steps   = len(train_loader) * config["max_epochs"]
-    warmup_steps  = int(total_steps * config["warmup_ratio"])   # 15%
-    decay_steps   = total_steps - warmup_steps
-    min_lr        = alpha * initial_lr
-
-    def lr_lambda(current_step: int) -> float:
-        # Trả về multiplier so với initial_lr (optimizer.defaults['lr'])
-        if current_step < warmup_steps:
-            # Linear warmup: initial_lr → peak_lr
-            return 1.0 + (peak_lr / initial_lr - 1.0) * current_step / max(1, warmup_steps)
-        # Cosine decay: peak_lr → min_lr
-        progress = (current_step - warmup_steps) / max(1, decay_steps)
-        cosine   = 0.5 * (1.0 + torch.cos(torch.tensor(3.14159265 * progress)).item())
-        target   = min_lr + (peak_lr - min_lr) * cosine
-        return target / initial_lr
-
-    scheduler = LambdaLR(optimizer, lr_lambda)
+    warmup_steps  = int(total_steps * config["warmup_ratio"])
+    scheduler = get_cosine_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=warmup_steps,
+        num_training_steps=total_steps,
+    )
 
     # === Mixed Precision Scaler ===
     scaler = GradScaler() if (use_amp and AMP_AVAILABLE and device.type == "cuda") else None
@@ -268,8 +247,8 @@ def train(
     # === Info ===
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\n[Model] {n_params:,} trainable parameters")
-    print(f"[Scheduler] Total={total_steps} steps | Warmup={warmup_steps} ({config['warmup_ratio']*100:.0f}%)")
-    print(f"[LR] {initial_lr:.2e} → peak {peak_lr:.2e} → min {min_lr:.2e} (alpha={alpha})")
+    print(f"[Scheduler] Total={total_steps} optimizer steps, Warmup={warmup_steps}")
+    print(f"[LR] Adam lr={config['learning_rate']:.2e}, scheduler=cosine_warmup")
     print(f"[AMP] Mixed precision: {'ON ✓' if amp_active else 'OFF'}")
     print(f"[Config] encoder={config.get('encoder_option')}, "
           f"seq_len={config.get('max_seq_len')}, "

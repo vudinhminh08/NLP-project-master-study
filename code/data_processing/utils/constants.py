@@ -107,18 +107,17 @@ ENCODER_OPTIONS = {
 }
 DEFAULT_ENCODER = "concat_4_layers"  # Theo SOTA ds4v
 
-# ─── Training Hyperparameters — Cập nhật từ EDA thực tế ───────────────────────
+# ─── Training Hyperparameters — khớp best_result đã chạy trong notebook ──────
 TRAIN_CONFIG = {
-    "learning_rate":           3e-5,      # v2.6: peak LR (scheduler warmup từ 1.5e-5 lên đây)
-    "lr_alpha":                0.1,       # v2.6: min LR = alpha × (peak/2) = 1.5e-6
-    "warmup_ratio":            0.15,      # 15% steps warmup (ds4v style)
+    "learning_rate":           1e-4,
+    "warmup_ratio":            0.15,
     "batch_size":              16,
     "grad_accumulation_steps": 1,
-    "max_epochs":              35,
-    "early_stop_patience":     3,         # v2.6: 7 → 3 (ds4v dùng 3, tránh overfit dataset nhỏ)
+    "max_epochs":              20,
+    "early_stop_patience":     7,
     "dropout":                 0.2,
-    "optimizer":               "AdamW",
-    "scheduler":               "warmup_peak_cosine_decay",  # v2.6: warmup lên peak rồi decay
+    "optimizer":               "Adam",
+    "scheduler":               "cosine_warmup",
     "seed":                    42,
     "max_seq_len":             256,
     "weight_clip":             10.0,
