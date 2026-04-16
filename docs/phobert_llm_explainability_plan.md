@@ -35,6 +35,26 @@ Main retained results:
 | PhoBERT cls_only | 0.5543 | Strong supervised baseline |
 | PhoBERT + LLM explanation | N/A | LLM explains PhoBERT predictions instead of replacing them |
 
+## Implementation Status
+
+This direction has now been implemented as an app demo under `app/`.
+
+Current app flow:
+
+1. Start screen.
+2. Config screen requiring:
+   - PhoBERT checkpoint
+   - VnCoreNLP directory
+   - OpenAI API key
+3. Review screen with two input modes:
+   - one manually typed review
+   - CSV/XLSX file with a `review_text` column
+4. PhoBERT predicts aspect/sentiment.
+5. LLM explains PhoBERT predictions and recommends action for hotel owners.
+
+The app intentionally does not use a fallback predictor. If PhoBERT checkpoint
+or VnCoreNLP is missing, it reports an error instead of producing fake labels.
+
 Older ADD/cascade/verifier/ensemble experiments are archived under `draft/`.
 They can be mentioned briefly as negative experiments, but they should not be
 main methods in the final report.
@@ -116,6 +136,19 @@ outputs/results/llm_explainability/
 └── report_ready_examples.md
 ```
 
+App demo:
+
+```text
+app/
+├── streamlit_app.py
+├── phobert_service.py
+├── explanation_service.py
+├── file_loader.py
+├── sample_reviews.csv
+├── requirements-app.txt
+└── README.md
+```
+
 If time is short, collapse the implementation into:
 
 ```text
@@ -160,6 +193,36 @@ Example input:
   ]
 }
 ```
+
+## Code Flow
+
+The implementation separates prediction and explanation:
+
+1. `app/phobert_service.py`
+   - Loads `ABSAPhoBERT` with `encoder_option="cls_only"`.
+   - Loads `best_model.pt`.
+   - Runs `preprocess_text` with `VnCoreNLPSegmenter(use_fallback=False)`.
+   - Tokenizes the processed review with PhoBERT tokenizer.
+   - Converts logits to present aspect predictions with confidence.
+
+2. `app/explanation_service.py`
+   - Creates `LLMClient`.
+   - Calls `explain_review`.
+   - Sends only PhoBERT present predictions to the LLM.
+
+3. `code/llm_explainability/llm_explainer.py`
+   - Builds prompt.
+   - Parses JSON.
+   - Applies validation.
+   - Returns explanation items, summary, and recommended action.
+
+4. `code/llm_explainability/evidence_checker.py`
+   - Drops aspects not predicted by PhoBERT.
+   - Restores sentiment if LLM changes it.
+   - Marks evidence uncertain if the phrase is not found in the review.
+
+This structure makes the report claim easy to defend: the LLM is downstream of
+PhoBERT and cannot change the classifier output.
 
 ## Explanation Output
 

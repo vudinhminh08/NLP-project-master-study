@@ -21,6 +21,23 @@
 
 > Kết quả: 3 file cache `data/*_preprocessed.csv`, mỗi file thêm cột `processed_review` bên cạnh `Review` gốc.
 
+### Code xử lý
+
+Các bước preprocessing được triển khai trong `code/data_processing/step3_preprocessing.py`.
+File này tách rõ từng hàm để dễ kiểm chứng:
+
+- `normalize_unicode`: chuẩn hóa Unicode NFC cho tiếng Việt.
+- `normalize_whitespace`: xóa khoảng trắng thừa.
+- `replace_teencode`: thay viết tắt domain khách sạn.
+- `remove_special_chars`: giữ lại ký tự cần thiết cho review.
+- `preprocess_text`: gọi toàn bộ pipeline cho một review.
+- `preprocess_dataframe`: áp dụng pipeline cho train/dev/test và lưu cache.
+- `VnCoreNLPSegmenter`: wrapper word segmentation bằng VnCoreNLP.
+
+Thiết kế cache giúp notebook/training chạy lại ổn định: nếu file
+`data/*_preprocessed.csv` đã tồn tại thì phase sau có thể load trực tiếp thay
+vì preprocess lại toàn bộ dataset.
+
 ### Pipeline 5 bước (deterministic + idempotent)
 
 | Bước | Tên | Mô tả | Ví dụ |
@@ -265,6 +282,28 @@ Từ label breakdown:
 | `outputs/eda/test_aspect_presence.png` | Bar chart presence rate (test) | Báo cáo |
 | `outputs/eda/test_label_breakdown.png` | Stacked bar 4 labels (test) | Báo cáo |
 | `outputs/eda/test_review_length.png` | Histogram word/char count (test) | Báo cáo |
+
+## 8.1 Phân tích kết quả EDA cho các phase sau
+
+EDA giải thích trước vì sao bài toán khó và vì sao các phase sau cần thiết:
+
+- Dataset nhỏ: chỉ 3,000 train samples cho 34 aspects, nên các aspect hiếm rất
+  khó học.
+- Mất cân bằng mạnh: majority là `absent`, còn `neutral` cực hiếm. Điều này
+  buộc phase PhoBERT phải dùng weighted/focal loss.
+- Một số aspect gần như không có sample present, đặc biệt
+  `ROOM_AMENITIES#PRICES`, nên macro-F1 bị kéo xuống dù model làm tốt ở các
+  aspect phổ biến.
+- Review tiếng Việt cần word segmentation. Đây là lý do phase PhoBERT phải ưu
+  tiên VnCoreNLP thay vì dùng raw text.
+- SVM baseline được kỳ vọng thấp vì TF-IDF không xử lý tốt ngữ cảnh và không
+  chia sẻ representation giữa aspects.
+- LLM/RAG được kỳ vọng khó vượt PhoBERT vì prompt phải học lại toàn bộ schema
+  34 aspects từ rất ít ví dụ.
+
+Do đó, kết quả EDA không chỉ là thống kê dữ liệu mà còn là cơ sở để giải thích
+toàn bộ thiết kế thí nghiệm: SVM làm baseline, PhoBERT làm supervised model
+chính, LLM/RAG làm thử nghiệm predictor, và LLM explanation làm lớp diễn giải.
 
 ---
 

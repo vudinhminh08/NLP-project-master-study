@@ -18,6 +18,40 @@
 | Dev | 0.4045 | 0.2364 | 0.3204 |
 | **Test** | **0.4074** | **0.2272** | **0.3173** |
 
+## Quy trinh xu ly
+
+SVM duoc giu lam baseline truyen thong de tra loi cau hoi: neu khong dung
+pretrained language model, chi dung feature sparse thi bai toan dat duoc den
+muc nao. Pipeline co chu dich don gian:
+
+1. Doc `data/train.csv`, `data/dev.csv`, `data/test.csv`.
+2. Lay cot `Review` goc, khong dung `processed_review` de giu baseline doc lap
+   voi phase PhoBERT.
+3. Chuan hoa text muc nhe: lowercase, xoa ky tu dac biet, giam nhieu be mat.
+4. Bien doi text sang TF-IDF unigram + bigram.
+5. Train 34 bo phan loai doc lap, moi aspect la mot bai toan 4-class:
+   `absent`, `positive`, `negative`, `neutral`.
+6. Tinh ACD F1, SPC F1 va Combined F1 tren dev/test.
+
+Thiet ke nay de baseline de giai thich: TF-IDF bat tu/cum tu, SVM tach class
+bang hyperplane tuyen tinh. Neu ket qua thap hon PhoBERT thi co the quy ve viec
+SVM khong co contextual embedding va khong chia se thong tin giua aspects.
+
+## Code chinh
+
+File chinh: `code/svm_baseline/svm_baseline.py`.
+
+Thanh phan quan trong:
+
+- `preprocess_for_tfidf`: tien xu ly text nhe cho TF-IDF.
+- `TfidfVectorizer`: tao dac trung sparse unigram + bigram.
+- `train_aspect_classifiers`: train tung classifier cho 34 aspects.
+- `predict_all_aspects`: gom du doan cua 34 classifiers thanh ma tran `[N, 34]`.
+- `evaluate_predictions`: tinh metric theo cung logic voi cac phase khac.
+
+Baseline khong dung VnCoreNLP va khong dung LLM. Day la moc thap nhung can
+thiet de chung minh cac mo hinh sau thuc su co gia tri.
+
 ## So sanh
 
 | Phuong phap | ACD F1 | Combined F1 | Ghi chu |
@@ -26,6 +60,22 @@
 | PhoBERT cls_only + VnCoreNLP | 0.6360 | 0.5543 | Supervised baseline chinh |
 | LLM + RAG k=8 | 0.4034 | 0.3532 | LLM prediction benchmark |
 | SOTA (Huynh 2022) | 0.8255 | 0.7732 | Upper bound |
+
+## Phan tich ket qua chi tiet
+
+SVM dat ACD F1 test `0.4074`, cao hon SPC F1 `0.2272`. Dieu nay hop ly vi ACD
+chi can phat hien aspect co xuat hien hay khong, trong khi SPC phai phan biet
+positive/negative/neutral cho aspect da xuat hien. Voi TF-IDF sparse, cac cum
+tu nhu `phong sach`, `nhan vien`, `gan trung tam` co the giup detect aspect,
+nhung sentiment lai phu thuoc ngu canh va gan ket aspect-sentiment nen kho hon.
+
+Combined F1 `0.3173` thap hon LLM + RAG k=8 `0.3532` va thap xa PhoBERT
+`0.5543`. Ket qua nay cho thay baseline truyen thong khong du manh cho ABSA
+tieng Viet nhieu aspect. Tuy nhien, no van co gia tri bao cao:
+
+- Lam moc so sanh toi thieu cho cac huong sau.
+- Cho thay bai toan khong the giai quyet tot chi bang bag-of-words.
+- Giai thich duoc vi sao can pretrained representation nhu PhoBERT.
 
 ## Ghi chu
 - SVM khong dung word segmentation -> feature extraction kem hon co the

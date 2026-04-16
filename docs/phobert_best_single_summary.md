@@ -21,6 +21,66 @@
 | **Test**  | **0.6360** | **0.4727** | **0.5543** |
 | SOTA (Huynh 2022) | 0.8255 | — | 0.7732 |
 
+## Quy trình xử lý
+
+PhoBERT là mô hình supervised chính của báo cáo. Pipeline được thiết kế để giữ
+một mô hình single, dễ giải thích, không ensemble:
+
+1. Dùng dữ liệu đã preprocess bằng VnCoreNLP trong phase data processing.
+2. Tokenize `processed_review` bằng tokenizer của `vinai/phobert-base-v2`.
+3. Đưa sequence vào PhoBERT encoder.
+4. Lấy biểu diễn `[CLS]` layer cuối theo cấu hình `cls_only`.
+5. Dùng 34 classification heads song song, mỗi head dự đoán 4 nhãn:
+   `absent`, `positive`, `negative`, `neutral`.
+6. Train bằng weighted focal loss để giảm bias về class `absent`.
+7. Chọn checkpoint tốt nhất theo dev Combined F1.
+8. Evaluate checkpoint tốt nhất trên test set.
+
+Điểm quan trọng là model học trực tiếp label scheme của VLSP 2018 Hotel, khác
+với LLM/RAG chỉ học qua prompt ngắn. Vì vậy PhoBERT phù hợp làm prediction
+engine chính.
+
+## Code và notebook liên quan
+
+Các file code chính:
+
+- `code/data_processing/step3_preprocessing.py`: chuẩn hóa text và word
+  segmentation bằng VnCoreNLP.
+- `code/data_processing/step2_dataloader.py`: tạo dataset/dataloader cho
+  `processed_review` và 34 aspect labels.
+- `code/phobert/model.py`: định nghĩa `ABSAPhoBERT` multi-task với 34 heads.
+- `code/phobert/train.py`: training loop, weighted focal loss, early stopping.
+- `code/phobert/predict.py`: load checkpoint tốt nhất và evaluate.
+
+Notebook báo cáo chính:
+
+- `notebooks/phase_phobert_vncorenlp_executed.ipynb`: bản executed có output
+  thật, dùng để chứng minh kết quả.
+
+Checkpoint dùng cho app/demo:
+
+```text
+outputs/results/phobert_best_single/models_cls_only/best_model.pt
+```
+
+## Phân tích kết quả chi tiết
+
+Test Combined F1 đạt `0.5543`, cao nhất trong các hướng được giữ lại. ACD F1
+`0.6360` cao hơn SPC F1 `0.4727`, cho thấy model phát hiện aspect tốt hơn việc
+gán sentiment chi tiết. Đây là pattern hợp lý với ABSA nhiều aspect vì sentiment
+phải xử lý thêm các trường hợp mơ hồ, phủ định, hoặc nhiều sentiment trong cùng
+một review.
+
+Dev Combined F1 `0.5451` và Test Combined F1 `0.5543` khá gần nhau, cho thấy
+checkpoint không chỉ overfit dev. Tuy vậy, learning curve vẫn có dấu hiệu
+train loss giảm trong khi dev loss tăng sau một số epoch, nên báo cáo cần nhấn
+mạnh đây là bản single model ổn định chứ chưa đạt SOTA.
+
+`cls_only` được chọn dù SOTA gợi ý `concat_4_layers` vì trong kết quả thực tế
+của dự án, `cls_only` cho Combined F1 cao hơn trên test. Điều này có thể do
+dataset nhỏ: biểu diễn 768 chiều đơn giản hơn có ít tham số ở classification
+heads hơn, giảm nguy cơ overfit so với 3072 chiều của concat 4 layers.
+
 ## Phân tích Gap so với SOTA
 
 - **ACD F1 gap:** 0.1895 (19.0%)

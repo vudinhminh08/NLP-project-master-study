@@ -53,6 +53,23 @@ This difference matters because PhoBERT expects Vietnamese word segmentation:
 compound words such as `khách_sạn`, `dịch_vụ`, `chất_lượng` should be joined,
 but the whole sentence should not be collapsed into one long underscore chain.
 
+## Code và notebook liên quan
+
+Hai notebook executed được dùng để đảm bảo so sánh có output thật:
+
+- `notebooks/phase_phobert_no_vncorenlp_executed.ipynb`
+- `notebooks/phase_phobert_vncorenlp_executed.ipynb`
+
+Logic preprocessing nằm trong `code/data_processing/step3_preprocessing.py`.
+Điểm khác biệt quan trọng là bước word segmentation:
+
+- Bản không VnCoreNLP tạo chuỗi có xu hướng over-join bằng dấu `_`.
+- Bản VnCoreNLP chỉ nối các từ ghép tiếng Việt, giữ khoảng trắng giữa các từ.
+
+Sau preprocessing, hai notebook đều chạy cùng hướng PhoBERT supervised và
+evaluate bằng cùng metric. Nhờ vậy, chênh lệch điểm có thể được giải thích chủ
+yếu bởi chất lượng word segmentation, không phải do đổi bài toán hay đổi metric.
+
 ## Report Takeaway
 
 VnCoreNLP-style word segmentation is one of the largest practical improvements
@@ -152,6 +169,24 @@ ACD F1:      0.3592 -> 0.6360
 SPC F1:      0.2371 -> 0.4727
 Combined F1: 0.2981 -> 0.5543
 ```
+
+### Detailed Result Analysis
+
+ACD tăng `+0.2768`, lớn hơn mức tăng SPC `+0.2356`. Điều này cho thấy word
+segmentation ảnh hưởng mạnh nhất đến bước phát hiện aspect. Khi các cụm như
+`khách_sạn`, `dịch_vụ`, `phòng`, `nhân_viên` được tách đúng, model dễ nhận ra
+review đang nói về entity nào hơn.
+
+SPC cũng tăng mạnh vì sentiment cue được gắn với đúng cụm aspect. Ví dụ, trong
+review có nhiều mệnh đề như "phòng sạch nhưng nhân viên khó chịu", model cần
+hiểu `sạch` thuộc `ROOMS#CLEANLINESS` còn `khó_chịu` thuộc `SERVICE#GENERAL`.
+Word segmentation tốt làm local context ổn định hơn, giúp classification head
+cho từng aspect nhận tín hiệu rõ hơn.
+
+Kết quả này cũng giải thích vì sao SVM và LLM/RAG không đạt cao: nếu đầu vào và
+schema aspect đã khó, mô hình không được fine-tune trực tiếp sẽ dễ bỏ sót hoặc
+gán nhầm aspect. PhoBERT chỉ phát huy mạnh khi preprocessing khớp với cách nó
+được pretrain.
 
 The ACD gain is especially large because detecting whether an aspect is present
 depends directly on recognizing aspect words and phrases. SPC also improves
