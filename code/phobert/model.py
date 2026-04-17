@@ -23,17 +23,17 @@ class ABSAPhoBERT(nn.Module):
         self.focal_gamma    = focal_gamma
         self.num_labels     = num_labels
 
-        # PhoBERT — cần output_hidden_states=True để lấy 4 layers cuối
+
         self.phobert = AutoModel.from_pretrained(
             model_name,
             output_hidden_states=True,
         )
 
-        # Hidden size: 768*4=3072 cho concat_4_layers, 768 cho cls_only
+
         self.hidden_size = 768 * 4 if encoder_option == "concat_4_layers" else 768
         self.dropout     = nn.Dropout(dropout)
 
-        # 34 classification heads — ModuleList để PyTorch track params đúng
+
         self.classifiers = nn.ModuleList([
             nn.Linear(self.hidden_size, num_labels)
             for _ in range(num_aspects)
@@ -45,17 +45,17 @@ class ABSAPhoBERT(nn.Module):
         attention_mask: torch.Tensor,
     ) -> torch.Tensor:
         outputs       = self.phobert(input_ids=input_ids, attention_mask=attention_mask)
-        hidden_states = outputs.hidden_states  # tuple 13 tensors × [batch, seq, 768]
+        hidden_states = outputs.hidden_states
 
         if self.encoder_option == "concat_4_layers":
-            # Đúng theo ds4v: concat 4 layers cuối tại [CLS] token (index 0)
+
             cls_repr = torch.cat(
                 [hidden_states[i][:, 0, :] for i in [-4, -3, -2, -1]],
                 dim=-1,
-            )  # [batch, 3072]
+            )
         else:
-            # cls_only: ablation study (768 dim)
-            cls_repr = hidden_states[-1][:, 0, :]  # [batch, 768]
+
+            cls_repr = hidden_states[-1][:, 0, :]
 
         return cls_repr
 
@@ -65,13 +65,13 @@ class ABSAPhoBERT(nn.Module):
         attention_mask: torch.Tensor,
         labels: Optional[torch.Tensor] = None,
         class_weights: Optional[list] = None,
-        token_type_ids: Optional[torch.Tensor] = None,  # ignored: PhoBERT is RoBERTa-based
+        token_type_ids: Optional[torch.Tensor] = None,
     ) -> dict:
-        # === Encoder ===
+
         cls_repr = self.get_cls_representation(input_ids, attention_mask)
 
-        # Multi-sample dropout (Inoue 2019) — chỉ khi training
-        # Dropout N lần, average logits → regularization mạnh hơn cho dataset nhỏ
+
+
         if self.training:
             N_DROPOUT = 5
             all_logits = []
@@ -84,42 +84,42 @@ class ABSAPhoBERT(nn.Module):
             ]
         else:
             cls_repr = self.dropout(cls_repr)
-            logits = [clf(cls_repr) for clf in self.classifiers]  # 34 × [batch, 4]
+            logits = [clf(cls_repr) for clf in self.classifiers]
 
-        # === Loss: 34 × weighted Focal Loss (v2.6) ===
-        # Focal loss = -w_c × (1 - p_true)^γ × log(p_true)
-        # γ=2: down-weight easy samples (absent đã đúng),
-        #       focus gradient vào hard/rare aspects
-        #
-        # Implementation đúng:
-        #   1. log_softmax → lấy log(p_true) per sample qua gather
-        #   2. p_true = exp(log_p_true) — xác suất raw của đúng class
-        #   3. focal_factor = (1 - p_true)^γ
-        #   4. sample_w = class_weight[true_class] per sample
-        #   5. loss = mean(sample_w × focal_factor × (-log_p_true))
-        # Cách này đảm bảo focal_loss ≤ CE và semantics weight đúng như CE
+
+
+
+
+
+
+
+
+
+
+
+
         loss = None
         if labels is not None:
             losses = []
             for i, logit in enumerate(logits):
-                lbl = labels[:, i]                                    # [batch]
-                log_probs = F.log_softmax(logit, dim=-1)              # [batch, 4]
+                lbl = labels[:, i]
+                log_probs = F.log_softmax(logit, dim=-1)
 
-                # log(p_true) và p_true
-                log_p_true = log_probs.gather(1, lbl.unsqueeze(1)).squeeze(1)  # [batch]
-                p_true     = log_p_true.exp()                         # [batch]
 
-                # Focal factor: (1 - p_true)^γ
-                focal_factor = (1.0 - p_true.detach()) ** self.focal_gamma  # [batch]
+                log_p_true = log_probs.gather(1, lbl.unsqueeze(1)).squeeze(1)
+                p_true     = log_p_true.exp()
 
-                # CE per-sample (không weight, không smoothing) = -log_p_true
-                ce_per_sample = -log_p_true                           # [batch]
 
-                # Apply class weight per sample: w[true_class]
-                # Normalize bằng sum(weights) để khớp với F.cross_entropy(weight=w)
-                # PyTorch CE: mean = sum(w[c] * loss) / sum(w[c]), không chia batch_size
+                focal_factor = (1.0 - p_true.detach()) ** self.focal_gamma
+
+
+                ce_per_sample = -log_p_true
+
+
+
+
                 if class_weights is not None:
-                    sample_w = class_weights[i][lbl]                  # [batch]
+                    sample_w = class_weights[i][lbl]
                     weighted = sample_w * focal_factor * ce_per_sample
                     loss_i   = weighted.sum() / sample_w.sum().clamp(min=1e-8)
                 else:
@@ -128,9 +128,9 @@ class ABSAPhoBERT(nn.Module):
                 losses.append(loss_i)
             loss = torch.stack(losses).mean()
 
-        # === Predictions ===
+
         preds = torch.stack(
             [logit.argmax(dim=-1) for logit in logits], dim=1
-        )  # [batch, 34]
+        )
 
         return {"loss": loss, "logits": logits, "preds": preds}

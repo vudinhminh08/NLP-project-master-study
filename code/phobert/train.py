@@ -11,7 +11,7 @@ from torch.optim import Adam
 from transformers import get_cosine_schedule_with_warmup
 from tqdm import tqdm
 
-# Mixed precision — safe import (fallback nếu PyTorch cũ)
+
 try:
     from torch.cuda.amp import autocast, GradScaler
     AMP_AVAILABLE = True
@@ -41,7 +41,7 @@ def load_class_weights(
         w_dict = per_aspect.get(aspect, {})
         w = []
         for i in range(4):
-            raw = float(w_dict.get(str(i), 1.0))  # default=1.0 nếu class không có
+            raw = float(w_dict.get(str(i), 1.0))
             clipped = min(raw, weight_clip)
             if raw > weight_clip:
                 clipped_count += 1
@@ -70,7 +70,7 @@ def run_epoch(
     all_preds:  list = []
     all_labels: list = []
 
-    # Đặt class weights lên đúng device 1 lần (thay vì mỗi batch)
+
     weights_on_device = [w.to(device) for w in class_weights]
 
     n_batches = len(dataloader)
@@ -87,7 +87,7 @@ def run_epoch(
             attention_mask = batch["attention_mask"].to(device)
             labels         = batch["labels"].to(device)
 
-            # === Forward pass (với AMP nếu được bật) ===
+
             if use_amp and AMP_AVAILABLE:
                 with autocast():
                     out = model(
@@ -106,7 +106,7 @@ def run_epoch(
 
             total_loss += loss.item()
 
-            # === Backward (chỉ khi train) ===
+
             if is_train:
                 scaled_loss = loss / grad_accum
 
@@ -115,7 +115,7 @@ def run_epoch(
                 else:
                     scaled_loss.backward()
 
-                # FIX: flush khi đủ accum steps HOẶC đây là batch cuối cùng
+
                 is_last_batch = (step + 1) == n_batches
                 if (step + 1) % grad_accum == 0 or is_last_batch:
                     if use_amp and AMP_AVAILABLE and scaler is not None:
@@ -130,7 +130,7 @@ def run_epoch(
                     scheduler.step()
                     optimizer.zero_grad()
             else:
-                # Eval: thu thập predictions
+
                 all_preds.append(out["preds"].cpu().numpy())
                 all_labels.append(labels.cpu().numpy())
 
@@ -139,8 +139,8 @@ def run_epoch(
     if is_train:
         return mean_loss, None, None
 
-    y_true = np.vstack(all_labels)  # [N, 34]
-    y_pred = np.vstack(all_preds)   # [N, 34]
+    y_true = np.vstack(all_labels)
+    y_pred = np.vstack(all_preds)
     return mean_loss, y_true, y_pred
 
 
@@ -158,7 +158,7 @@ def train(
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
-    # === Optimizer/Scheduler: khớp best_result notebook ===
+
     optimizer = Adam(
         model.parameters(),
         lr=config["learning_rate"],
@@ -173,11 +173,11 @@ def train(
         num_training_steps=total_steps,
     )
 
-    # === Mixed Precision Scaler ===
+
     scaler = GradScaler() if (use_amp and AMP_AVAILABLE and device.type == "cuda") else None
     amp_active = scaler is not None
 
-    # === Info ===
+
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\n[Model] {n_params:,} trainable parameters")
     print(f"[Scheduler] Total={total_steps} optimizer steps, Warmup={warmup_steps}")
@@ -188,7 +188,7 @@ def train(
           f"batch={config['batch_size']}×{config['grad_accumulation_steps']}="
           f"{config['batch_size']*config['grad_accumulation_steps']} (effective)")
 
-    # === History ===
+
     history = {
         "train_loss":       [],
         "dev_loss":         [],
@@ -208,7 +208,7 @@ def train(
         t0 = time.time()
         print(f"\n{'─'*60}\nEpoch {epoch}/{config['max_epochs']}")
 
-        # --- Train ---
+
         train_loss, _, _ = run_epoch(
             model, train_loader, device, class_weights,
             optimizer=optimizer, scheduler=scheduler,
@@ -217,7 +217,7 @@ def train(
             use_amp=amp_active, scaler=scaler,
         )
 
-        # --- Eval ---
+
         dev_loss, y_true, y_pred = run_epoch(
             model, dev_loader, device, class_weights,
             is_train=False,
@@ -238,14 +238,14 @@ def train(
             f"Combined: {combined:.4f} | {elapsed:.0f}s"
         )
 
-        # --- Log history ---
+
         history["train_loss"].append(train_loss)
         history["dev_loss"].append(dev_loss)
         history["dev_acd_f1"].append(metrics["macro_acd_f1"])
         history["dev_spc_f1"].append(metrics["macro_spc_f1"])
         history["dev_combined_f1"].append(combined)
 
-        # --- Save best checkpoint (monitor dev_loss, theo ds4v) ---
+
         if dev_loss < best_loss:
             best_loss = dev_loss
             history["best_epoch"]       = epoch
@@ -267,10 +267,10 @@ def train(
             patience += 1
             print(f"  No improvement [{patience}/{config['early_stop_patience']}]")
 
-        # --- Lưu history sau mỗi epoch (safe nếu Colab disconnect) ---
+
         save_json(history, os.path.join(results_dir, "training_history.json"))
 
-        # --- Early stopping ---
+
         if patience >= config["early_stop_patience"]:
             print(
                 f"\nEarly stopping tại epoch {epoch}. "

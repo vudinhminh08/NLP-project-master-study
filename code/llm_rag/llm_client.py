@@ -9,9 +9,9 @@ class LLMClient:
 
     def __init__(
         self,
-        provider: str,                    # "openai" hoặc "gemini"
-        api_key: Optional[str] = None,    # None → đọc từ env
-        model: Optional[str] = None,      # None → dùng default
+        provider: str,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
         cache_dir: str = "outputs/llm_cache",
         max_retries: int = 5,
         retry_delay: float = 5.0,
@@ -24,7 +24,7 @@ class LLMClient:
         self.total_tokens = 0
         os.makedirs(cache_dir, exist_ok=True)
 
-        # Setup model name
+
         if provider == "openai":
             self.model = model or "gpt-4o-mini"
             self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
@@ -60,17 +60,17 @@ class LLMClient:
     def complete(
         self,
         messages: list[dict],
-        temperature: float = 0.0,   # 0 = deterministic
+        temperature: float = 0.0,
         use_cache: bool = True,
     ) -> str:
-        # Check cache
+
         if use_cache:
             key = self._cache_key(messages)
             cached = self._load_cache(key)
             if cached:
                 return cached
 
-        # Call API với retry
+
         for attempt in range(self.max_retries):
             try:
                 response = self._call_api(messages, temperature)
@@ -99,7 +99,7 @@ class LLMClient:
             return resp.choices[0].message.content
 
         elif self.provider == "gemini":
-            # Convert OpenAI format → google.genai format
+
             from google.genai import types
 
             system_instruction = None
@@ -116,7 +116,7 @@ class LLMClient:
                 temperature=temperature,
                 max_output_tokens=512,
                 system_instruction=system_instruction,
-                response_mime_type="application/json",  # force JSON output
+                response_mime_type="application/json",
             )
             resp = self.client.models.generate_content(
                 model=self.model,

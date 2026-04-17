@@ -1,6 +1,5 @@
 import os
 import sys
-from typing import Optional
 
 import pandas as pd
 import torch
@@ -22,7 +21,7 @@ from utils.constants import (
 from utils.helpers import set_seed, log_versions
 
 
-# ─── Dataset ─────────────────────────────────────────────────────────────────
+
 
 class ABSADataset(torch.utils.data.Dataset):
 
@@ -33,12 +32,11 @@ class ABSADataset(torch.utils.data.Dataset):
         max_len: int = MAX_SEQ_LEN,
         text_col: str = "processed_review",
     ) -> None:
-        # Fallback: nếu processed_review không tồn tại, dùng Review
         if text_col not in df.columns:
             print(f"[WARN] Cột '{text_col}' không tồn tại, dùng 'Review'")
             text_col = "Review"
         self.texts     = df[text_col].astype(str).tolist()
-        self.labels    = df[ASPECT_COLUMNS].values.astype(int)  # [N, 34]
+        self.labels    = df[ASPECT_COLUMNS].values.astype(int)
         self.tokenizer = tokenizer
         self.max_len   = max_len
 
@@ -61,7 +59,7 @@ class ABSADataset(torch.utils.data.Dataset):
         }
 
 
-# ─── DataLoader factory ──────────────────────────────────────────────────────
+
 
 def create_dataloaders(
     train_path: str,
@@ -101,7 +99,7 @@ def create_dataloaders(
     return tuple(loaders)
 
 
-# ─── Sanity check ────────────────────────────────────────────────────────────
+
 
 def verify_dataloader(dataloader: DataLoader, split_name: str) -> None:
     batch = next(iter(dataloader))
@@ -120,19 +118,19 @@ def verify_dataloader(dataloader: DataLoader, split_name: str) -> None:
     print(f"  Aspects mentioned: {aspects_present}")
 
 
-# ─── Main (test dataloader) ──────────────────────────────────────────────────
+
 
 def main() -> None:
     set_seed(42)
     log_versions()
 
-    # Kiểm tra constants
+
     from utils.constants import NUM_ASPECTS
     print(f"\n[Constants] NUM_ASPECTS = {NUM_ASPECTS}")
     assert NUM_ASPECTS == 34, f"Expected 34, got {NUM_ASPECTS}"
     print("[Constants] OK ")
 
-    # Load tokenizer
+
     try:
         from transformers import AutoTokenizer
         print(f"\n[Tokenizer] Loading {PHOBERT_MODEL_NAME}...")
@@ -144,7 +142,7 @@ def main() -> None:
         print("  → Cần internet để download PhoBERT lần đầu")
         return
 
-    # Dùng preprocessed nếu có, fallback về raw
+
     train_p = TRAIN_PREPROCESSED if os.path.exists(TRAIN_PREPROCESSED) else TRAIN_PATH
     dev_p   = DEV_PREPROCESSED   if os.path.exists(DEV_PREPROCESSED)   else DEV_PATH
     test_p  = TEST_PREPROCESSED  if os.path.exists(TEST_PREPROCESSED)  else TEST_PATH
@@ -159,7 +157,7 @@ def main() -> None:
         tokenizer=tokenizer,
         batch_size=16,
         max_len=MAX_SEQ_LEN,
-        num_workers=0,  # 0 để tránh lỗi trên Windows/macOS khi test
+        num_workers=0,
         use_preprocessed=use_preprocessed,
     )
 

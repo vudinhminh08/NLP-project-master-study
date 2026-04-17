@@ -7,22 +7,22 @@ import pandas as pd
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
+from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
 from utils.constants import (
-    ASPECT_COLUMNS, RARE_ASPECTS, ENTITY_GROUPS,
-    EDA_DIR, CLASS_WEIGHTS_PATH, ENCODER_CONFIG_PATH,
+    ASPECT_COLUMNS, RARE_ASPECTS,
+    CLASS_WEIGHTS_PATH, ENCODER_CONFIG_PATH,
     TRAIN_PATH, DEV_PATH, TEST_PATH,
 )
 
 OUTPUT_PATH = "outputs/eda/EDA_Report_ABSA_VLSP2018.docx"
 
 
-# ─── Helpers ─────────────────────────────────────────────────────────────────
+
 
 def set_cell_bg(cell, hex_color: str):
     tc = cell._tc
@@ -76,10 +76,10 @@ def styled_table_header(table, header_row: list, bg_hex: str = "2E4057"):
             para.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 
-# ─── Main report builder ─────────────────────────────────────────────────────
+
 
 def build_report():
-    # Load data
+
     train_df = pd.read_csv(TRAIN_PATH)
     dev_df   = pd.read_csv(DEV_PATH)
     test_df  = pd.read_csv(TEST_PATH)
@@ -91,14 +91,14 @@ def build_report():
 
     doc = Document()
 
-    # Page margins
+
     for section in doc.sections:
         section.top_margin    = Cm(2.0)
         section.bottom_margin = Cm(2.0)
         section.left_margin   = Cm(2.5)
         section.right_margin  = Cm(2.5)
 
-    # ── Trang bìa ────────────────────────────────────────────────────────────
+
     doc.add_paragraph()
     title = doc.add_heading("BÁO CÁO PHÂN TÍCH DỮ LIỆU (EDA)", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -114,14 +114,14 @@ def build_report():
 
     doc.add_paragraph()
 
-    # ── 1. Tổng quan dataset ─────────────────────────────────────────────────
+
     add_heading(doc, "1. Tổng quan Dataset", 1)
 
     add_paragraph(doc, "Dataset VLSP 2018 Hotel gồm các đánh giá khách sạn tiếng Việt, "
                        "được gán nhãn theo 34 aspect categories với 4 mức cảm xúc: "
                        "Absent (0), Positive (1), Negative (2), Neutral (3).")
 
-    # Bảng tổng quan
+
     table = doc.add_table(rows=4, cols=5)
     table.style = "Table Grid"
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -153,13 +153,13 @@ def build_report():
 
     doc.add_paragraph()
 
-    # ── 2. Độ dài review ────────────────────────────────────────────────────
+
     add_heading(doc, "2. Phân tích Độ dài Review", 1)
 
     add_paragraph(doc, "Phân tích độ dài review theo số từ và số ký tự giúp xác định "
                        "MAX_SEQ_LEN phù hợp cho PhoBERT tokenizer.")
 
-    # Bảng percentile
+
     splits_info = [
         ("Train", train_df),
         ("Dev",   dev_df),
@@ -198,14 +198,14 @@ def build_report():
                   bold=False)
     doc.add_paragraph()
 
-    # Biểu đồ độ dài
+
     for split in ["train", "dev", "test"]:
         img = f"outputs/eda/{split}_review_length.png"
         add_image(doc, img, width_inches=5.8,
                   caption=f"Hình: Phân phối độ dài review — {split.upper()} split")
         doc.add_paragraph()
 
-    # ── 3. Phân phối aspect ─────────────────────────────────────────────────
+
     add_heading(doc, "3. Phân phối Aspect Presence Rate", 1)
 
     add_paragraph(doc,
@@ -219,7 +219,7 @@ def build_report():
                   caption=f"Hình: Aspect Presence Rate — {split.upper()} split")
         doc.add_paragraph()
 
-    # ── 4. Label breakdown ──────────────────────────────────────────────────
+
     add_heading(doc, "4. Phân phối Nhãn theo Aspect", 1)
 
     add_paragraph(doc,
@@ -232,7 +232,7 @@ def build_report():
                   caption=f"Hình: Label Breakdown — {split.upper()} split")
         doc.add_paragraph()
 
-    # ── 5. Class imbalance & Weights ────────────────────────────────────────
+
     add_heading(doc, "5. Phân tích Class Imbalance & Class Weights", 1)
 
     add_paragraph(doc,
@@ -262,7 +262,7 @@ def build_report():
 
     doc.add_paragraph()
 
-    # Top 10 aspects theo class weight (positive)
+
     add_paragraph(doc, "Top 10 aspects có weight cao nhất cho class Positive (train):", bold=True)
 
     per_asp = class_weights["per_aspect_weights"]
@@ -292,7 +292,7 @@ def build_report():
 
     doc.add_paragraph()
 
-    # ── 6. Rare aspects ──────────────────────────────────────────────────────
+
     add_heading(doc, "6. Rare Aspects — Thách thức chính", 1)
 
     add_paragraph(doc,
@@ -337,7 +337,7 @@ def build_report():
     add_paragraph(doc, "Màu đỏ nhạt = rare aspect (< 100 mẫu có nhãn ≠ 0 trong train).",
                   bold=False)
 
-    # ── 7. Encoder config ───────────────────────────────────────────────────
+
     add_heading(doc, "7. Cấu hình Encoder được chọn", 1)
 
     add_paragraph(doc,
@@ -372,7 +372,7 @@ def build_report():
 
     doc.add_paragraph()
 
-    # ── 8. Kết luận ─────────────────────────────────────────────────────────
+
     add_heading(doc, "8. Kết luận & Định hướng Phase PhoBERT", 1)
 
     conclusions = [
@@ -388,9 +388,6 @@ def build_report():
         ("Word segmentation",
          "VnCoreNLP không available → fallback underthesea. "
          "→ Xem xét cài Java 8+ và VnCoreNLP để đạt F1 tốt hơn ~1-2%."),
-        ("RARE_ASPECTS cần cập nhật",
-         "Thực tế còn FACILITIES#PRICES, FOOD&DRINKS#MISCELLANEOUS, ROOMS#MISCELLANEOUS "
-         "cũng < 100 mẫu. → Cập nhật constants.py."),
     ]
 
     for title_c, detail in conclusions:
@@ -407,7 +404,7 @@ def build_report():
         "34 classification heads song song, weighted loss, warmup + linear decay scheduling.",
         bold=False)
 
-    # Save
+
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     doc.save(OUTPUT_PATH)
     print(f"Báo cáo đã lưu tại: {OUTPUT_PATH}")

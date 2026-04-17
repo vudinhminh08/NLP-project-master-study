@@ -1,5 +1,5 @@
 
-# ─── 34 Aspect Columns (đúng thứ tự cột trong CSV ds4v) ───────────────────────
+
 ASPECT_COLUMNS = [
     "FACILITIES#CLEANLINESS", "FACILITIES#COMFORT", "FACILITIES#DESIGN&FEATURES",
     "FACILITIES#GENERAL", "FACILITIES#MISCELLANEOUS", "FACILITIES#PRICES",
@@ -18,15 +18,15 @@ ASPECT_COLUMNS = [
     "SERVICE#GENERAL",
 ]
 
-NUM_ASPECTS = len(ASPECT_COLUMNS)  # 34
+NUM_ASPECTS = len(ASPECT_COLUMNS)
 assert NUM_ASPECTS == 34, "Phải có đúng 34 aspects"
 
-# ─── Label Mapping ─────────────────────────────────────────────────────────────
+
 LABEL_TO_IDX = {"absent": 0, "positive": 1, "negative": 2, "neutral": 3}
 IDX_TO_LABEL = {0: "absent", 1: "positive", 2: "negative", 3: "neutral"}
-NUM_LABELS   = 4  # 0=absent, 1=pos, 2=neg, 3=neu
+NUM_LABELS   = 4
 
-# ─── Entity Groups (dùng cho EDA + báo cáo) ───────────────────────────────────
+
 ENTITY_GROUPS = {
     "FACILITIES":     [c for c in ASPECT_COLUMNS if c.startswith("FACILITIES")],
     "FOOD&DRINKS":    [c for c in ASPECT_COLUMNS if c.startswith("FOOD&DRINKS")],
@@ -37,37 +37,37 @@ ENTITY_GROUPS = {
     "SERVICE":        [c for c in ASPECT_COLUMNS if c.startswith("SERVICE")],
 }
 
-# ─── Rare Aspects — Cập nhật từ EDA thực tế (6 → 8) ──────────────────────────
-# Dùng cho: weighted loss, phân tích lỗi, prompt LLM (liệt kê explicit)
+
+
 RARE_ASPECTS = [
     "FACILITIES#MISCELLANEOUS",
-    "ROOM_AMENITIES#PRICES",         # 0 mẫu pos/neg/neu trong train!
-    "ROOM_AMENITIES#MISCELLANEOUS",  # chỉ có nhãn negative
+    "ROOM_AMENITIES#PRICES",
+    "ROOM_AMENITIES#MISCELLANEOUS",
     "ROOM_AMENITIES#CLEANLINESS",
     "ROOM_AMENITIES#DESIGN&FEATURES",
     "HOTEL#DESIGN&FEATURES",
-    "ROOMS#MISCELLANEOUS",           # mới từ EDA: chỉ có nhãn negative
-    "FOOD&DRINKS#MISCELLANEOUS",     # mới từ EDA: weight pos=426, neg=597
+    "ROOMS#MISCELLANEOUS",
+    "FOOD&DRINKS#MISCELLANEOUS",
 ]
 
-# Aspects có Combined F1 = 0 hoặc < 0.35 trên test set (PhoBERT cls_only baseline).
-# Dùng cho phân tích lỗi và ưu tiên explanation, không dùng augmentation trong main report.
+
+
 WEAK_ASPECTS = [
-    "FACILITIES#MISCELLANEOUS",       # F1 = 0.000
-    "FOOD&DRINKS#MISCELLANEOUS",      # F1 = 0.000
-    "ROOMS#MISCELLANEOUS",            # F1 = 0.000
-    "ROOM_AMENITIES#MISCELLANEOUS",   # F1 = 0.000
-    "ROOM_AMENITIES#PRICES",          # F1 = 0.000
-    "HOTEL#MISCELLANEOUS",            # F1 = 0.248
-    "FACILITIES#GENERAL",             # F1 = 0.322
-    "FACILITIES#CLEANLINESS",         # F1 = 0.333
-    "FACILITIES#COMFORT",             # F1 = 0.339
+    "FACILITIES#MISCELLANEOUS",
+    "FOOD&DRINKS#MISCELLANEOUS",
+    "ROOMS#MISCELLANEOUS",
+    "ROOM_AMENITIES#MISCELLANEOUS",
+    "ROOM_AMENITIES#PRICES",
+    "HOTEL#MISCELLANEOUS",
+    "FACILITIES#GENERAL",
+    "FACILITIES#CLEANLINESS",
+    "FACILITIES#COMFORT",
 ]
 
-# Aspect không có bất kỳ mẫu nào trong train — exclude khỏi Macro-F1
+
 ZERO_TRAIN_ASPECTS = ["ROOM_AMENITIES#PRICES"]
 
-# ─── Paths (relative từ root project) ─────────────────────────────────────────
+
 DATA_DIR    = "data"
 OUTPUT_DIR  = "outputs"
 EDA_DIR     = "outputs/eda"
@@ -78,32 +78,32 @@ TRAIN_PATH  = f"{DATA_DIR}/train.csv"
 DEV_PATH    = f"{DATA_DIR}/dev.csv"
 TEST_PATH   = f"{DATA_DIR}/test.csv"
 
-# Preprocessed cache (tạo bởi step3_preprocessing.py)
+
 TRAIN_PREPROCESSED = f"{DATA_DIR}/train_preprocessed.csv"
 DEV_PREPROCESSED   = f"{DATA_DIR}/dev_preprocessed.csv"
 TEST_PREPROCESSED  = f"{DATA_DIR}/test_preprocessed.csv"
 
-# EDA outputs (tạo bởi step1_eda.py, dùng bởi phase PhoBERT)
+
 CLASS_WEIGHTS_PATH  = f"{EDA_DIR}/class_weights.json"
 ENCODER_CONFIG_PATH = f"{EDA_DIR}/encoder_config.json"
 
-# ─── PhoBERT Config ────────────────────────────────────────────────────────────
-PHOBERT_V1         = "vinai/phobert-base"     # SOTA Huynh 2022 dùng v1
-PHOBERT_V2         = "vinai/phobert-base-v2"  # v2 tokenizer/training data khác
+
+PHOBERT_V1         = "vinai/phobert-base"
+PHOBERT_V2         = "vinai/phobert-base-v2"
 PHOBERT_MODEL_NAME = PHOBERT_V2
 MAX_SEQ_LEN        = 256
 
-# ─── Model Architecture Config (QUAN TRỌNG — insight từ ds4v SOTA) ────────────
-# Option A: chỉ dùng [CLS] hidden state layer cuối (768 dim)
-# Option B: concat 4 hidden layers cuối tại token [CLS] (768×4 = 3072 dim) ← SOTA
-# EDA sẽ không thay đổi config này, nhưng training script PhoBERT sẽ đọc nó
+
+
+
+
 ENCODER_OPTIONS = {
     "cls_only":        {"hidden_size": 768,  "num_hidden_layers_concat": 1},
     "concat_4_layers": {"hidden_size": 3072, "num_hidden_layers_concat": 4},
 }
-DEFAULT_ENCODER = "concat_4_layers"  # Theo SOTA ds4v
+DEFAULT_ENCODER = "concat_4_layers"
 
-# ─── Training Hyperparameters — khớp best_result đã chạy trong notebook ──────
+
 TRAIN_CONFIG = {
     "learning_rate":           1e-4,
     "warmup_ratio":            0.15,

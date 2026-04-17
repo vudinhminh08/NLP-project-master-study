@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'data_processin
 from utils.constants import ASPECT_COLUMNS, RARE_ASPECTS, LABEL_TO_IDX
 
 
-# ─── System Prompt ────────────────────────────────────────────────────────────
+
 
 SYSTEM_PROMPT = """Bạn là chuyên gia phân tích đánh giá khách sạn tiếng Việt.
 Nhiệm vụ: Phân tích review và xác định Aspect Category Sentiment Analysis (ABSA).
@@ -32,7 +32,7 @@ Nhiệm vụ: Phân tích review và xác định Aspect Category Sentiment Anal
 )
 
 
-# ─── Chain-of-Thought Template ────────────────────────────────────────────────
+
 
 COT_INSTRUCTION = """Hãy phân tích theo các bước:
 1. Đọc review và xác định các từ/cụm từ quan trọng
@@ -44,13 +44,13 @@ Sau phần phân tích, trả về kết quả theo đúng format JSON.
 """
 
 
-# ─── Few-shot Example Template ────────────────────────────────────────────────
+
 
 def format_example(review: str, labels: dict, include_cot: bool = True) -> str:
     output_json = {asp: sent for asp, sent in labels.items()}
 
     if include_cot:
-        # Tạo CoT tự động từ labels
+
         cot_lines = ["Phân tích:"]
         for asp, sent in labels.items():
             entity, attr = asp.split("#")
@@ -66,7 +66,7 @@ Output: {str(output_json).replace("'", '"')}"""
 Output: {str(output_json).replace("'", '"')}"""
 
 
-# ─── Build Full Prompt ─────────────────────────────────────────────────────────
+
 
 def build_prompt(
     test_review: str,
@@ -75,7 +75,7 @@ def build_prompt(
 ) -> list[dict]:
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-    # Few-shot examples
+
     for ex in examples:
         formatted = format_example(
             ex["review"], ex["labels"], include_cot=include_cot
@@ -86,7 +86,7 @@ def build_prompt(
             "content": formatted.split("\nOutput:")[-1].strip()
         })
 
-    # Test review
+
     test_msg = f"""Review: {test_review}
 {COT_INSTRUCTION if include_cot else ""}
 Trả về JSON output (kết thúc bằng JSON, ví dụ: {{"SERVICE#GENERAL": "positive"}} hoặc {{}} nếu không có aspect nào):"""
@@ -95,7 +95,7 @@ Trả về JSON output (kết thúc bằng JSON, ví dụ: {{"SERVICE#GENERAL": 
     return messages
 
 
-# ─── Parse LLM Output ─────────────────────────────────────────────────────────
+
 
 def parse_llm_output(raw_output: str) -> dict:
     import json, re
@@ -103,18 +103,18 @@ def parse_llm_output(raw_output: str) -> dict:
     valid_sentiments = {"positive", "negative", "neutral"}
     valid_aspects    = set(ASPECT_COLUMNS)
 
-    # Strip markdown fences
+
     raw = raw_output.strip()
     raw = re.sub(r'```(?:json)?\s*', '', raw)
     raw = re.sub(r'```\s*$', '', raw)
 
-    # Tìm JSON object trong output — thử từ outermost đến innermost
+
     parsed = None
-    # Tìm tất cả cặp {} và thử parse từ ngoài vào trong
+
     brace_matches = list(re.finditer(r'\{', raw))
     for start_match in brace_matches:
         start = start_match.start()
-        # Tìm closing brace tương ứng (đếm depth)
+
         depth = 0
         for i, ch in enumerate(raw[start:]):
             if ch == '{':
@@ -132,7 +132,7 @@ def parse_llm_output(raw_output: str) -> dict:
         if parsed is not None:
             break
 
-    # Fallback: ast.literal_eval cho Python-style single-quote dict
+
     if parsed is None:
         import ast
         sq_match = re.search(r'\{[^{}]*\}', raw, re.DOTALL)
@@ -145,15 +145,11 @@ def parse_llm_output(raw_output: str) -> dict:
     if parsed is None:
         if '{}' in raw:
             return {}
-        print(f"[WARN] Không tìm thấy JSON trong output: {raw[:100]}")
         return {}
 
     if not isinstance(parsed, dict):
-        print(f"[WARN] Parsed value không phải dict: {type(parsed)}")
         return {}
 
-    # Safeguard: nếu values là dicts (nested JSON như {"result": {...}}),
-    # tìm nested dict chứa valid aspect-sentiment pairs
     if any(isinstance(v, dict) for v in parsed.values()):
         for v in parsed.values():
             if isinstance(v, dict):
@@ -166,15 +162,13 @@ def parse_llm_output(raw_output: str) -> dict:
                     parsed = v
                     break
 
-    # Validate và filter
+
     result = {}
     for asp, sent in parsed.items():
         if asp not in valid_aspects:
-            print(f"[WARN] Invalid aspect: {asp}")
             continue
         sent = str(sent).lower().strip()
         if sent not in valid_sentiments:
-            print(f"[WARN] Invalid sentiment '{sent}' for {asp}")
             continue
         result[asp] = sent
 

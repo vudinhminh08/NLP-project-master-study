@@ -65,7 +65,7 @@ def format_metrics_table(
             f"{m.get('spc_f1', 0) or 0:.4f}",
             m.get("support", 0),
         ])
-    # Footer
+
     rows.append(["─" * 35, "─" * 8, "─" * 8, "─" * 8, "─" * 8, "─" * 6])
     rows.append([
         "MACRO",

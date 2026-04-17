@@ -11,7 +11,7 @@ from utils.helpers import set_seed
 
 
 EMBEDDING_MODEL = "keepitreal/vietnamese-sbert"
-# Fallback nếu model trên không load được:
+
 EMBEDDING_MODEL_FALLBACK = "paraphrase-multilingual-MiniLM-L12-v2"
 
 
@@ -46,39 +46,39 @@ class ABSARetriever:
             except Exception as e2:
                 raise RuntimeError(
                     "Failed to load Vietnamese SBERT or multilingual sentence-transformers fallback. "
-                    "Fix Kaggle package versions in Cell 1 so sentence-transformers works correctly."
+                    "Please check that sentence-transformers and its model dependencies are installed correctly."
                 ) from e2
 
     def fit(self, train_df: pd.DataFrame, text_col: str = "processed_review"):
         self._load_model()
         self.train_df = train_df.reset_index(drop=True)
 
-        # Load cache nếu có
+
         if os.path.exists(self.cache_path):
             self.train_embeds = np.load(self.cache_path)
             print(f"[Retriever] Loaded embeddings cache: {self.train_embeds.shape}")
             assert len(self.train_embeds) == len(train_df), \
-                "Cache size mismatch — xóa cache và chạy lại"
+                "Cache size mismatch"
             return self
 
-        # Tính embeddings
+
         print(f"[Retriever] Embedding {len(train_df)} train reviews...")
         texts = train_df[text_col].astype(str).tolist()
         self.train_embeds = self.model.encode(
             texts,
             batch_size=64,
             show_progress_bar=True,
-            normalize_embeddings=True,  # L2-normalize để dùng dot product = cosine
+            normalize_embeddings=True,
         )
 
-        # Lưu cache
+
         cache_dir = os.path.dirname(self.cache_path)
         if cache_dir:
             os.makedirs(cache_dir, exist_ok=True)
         np.save(self.cache_path, self.train_embeds)
         print(f"[Retriever] Saved embeddings: {self.cache_path}")
 
-        # Optional: build FAISS index để tìm kiếm nhanh hơn
+
         if self.use_faiss:
             self._build_faiss_index()
 
@@ -88,7 +88,7 @@ class ABSARetriever:
         try:
             import faiss
             dim = self.train_embeds.shape[1]
-            self.faiss_index = faiss.IndexFlatIP(dim)  # Inner Product = cosine (after normalize)
+            self.faiss_index = faiss.IndexFlatIP(dim)
             self.faiss_index.add(self.train_embeds.astype(np.float32))
             print(f"[FAISS] Index built: {self.faiss_index.ntotal} vectors")
         except ImportError:
@@ -104,12 +104,12 @@ class ABSARetriever:
     ) -> list[int]:
         self._load_model()
 
-        # Embed query
+
         query_embed = self.model.encode(
             [query], normalize_embeddings=True
-        )[0]  # [dim]
+        )[0]
 
-        # Tìm top candidates
+
         if self.use_faiss and hasattr(self, 'faiss_index'):
             scores, indices = self.faiss_index.search(
                 query_embed.reshape(1, -1).astype(np.float32),
@@ -117,14 +117,14 @@ class ABSARetriever:
             )
             candidates = indices[0].tolist()
         else:
-            # Numpy fallback
-            sims = self.train_embeds @ query_embed  # cosine similarity
+
+            sims = self.train_embeds @ query_embed
             candidates = np.argsort(sims)[::-1][:candidate_pool].tolist()
 
         if not aspect_aware or k >= candidate_pool:
             return candidates[:k]
 
-        # Aspect-aware selection
+
         return self._aspect_aware_select(candidates, k)
 
     def _aspect_aware_select(self, candidates: list[int], k: int) -> list[int]:
@@ -135,22 +135,22 @@ class ABSARetriever:
             if len(selected) >= k:
                 break
 
-            # Lấy aspects của candidate này
+
             row = self.train_df.iloc[cand_idx]
             cand_aspects = {
                 asp for asp in ASPECT_COLUMNS
                 if int(row[asp]) != 0
             }
 
-            # Tính new coverage
+
             new_coverage = len(cand_aspects - covered_aspects)
 
-            # Lấy top-1 luôn luôn; sau đó ưu tiên candidates tăng coverage
+
             if not selected or new_coverage > 0:
                 selected.append(cand_idx)
                 covered_aspects |= cand_aspects
 
-        # Fill nếu chưa đủ k
+
         for cand_idx in candidates:
             if len(selected) >= k:
                 break

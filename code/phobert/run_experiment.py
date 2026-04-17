@@ -18,15 +18,15 @@ from predict import load_best_model, predict_and_evaluate, generate_summary_repo
 
 
 def main(encoder_option: str = None, use_amp: bool = True) -> dict:
-    # === Setup ===
+
     set_seed(TRAIN_CONFIG["seed"])
     device = get_device()
 
-    # Tắt AMP tự động nếu không có CUDA
+
     use_amp = use_amp and (device.type == "cuda")
 
-    # Load encoder config từ EDA — chỉ lấy encoder_option, KHÔNG override max_seq_len
-    # max_seq_len là hyperparameter training → nguồn chính xác là TRAIN_CONFIG (constants.py)
+
+
     enc_cfg = load_json("outputs/eda/encoder_config.json")
     encoder_option = encoder_option or enc_cfg.get("encoder_option", "concat_4_layers")
 
@@ -34,7 +34,7 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
         **TRAIN_CONFIG,
         "encoder_option": encoder_option,
     }
-    max_seq_len = config["max_seq_len"]  # đọc từ TRAIN_CONFIG (384)
+    max_seq_len = config["max_seq_len"]
 
     print(f"\n{'='*60}")
     print(f"PHASE PHOBERT — Multi-task ABSA")
@@ -47,12 +47,12 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
     print(f"  amp:        {'ON' if use_amp else 'OFF'}")
     print(f"{'='*60}")
 
-    # === Tokenizer ===
+
     print(f"\n[Tokenizer] Loading {PHOBERT_MODEL_NAME}...")
     tokenizer = AutoTokenizer.from_pretrained(PHOBERT_MODEL_NAME)
     print("[Tokenizer] Loaded ")
 
-    # === DataLoaders — dùng preprocessed cache từ phase data_processing ===
+
     print("\n[Data] Creating DataLoaders...")
     train_loader, dev_loader, test_loader = create_dataloaders(
         train_path="data/train_preprocessed.csv",
@@ -71,15 +71,15 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
             "Chạy code/data_processing/step3_preprocessing.py trước!"
         )
 
-    # === Class Weights — load từ EDA, clip neutral=154 → 10.0 ===
-    # Quan trọng: class weights phải load trên CPU trước, sau đó chuyển lên device trong run_epoch
+
+
     class_weights = load_class_weights(
         "outputs/eda/class_weights.json",
         weight_clip=config["weight_clip"],
         device=torch.device("cpu"),
     )
 
-    # === Model ===
+
     print(f"\n[Model] Building ABSAPhoBERT ({encoder_option})...")
     model = ABSAPhoBERT(
         model_name=PHOBERT_MODEL_NAME,
@@ -87,12 +87,12 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
         encoder_option=encoder_option,
     ).to(device)
 
-    # Thư mục riêng cho ablation (để so sánh sau)
+
     suffix      = "" if encoder_option == "concat_4_layers" else f"_{encoder_option}"
     save_dir    = f"outputs/models{suffix}"
     results_dir = f"outputs/results{suffix}"
 
-    # === Train ===
+
     history = train(
         model, train_loader, dev_loader, class_weights, device,
         config,
@@ -101,7 +101,7 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
         use_amp=use_amp,
     )
 
-    # === Evaluate best checkpoint ===
+
     model = load_best_model(f"{save_dir}/best_model.pt", model, device)
 
     dev_metrics, _, _ = predict_and_evaluate(
@@ -115,13 +115,13 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
         save_path=f"{results_dir}/phobert_test_metrics.json",
     )
 
-    # === Summary Report ===
+
     generate_summary_report(
         history, dev_metrics, test_metrics, config,
         save_path=f"{results_dir}/phobert_summary.md",
     )
 
-    # === Final Summary ===
+
     gap = 0.7732 - test_metrics["macro_combined_f1"]
     print(f"\n{'='*60}")
     print(f"PHASE PHOBERT HOÀN TẤT — encoder={encoder_option}")

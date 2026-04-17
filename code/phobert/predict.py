@@ -58,7 +58,7 @@ def generate_summary_report(
     gap_acd  = 0.8255 - test_metrics["macro_acd_f1"]
     gap_comb = 0.7732 - test_metrics["macro_combined_f1"]
 
-    # Bottom 5 aspects theo ACD F1
+
     per_aspect = test_metrics.get("per_aspect", {})
     bottom5 = sorted(per_aspect.items(), key=lambda x: x[1].get("acd_f1", 0))[:5]
 

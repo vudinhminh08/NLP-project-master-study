@@ -8,7 +8,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "data_processing"))
 
-from utils.constants import ASPECT_COLUMNS, IDX_TO_LABEL  # noqa: E402
+from utils.constants import ASPECT_COLUMNS, IDX_TO_LABEL
 
 
 def analyze_errors(

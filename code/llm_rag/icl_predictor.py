@@ -44,19 +44,19 @@ def predict_icl(
     for i, (_, test_row) in enumerate(tqdm(test_df.iterrows(),
                                             total=len(test_df),
                                             desc=f"ICL k={k}")):
-        # Random sample k examples từ train
+
         indices = random.sample(range(len(train_df)), k)
         examples = df_to_examples(train_df, indices)
 
-        # Build prompt + call LLM
+
         messages = build_prompt(str(test_row["processed_review"]), examples)
         raw_output = client.complete(messages)
         pred_dict = parse_llm_output(raw_output)
 
-        # Convert to array
+
         y_pred_list.append(labels_dict_to_array(pred_dict))
 
-        # Ground truth
+
         true_arr = [int(test_row[asp]) for asp in ASPECT_COLUMNS]
         y_true_list.append(true_arr)
 
@@ -104,7 +104,7 @@ def run_icl_ablation(
 
             print(f"  Combined F1: {metrics['macro_combined_f1']:.4f}")
 
-        # Log API usage
+
         usage = client.get_usage_stats()
         print(f"\n[Usage] {provider}: {usage['total_tokens']} tokens, "
               f"~${usage['estimated_cost_usd']:.3f}")

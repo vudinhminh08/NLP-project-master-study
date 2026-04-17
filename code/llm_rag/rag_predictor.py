@@ -33,14 +33,14 @@ def predict_rag(
     for i, (_, test_row) in enumerate(tqdm(test_df.iterrows(),
                                             total=len(test_df),
                                             desc=f"RAG k={k}")):
-        # Retrieve k examples (khác biệt chính so với ICL)
+
         query = str(test_row["processed_review"])
         indices = retriever.retrieve(
             query=query, k=k, aspect_aware=aspect_aware
         )
         examples = df_to_examples(train_df, indices)
 
-        # Phần còn lại giống hệt ICL
+
         messages = build_prompt(query, examples)
         raw_output = client.complete(messages)
         pred_dict = parse_llm_output(raw_output)
@@ -62,7 +62,7 @@ def run_rag_ablation(
     os.makedirs(results_dir, exist_ok=True)
     models = models or {}
 
-    # Build retriever 1 lần, dùng cho tất cả experiments
+
     retriever = ABSARetriever()
     retriever.fit(train_df)
 

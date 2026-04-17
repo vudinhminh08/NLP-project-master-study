@@ -10,7 +10,6 @@ from tqdm import tqdm
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
 from utils.constants import (
-    ASPECT_COLUMNS,
     TRAIN_PATH,
     DEV_PATH,
     TEST_PATH,
@@ -21,10 +20,10 @@ from utils.constants import (
 from utils.helpers import set_seed, log_versions
 
 
-# ─── Teencode Dictionary (domain khách sạn) ──────────────────────────────────
+
 
 TEENCODE_DICT = {
-    # Dịch vụ
+
     "dv":         "dịch vụ",
     "sv":         "dịch vụ",
     "ntv":        "nhân viên",
@@ -34,7 +33,7 @@ TEENCODE_DICT = {
     "lt":         "lễ tân",
     "qlý":        "quản lý",
     "ql":         "quản lý",
-    # Phòng / tiện nghi
+
     "phg":        "phòng",
     "phòg":       "phòng",
     "ks":         "khách sạn",
@@ -45,13 +44,13 @@ TEENCODE_DICT = {
     "bsáng":      "bữa sáng",
     "res":        "nhà hàng",
     "nhàhàng":    "nhà hàng",
-    # Vị trí
+
     "hn":         "Hà Nội",
     "hcm":        "Hồ Chí Minh",
     "sg":         "Sài Gòn",
     "tphcm":      "Tp Hồ Chí Minh",
     "vt":         "vị trí",
-    # Đánh giá tích cực
+
     "ok":         "tốt",
     "oke":        "tốt",
     "okie":       "tốt",
@@ -63,21 +62,21 @@ TEENCODE_DICT = {
     "thik":       "thích",
     "thíck":      "thích",
     "ngon":       "ngon",
-    # Đánh giá tiêu cực
+
     "tệ hại":     "tệ hại",
     "tệhại":      "tệ hại",
     "chán":       "chán",
     "bth":        "bình thường",
     "bt":         "bình thường",
     "bthg":       "bình thường",
-    # Phủ định
+
     "k":          "không",
     "ko":         "không",
     "kg":         "không",
     "kh":         "không",
     "khg":        "không",
     "hok":        "không",
-    # Động từ / trợ từ
+
     "đc":         "được",
     "dc":         "được",
     "cx":         "cũng",
@@ -107,7 +106,7 @@ TEENCODE_DICT = {
     "ckin":       "check-in",
     "ck-out":     "check-out",
     "ckout":      "check-out",
-    # Emoji/ký hiệu common (thay bằng mô tả)
+
     ":)":         "vui",
     ":D":         "rất vui",
     ":(":         "buồn",
@@ -115,7 +114,7 @@ TEENCODE_DICT = {
 }
 
 
-# ─── Preprocessing functions ─────────────────────────────────────────────────
+
 
 def normalize_unicode(text: str) -> str:
     return unicodedata.normalize("NFC", text)
@@ -128,7 +127,6 @@ def normalize_whitespace(text: str) -> str:
 
 
 def replace_teencode(text: str, teencode_dict: dict = TEENCODE_DICT) -> str:
-    # Sort by length desc để tránh "bthg" bị match "bt" trước
     sorted_keys = sorted(teencode_dict.keys(), key=len, reverse=True)
     for key in sorted_keys:
         pattern = r'\b' + re.escape(key) + r'\b'
@@ -153,7 +151,7 @@ def preprocess_text(
     text = normalize_whitespace(text)
     text = replace_teencode(text)
     text = remove_special_chars(text)
-    text = normalize_whitespace(text)  # lần 2 sau khi xóa chars
+    text = normalize_whitespace(text)
     if do_segment and segmenter is not None:
         text = segmenter.segment(text)
     return text
@@ -186,7 +184,7 @@ def preprocess_dataframe(
     return df
 
 
-# ─── VnCoreNLP Segmenter ─────────────────────────────────────────────────────
+
 
 class VnCoreNLPSegmenter:
 
@@ -205,7 +203,6 @@ class VnCoreNLPSegmenter:
             return
         try:
             import py_vncorenlp
-            # py_vncorenlp đổi cwd sang save_dir; ta phục hồi để tránh ảnh hưởng path tương đối.
             prev_cwd = os.getcwd()
             try:
                 if self.vncorenlp_dir:
@@ -236,13 +233,6 @@ class VnCoreNLPSegmenter:
             return " ".join(result)
         return result
 
-    def segment_batch(self, texts: list[str], batch_size: int = 64) -> list[str]:
-        results = []
-        for i in tqdm(range(0, len(texts), batch_size), desc="Word segmenting"):
-            batch = texts[i:i + batch_size]
-            results.extend([self.segment(t) for t in batch])
-        return results
-
     def close(self) -> None:
         if self._segmenter and not self._using_fallback:
             try:
@@ -251,31 +241,12 @@ class VnCoreNLPSegmenter:
                 pass
 
 
-# ─── Main ────────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     set_seed(42)
     log_versions()
 
-    # Demo pipeline trên 5 review mẫu
-    demo_inputs = [
-        "Phòng sv rất tệ, nv ko thân thiện dc",
-        "ks ok, bfst ngon, vt thuận tiện",
-        "Phòng sạch nhưng giá hơi cao :(",
-        "khg hài lòng với dv của ntv",
-        "Tuyệt vời!!! Sẽ quay lại :D",
-    ]
-
-    print("\n" + "=" * 60)
-    print("Demo Preprocessing Pipeline (without word segmentation)")
-    print("=" * 60)
-    for inp in demo_inputs:
-        result = preprocess_text(inp, do_segment=False)
-        print(f"IN:  {inp}")
-        print(f"OUT: {result}")
-        print()
-
-    # Preprocess train/dev/test nếu CSV tồn tại
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     segmenter = VnCoreNLPSegmenter(
         vncorenlp_dir=os.path.join(project_root, "vncorenlp"),
@@ -296,7 +267,6 @@ def main() -> None:
         df = pd.read_csv(csv_path)
         df = preprocess_dataframe(df, segmenter=segmenter, cache_path=cache_path)
         print(f"  {split_name}: {len(df)} samples preprocessed")
-        # Show 2 examples
         for idx in [0, 1]:
             if idx < len(df):
                 print(f"  Example {idx}: {df.iloc[idx]['processed_review'][:120]}")

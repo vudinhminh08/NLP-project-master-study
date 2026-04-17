@@ -14,10 +14,10 @@ sys.path.insert(0, os.path.join(THIS_DIR, "..", "..", "data_processing"))
 sys.path.insert(0, os.path.join(THIS_DIR, "..", "..", "llm_rag"))
 sys.path.insert(0, THIS_DIR)
 
-from llm_client import LLMClient  # noqa: E402
-from prediction_formatter import prediction_matrix_to_records  # noqa: E402
-from llm_explainer import explain_batch  # noqa: E402
-from utils.helpers import save_json  # noqa: E402
+from llm_client import LLMClient
+from prediction_formatter import prediction_matrix_to_records
+from llm_explainer import explain_batch
+from utils.helpers import save_json
 
 
 def load_prediction_matrix(path: str) -> np.ndarray:

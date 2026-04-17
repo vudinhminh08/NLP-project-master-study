@@ -2,8 +2,8 @@ import os, sys
 import pandas as pd
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, _HERE)                                      # code/llm_rag
-sys.path.insert(0, os.path.join(_HERE, '..', 'data_processing'))         # code/data_processing
+sys.path.insert(0, _HERE)
+sys.path.insert(0, os.path.join(_HERE, '..', 'data_processing'))
 from utils.helpers import set_seed
 
 from rag_predictor import run_rag_ablation
@@ -31,7 +31,7 @@ def main(api_keys: dict, max_samples: int = None):
     for exp, m in results.items():
         print(f"  {exp}: Combined F1 = {m['macro_combined_f1']:.4f}")
 
-    # Tạo bảng so sánh tổng hợp
+
     generate_comparison_table()
     print("\nBảng so sánh: outputs/results/final_four_direction_comparison.md")
 

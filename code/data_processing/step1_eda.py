@@ -2,16 +2,13 @@ import os
 import sys
 import math
 from collections import Counter
-from typing import Optional
 
 import numpy as np
 import pandas as pd
 import matplotlib
-matplotlib.use("Agg")  # non-interactive backend
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import seaborn as sns
 
-# Đảm bảo import được từ root project
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
 from utils.constants import (
@@ -26,10 +23,10 @@ from utils.constants import (
     DEFAULT_ENCODER,
     ENCODER_OPTIONS,
 )
-from utils.helpers import set_seed, log_versions, save_json, format_metrics_table
+from utils.helpers import set_seed, log_versions, save_json
 
 
-# ─── A. Load splits ────────────────────────────────────────────────────────────
+
 
 def load_splits() -> dict[str, pd.DataFrame]:
     splits = {}
@@ -45,7 +42,6 @@ def load_splits() -> dict[str, pd.DataFrame]:
 
         df = pd.read_csv(path)
 
-        # Normalize column 'Review' (try lowercase if needed)
         if "Review" not in df.columns:
             col_map = {c.lower(): c for c in df.columns}
             if "review" in col_map:
@@ -53,12 +49,10 @@ def load_splits() -> dict[str, pd.DataFrame]:
             else:
                 raise ValueError(f"[{name}] Không tìm thấy cột 'Review' trong {path}. Columns: {list(df.columns)}")
 
-        # Validate 34 aspect columns
         missing_aspects = [c for c in ASPECT_COLUMNS if c not in df.columns]
         if missing_aspects:
             raise ValueError(f"[{name}] Thiếu {len(missing_aspects)} aspect columns: {missing_aspects[:5]}...")
 
-        # Print summary
         print(f"\n[Load] {name}: shape={df.shape}")
         missing = df.isnull().sum()
         if missing.any():
@@ -73,7 +67,7 @@ def load_splits() -> dict[str, pd.DataFrame]:
     return splits
 
 
-# ─── B. Label distribution analysis ──────────────────────────────────────────
+
 
 def analyze_label_distribution(df: pd.DataFrame, split_name: str) -> pd.DataFrame:
     records = []
@@ -96,7 +90,6 @@ def analyze_label_distribution(df: pd.DataFrame, split_name: str) -> pd.DataFram
 
     dist_df = pd.DataFrame(records).set_index("aspect")
 
-    # Top 5 common / rare
     sorted_df = dist_df.sort_values("pct_present", ascending=False)
     print(f"\n[{split_name}] Top 5 phổ biến nhất:")
     for asp, row in sorted_df.head(5).iterrows():
@@ -105,20 +98,10 @@ def analyze_label_distribution(df: pd.DataFrame, split_name: str) -> pd.DataFram
     for asp, row in sorted_df.tail(5).iterrows():
         print(f"  {asp}: {row['pct_present']:.1f}%")
 
-    # Warn if actual rare aspects differ from constants
-    actual_rare = dist_df[dist_df["count_1"] + dist_df["count_2"] + dist_df["count_3"] < 100].index.tolist()
-    for asp in actual_rare:
-        if asp not in RARE_ASPECTS:
-            print(f"[WARN] Aspect '{asp}' có <100 mẫu nhưng không có trong RARE_ASPECTS — cần cập nhật constants.py")
-    for asp in RARE_ASPECTS:
-        total_present = dist_df.loc[asp, "count_1"] + dist_df.loc[asp, "count_2"] + dist_df.loc[asp, "count_3"]
-        if total_present >= 100:
-            print(f"[INFO] Aspect '{asp}' thực tế có {total_present} mẫu (>= 100), có thể cập nhật RARE_ASPECTS")
-
     return dist_df
 
 
-# ─── C. Plot distributions ────────────────────────────────────────────────────
+
 
 def plot_aspect_distribution(
     df: pd.DataFrame,
@@ -127,7 +110,6 @@ def plot_aspect_distribution(
 ) -> None:
     os.makedirs(save_dir, exist_ok=True)
 
-    # Chuẩn bị data
     records = []
     for col in ASPECT_COLUMNS:
         counts = df[col].value_counts().to_dict()
@@ -141,16 +123,13 @@ def plot_aspect_distribution(
 
     plot_df = pd.DataFrame(records).sort_values("pct_present", ascending=True)
 
-    # ── Biểu đồ 1: Aspect presence rate ────────────────────────────────────────
     fig, ax = plt.subplots(figsize=(12, 14))
     colors = ["crimson" if asp in RARE_ASPECTS else "steelblue" for asp in plot_df["aspect"]]
     ax.barh(plot_df["aspect"], plot_df["pct_present"], color=colors)
     ax.axvline(x=10, color="gray", linestyle="--", linewidth=1, label="10% threshold")
     ax.set_xlabel("Presence Rate (%)")
     ax.set_title(f"Aspect Presence Rate — {split_name} split")
-    ax.legend()
 
-    # Legend for rare aspects
     from matplotlib.patches import Patch
     legend_elements = [
         Patch(facecolor="steelblue", label="normal"),
@@ -164,17 +143,10 @@ def plot_aspect_distribution(
     plt.close()
     print(f"[Plot] Saved: {path1}")
 
-    # ── Biểu đồ 2: Label breakdown (stacked bar) ───────────────────────────────
     fig, ax = plt.subplots(figsize=(12, 14))
     total = len(df)
 
     lefts = np.zeros(len(plot_df))
-    label_colors = {
-        "absent":   "lightgrey",
-        "positive": "steelblue",
-        "negative": "crimson",
-        "neutral":  "goldenrod",
-    }
     for col_key, label_name, color in [
         ("c0", "absent",   "lightgrey"),
         ("c1", "positive", "steelblue"),
@@ -195,7 +167,7 @@ def plot_aspect_distribution(
     print(f"[Plot] Saved: {path2}")
 
 
-# ─── D. Review length analysis ────────────────────────────────────────────────
+
 
 def analyze_review_length(df: pd.DataFrame, split_name: str, save_dir: str = EDA_DIR) -> dict:
     os.makedirs(save_dir, exist_ok=True)
@@ -215,7 +187,6 @@ def analyze_review_length(df: pd.DataFrame, split_name: str, save_dir: str = EDA
     print(f"[{split_name}] Review length stats (chars): {char_pcts}")
     print(f"[Gợi ý] MAX_SEQ_LEN = {recommended} (p99 words={p99_words} × 1.5 factor, rounded to 64)")
 
-    # Histogram
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
     ax1.hist(word_counts, bins=50, color="steelblue", edgecolor="white")
     ax1.axvline(p99_words, color="crimson", linestyle="--", label=f"p99={p99_words}")
@@ -245,16 +216,14 @@ def analyze_review_length(df: pd.DataFrame, split_name: str, save_dir: str = EDA
     }
 
 
-# ─── E. Class imbalance analysis ─────────────────────────────────────────────
+
 
 def analyze_class_imbalance(df: pd.DataFrame) -> dict:
-    # Global weights
     all_labels = df[ASPECT_COLUMNS].values.flatten()
     counter = Counter(all_labels)
     majority = max(counter.values())
     global_weights = {int(cls): majority / count for cls, count in counter.items()}
 
-    # Per-aspect weights
     per_aspect_weights: dict = {}
     header = f"{'Aspect':<40} {'n_absent':>8} {'n_pos':>6} {'n_neg':>6} {'n_neu':>6} {'w_pos':>6} {'w_neg':>6} {'w_neu':>6}"
     print(f"\n[Class Weights]")
@@ -288,7 +257,7 @@ def analyze_class_imbalance(df: pd.DataFrame) -> dict:
     return result
 
 
-# ─── F. Data quality check ───────────────────────────────────────────────────
+
 
 def check_data_quality(df: pd.DataFrame, split_name: str) -> None:
     import re
@@ -321,7 +290,7 @@ def check_data_quality(df: pd.DataFrame, split_name: str) -> None:
         print(f"    '{meaning}': {count} occurrences")
 
 
-# ─── G. Save encoder config ──────────────────────────────────────────────────
+
 
 def save_encoder_config(recommended_max_seq_len: int, split_stats: dict) -> None:
     encoder_info = ENCODER_OPTIONS[DEFAULT_ENCODER]
@@ -329,14 +298,13 @@ def save_encoder_config(recommended_max_seq_len: int, split_stats: dict) -> None
         "recommended_max_seq_len": recommended_max_seq_len,
         "p99_word_count":          split_stats.get("p99_word_count", 0),
         "encoder_option":          DEFAULT_ENCODER,
-        "encoder_hidden_size":     encoder_info["hidden_size"],
-        "note":                    "concat_4_layers theo SOTA ds4v IEEE 2022",
+        "encoder_hidden_size":     encoder_info["hidden_size"]
     }
     save_json(config, ENCODER_CONFIG_PATH)
     print(f"[Saved] {ENCODER_CONFIG_PATH}")
 
 
-# ─── H. Main ─────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     set_seed(42)
@@ -347,18 +315,18 @@ def main() -> None:
         print(f"\n{'='*60}")
         print(f"Split: {name.upper()}")
         print(f"{'='*60}")
-        dist_df = analyze_label_distribution(df, name)
+        analyze_label_distribution(df, name)
         plot_aspect_distribution(df, name, EDA_DIR)
         len_stats = analyze_review_length(df, name, EDA_DIR)
         check_data_quality(df, name)
 
         if name == "train":
-            weights = analyze_class_imbalance(df)
+            analyze_class_imbalance(df)
             save_encoder_config(len_stats["recommended_max_seq_len"], len_stats)
 
     print(f"\nEDA hoàn tất. Files đã lưu tại {EDA_DIR}/")
-    print(f"   → class_weights.json: dùng cho weighted loss (tuần 2)")
-    print(f"   → encoder_config.json: dùng cho model config (tuần 2)")
+    print(f"   → class_weights.json")
+    print(f"   → encoder_config.json")
 
 
 if __name__ == "__main__":

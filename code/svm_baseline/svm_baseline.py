@@ -6,11 +6,11 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from sklearn.calibration import CalibratedClassifierCV  # optional, kept for future variants
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import LinearSVC
 
-# Import tu data_processing - KHONG duplicate code
+
 WEEK1_DIR = os.path.join(os.path.dirname(__file__), "..", "data_processing")
 sys.path.insert(0, WEEK1_DIR)
 
@@ -104,7 +104,7 @@ def train_svm_per_aspect(
 
         if len(unique_classes) <= 1:
             only_class = int(unique_classes[0])
-            print(f"  [WARN] {aspect}: only class={only_class} in train -> use majority prediction.")
+            print(f"  {aspect}: only class={only_class} in train; using majority prediction.")
             models.append(("majority", only_class))
             continue
 
@@ -181,20 +181,20 @@ def generate_summary(
 
 
 def main() -> None:
-    # Touch import to avoid accidental cleanup and document optional calibration path.
+
     _ = CalibratedClassifierCV
 
     set_seed(42)
 
-    # 1. Load data
+
     train_df, dev_df, test_df = load_data()
 
-    # 2. Preprocess text
+
     train_texts = train_df["Review"].apply(preprocess_for_tfidf).tolist()
     dev_texts = dev_df["Review"].apply(preprocess_for_tfidf).tolist()
     test_texts = test_df["Review"].apply(preprocess_for_tfidf).tolist()
 
-    # 3. TF-IDF vectorize
+
     vectorizer = TfidfVectorizer(
         ngram_range=(1, 2),
         max_features=50000,
@@ -209,7 +209,7 @@ def main() -> None:
     print(f"[TF-IDF] Vocab size: {len(vectorizer.vocabulary_)}")
     print(f"[TF-IDF] X_train: {X_train.shape}, X_dev: {X_dev.shape}, X_test: {X_test.shape}")
 
-    # 4. Extract labels
+
     y_train = train_df[ASPECT_COLUMNS].values.astype(int)
     y_dev = dev_df[ASPECT_COLUMNS].values.astype(int)
     y_test = test_df[ASPECT_COLUMNS].values.astype(int)
@@ -220,7 +220,7 @@ def main() -> None:
         if not split_values.issubset(valid_label_ids):
             raise ValueError(f"[{split_name}] Found invalid labels: {sorted(split_values - valid_label_ids)}")
 
-    # 5. Train 34 SVMs
+
     print("\n" + "-" * 60)
     print("Training 34 SVM classifiers...")
     models = train_svm_per_aspect(X_train, y_train)
@@ -228,11 +228,11 @@ def main() -> None:
     n_majority = sum(1 for m in models if m[0] == "majority")
     print(f"Training done - {n_svm} SVMs + {n_majority} majority")
 
-    # 6. Predict
+
     y_pred_dev = predict_all_aspects(models, X_dev, len(dev_df))
     y_pred_test = predict_all_aspects(models, X_test, len(test_df))
 
-    # 7. Evaluate
+
     os.makedirs("outputs/results", exist_ok=True)
 
     print("\n" + "-" * 60)
@@ -253,7 +253,7 @@ def main() -> None:
         save_path="outputs/results/svm_baseline_test_metrics.json",
     )
 
-    # 8. Summary report
+
     generate_summary(dev_metrics, test_metrics)
 
     print("\n" + "=" * 60)

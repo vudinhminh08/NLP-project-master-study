@@ -9,7 +9,7 @@ from utils.constants import ASPECT_COLUMNS, RARE_ASPECTS, ZERO_TRAIN_ASPECTS
 from utils.helpers import save_json, format_metrics_table
 
 
-# ─── Core metric computation ─────────────────────────────────────────────────
+
 
 def compute_aspect_f1(
     y_true: np.ndarray,
@@ -22,7 +22,6 @@ def compute_aspect_f1(
     exclude_set: set = set(exclude_aspects or [])
     per_aspect: dict = {}
     acd_f1s: list = []
-    spc_f1s: list = []
     valid_acd: list = []
     valid_spc: list = []
 
@@ -30,7 +29,7 @@ def compute_aspect_f1(
         yt = y_true[:, i]
         yp = y_pred[:, i]
 
-        # ACD: binary (0 vs 1/2/3)
+
         yt_bin = (yt > 0).astype(int)
         yp_bin = (yp > 0).astype(int)
         acd_f1  = f1_score(yt_bin, yp_bin, average="binary", zero_division=0)
@@ -41,12 +40,12 @@ def compute_aspect_f1(
         if aspect not in exclude_set:
             valid_acd.append(acd_f1)
 
-        # SPC: chỉ trên samples mà y_true != 0
+
         mask = (yt > 0)
         if mask.sum() == 0:
             spc_f1 = spc_pre = spc_rec = None
         else:
-            yt_spc = yt[mask]  # values in {1, 2, 3}
+            yt_spc = yt[mask]
             yp_spc = yp[mask]
             spc_f1  = f1_score(yt_spc, yp_spc, average="macro",
                                labels=[1, 2, 3], zero_division=0)
@@ -54,7 +53,6 @@ def compute_aspect_f1(
                                       labels=[1, 2, 3], zero_division=0)
             spc_rec = recall_score(yt_spc, yp_spc, average="macro",
                                    labels=[1, 2, 3], zero_division=0)
-            spc_f1s.append(spc_f1)
             if aspect not in exclude_set:
                 valid_spc.append(spc_f1)
 
@@ -72,7 +70,7 @@ def compute_aspect_f1(
     macro_spc_f1   = float(np.mean(valid_spc)) if valid_spc else 0.0
     macro_combined = (macro_acd_f1 + macro_spc_f1) / 2
 
-    # Weighted ACD F1 (weighted by support, dùng tất cả aspects)
+
     supports = np.array([per_aspect[a]["support"] for a in aspect_columns])
     if supports.sum() > 0:
         weights = supports / supports.sum()
@@ -91,7 +89,7 @@ def compute_aspect_f1(
     }
 
 
-# ─── Print + save wrapper ────────────────────────────────────────────────────
+
 
 def evaluate_predictions(
     y_true: np.ndarray,
@@ -111,9 +109,6 @@ def evaluate_predictions(
 
 
 def print_evaluation_report(metrics: dict, title: str = "Evaluation Report") -> None:
-    RED   = "\033[91m"
-    RESET = "\033[0m"
-
     print(f"\n{'='*70}")
     print(f"  {title}")
     print(f"{'='*70}")
@@ -130,12 +125,12 @@ def print_evaluation_report(metrics: dict, title: str = "Evaluation Report") -> 
     print(f"{'='*70}\n")
 
 
-# ─── Main (self-test) ────────────────────────────────────────────────────────
+
 
 def main() -> None:
     print("Running eval metric self-tests...\n")
 
-    # Test A: Perfect prediction = F1 1.0
+
     rng = np.random.default_rng(42)
     y = rng.integers(0, 4, (200, 34))
     m = compute_aspect_f1(y, y)
@@ -147,7 +142,7 @@ def main() -> None:
     print(f"  ACD F1 = {m['macro_acd_f1']:.4f} (expected 1.0) ")
     print(f"  SPC F1 = {m['macro_spc_f1']:.4f} (expected 1.0) ")
 
-    # Test B: All-absent prediction = ACD F1 thấp
+
     y_true = rng.integers(0, 4, (200, 34))
     y_pred = np.zeros((200, 34), dtype=int)
     m2 = compute_aspect_f1(y_true, y_pred)
@@ -156,7 +151,7 @@ def main() -> None:
     print(f"\n[Test B] All-absent prediction:")
     print(f"  ACD F1 = {m2['macro_acd_f1']:.4f} (expected < 0.5) ")
 
-    # Test C: In full report
+
     print("\n[Test C] Full report on perfect prediction:")
     print_evaluation_report(m, title="Test — Perfect Prediction")
 

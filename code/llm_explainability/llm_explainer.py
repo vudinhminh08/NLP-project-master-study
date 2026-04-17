@@ -9,7 +9,7 @@ from typing import Optional
 try:
     from .explanation_prompts import build_explanation_prompt
     from .evidence_checker import validate_explanation_items
-except ImportError:  # script-style execution
+except ImportError:
     from explanation_prompts import build_explanation_prompt
     from evidence_checker import validate_explanation_items
 
