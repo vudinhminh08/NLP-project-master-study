@@ -68,6 +68,11 @@ GUIDE_RUN*.md
 coding-directive/
 Tài liệu/
 draft/
+submission_code_results/
+
+*.pptx
+
+*.zip
 
 
 CHANGELOG.md
