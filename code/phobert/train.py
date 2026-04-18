@@ -7,7 +7,7 @@ from typing import Optional
 
 import torch
 import numpy as np
-from torch.optim import Adam
+from torch.optim import AdamW
 from transformers import get_cosine_schedule_with_warmup
 from tqdm import tqdm
 
@@ -158,9 +158,21 @@ def train(
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
-
-    optimizer = Adam(
-        model.parameters(),
+    no_decay=["bias","LayerNorm.weight", "LayerNorm.bias"]
+    optimizer_grouped_parameters = [
+        {
+            "params": [p for n, p in model.named_parameters()
+                       if not any(nd in n for nd in no_decay) and p.requires_grad],
+            "weight_decay": config.get("weight_decay", 0.01)
+        },
+        {
+            "params": [p for n, p in model.named_parameters()
+                       if not any(nd in n for nd in no_decay) and p.requires_grad],
+            "weight_decay": 0.0
+        }
+    ]
+    optimizer = AdamW(
+        optimizer_grouped_parameters,
         lr=config["learning_rate"],
         eps=1e-8,
     )
