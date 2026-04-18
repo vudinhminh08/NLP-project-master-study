@@ -105,7 +105,7 @@ DEFAULT_ENCODER = "concat_4_layers"
 
 
 TRAIN_CONFIG = {
-    "learning_rate":           7e-5,
+    "learning_rate":           1e-4,
     "warmup_ratio":            0.15,
     "batch_size":              16,
     "grad_accumulation_steps": 1,
