@@ -159,15 +159,22 @@ def train(
     os.makedirs(results_dir, exist_ok=True)
 
     no_decay=["bias","LayerNorm.weight", "LayerNorm.bias"]
+    decay_params = []
+    no_decay_params = []
+    for n, p in model.named_parameters():
+        if not p.requires_grad:
+            continue
+        if any(nd in n for nd in no_decay):
+            no_decay_params.append(p)
+        else:
+            decay_params.append(p)
     optimizer_grouped_parameters = [
         {
-            "params": [p for n, p in model.named_parameters()
-                       if not any(nd in n for nd in no_decay) and p.requires_grad],
+            "params": decay_params,
             "weight_decay": config.get("weight_decay", 0.01)
         },
         {
-            "params": [p for n, p in model.named_parameters()
-                       if not any(nd in n for nd in no_decay) and p.requires_grad],
+            "params": no_decay_params,
             "weight_decay": 0.0
         }
     ]
