@@ -83,6 +83,11 @@ TRAIN_PREPROCESSED = f"{DATA_DIR}/train_preprocessed.csv"
 DEV_PREPROCESSED   = f"{DATA_DIR}/dev_preprocessed.csv"
 TEST_PREPROCESSED  = f"{DATA_DIR}/test_preprocessed.csv"
 
+# SOTA preprocessing: baseline pipeline + Vietnamese error correction
+TRAIN_PREPROCESSED_SOTA = f"{DATA_DIR}/train_preprocessed_sota.csv"
+DEV_PREPROCESSED_SOTA   = f"{DATA_DIR}/dev_preprocessed_sota.csv"
+TEST_PREPROCESSED_SOTA  = f"{DATA_DIR}/test_preprocessed_sota.csv"
+
 
 CLASS_WEIGHTS_PATH  = f"{EDA_DIR}/class_weights.json"
 ENCODER_CONFIG_PATH = f"{EDA_DIR}/encoder_config.json"

@@ -17,15 +17,26 @@ from train import train, load_class_weights
 from predict import load_best_model, predict_and_evaluate, generate_summary_report
 
 
-def main(encoder_option: str = None, use_amp: bool = True) -> dict:
+def main(
+    encoder_option: str = None,
+    use_amp: bool = True,
+    data_suffix: str = "",
+) -> dict:
+    """
+    Chạy training pipeline PhoBERT.
+
+    Args:
+        encoder_option : 'cls_only' hoặc 'concat_4_layers'. None = đọc từ encoder_config.json.
+        use_amp        : Mixed precision training (chỉ có hiệu lực khi có CUDA).
+        data_suffix    : Hậu tố của file preprocessed data.
+                         ""      → dùng data/train_preprocessed.csv (baseline)
+                         "_sota" → dùng data/train_preprocessed_sota.csv (SOTA pipeline)
+    """
 
     set_seed(TRAIN_CONFIG["seed"])
     device = get_device()
 
-
     use_amp = use_amp and (device.type == "cuda")
-
-
 
     enc_cfg = load_json("outputs/eda/encoder_config.json")
     encoder_option = encoder_option or enc_cfg.get("encoder_option", "concat_4_layers")
@@ -33,12 +44,18 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
     config = {
         **TRAIN_CONFIG,
         "encoder_option": encoder_option,
+        "data_suffix": data_suffix,
     }
     max_seq_len = config["max_seq_len"]
+
+    train_path = f"data/train_preprocessed{data_suffix}.csv"
+    dev_path   = f"data/dev_preprocessed{data_suffix}.csv"
+    test_path  = f"data/test_preprocessed{data_suffix}.csv"
 
     print(f"\n{'='*60}")
     print(f"PHASE PHOBERT — Multi-task ABSA")
     print(f"  encoder:    {encoder_option}")
+    print(f"  data:       *_preprocessed{data_suffix}.csv")
     print(f"  seq_len:    {max_seq_len}")
     print(f"  batch:      {config['batch_size']} × {config['grad_accumulation_steps']}"
           f" = {config['batch_size'] * config['grad_accumulation_steps']} effective")
@@ -47,17 +64,15 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
     print(f"  amp:        {'ON' if use_amp else 'OFF'}")
     print(f"{'='*60}")
 
-
     print(f"\n[Tokenizer] Loading {PHOBERT_MODEL_NAME}...")
     tokenizer = AutoTokenizer.from_pretrained(PHOBERT_MODEL_NAME)
-    print("[Tokenizer] Loaded ")
-
+    print("[Tokenizer] Loaded")
 
     print("\n[Data] Creating DataLoaders...")
     train_loader, dev_loader, test_loader = create_dataloaders(
-        train_path="data/train_preprocessed.csv",
-        dev_path  ="data/dev_preprocessed.csv",
-        test_path ="data/test_preprocessed.csv",
+        train_path=train_path,
+        dev_path  =dev_path,
+        test_path =test_path,
         tokenizer=tokenizer,
         batch_size=config["batch_size"],
         max_len=max_seq_len,
@@ -88,7 +103,9 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
     ).to(device)
 
 
-    suffix      = "" if encoder_option == "concat_4_layers" else f"_{encoder_option}"
+    # Tên thư mục output phân biệt theo encoder + data_suffix
+    enc_tag  = "" if encoder_option == "concat_4_layers" else f"_{encoder_option}"
+    suffix   = f"{enc_tag}{data_suffix}"
     save_dir    = f"outputs/models{suffix}"
     results_dir = f"outputs/results{suffix}"
 
@@ -145,12 +162,21 @@ if __name__ == "__main__":
         "--encoder",
         default=None,
         choices=["concat_4_layers", "cls_only"],
-        help="Encoder option. None = đọc từ encoder_config.json (concat_4_layers)",
+        help="Encoder option. None = đọc từ encoder_config.json",
     )
     parser.add_argument(
         "--no-amp",
         action="store_true",
         help="Tắt Mixed Precision training (dùng nếu gặp lỗi AMP)",
     )
+    parser.add_argument(
+        "--sota",
+        action="store_true",
+        help="Dùng data SOTA preprocessed (*_preprocessed_sota.csv)",
+    )
     args = parser.parse_args()
-    main(encoder_option=args.encoder, use_amp=not args.no_amp)
+    main(
+        encoder_option=args.encoder,
+        use_amp=not args.no_amp,
+        data_suffix="_sota" if args.sota else "",
+    )
