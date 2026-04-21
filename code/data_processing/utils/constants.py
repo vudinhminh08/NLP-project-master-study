@@ -109,7 +109,7 @@ TRAIN_CONFIG = {
     "warmup_ratio":            0.15,
     "batch_size":              16,
     "grad_accumulation_steps": 1,
-    "max_epochs":              20,
+    "max_epochs":              30,
     "early_stop_patience":     7,
     "dropout":                 0.2,
     "optimizer":               "Adam",
