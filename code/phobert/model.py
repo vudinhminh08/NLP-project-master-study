@@ -83,7 +83,7 @@ class ABSAPhoBERT(nn.Module):
             for _ in range(N_DROPOUT):
                 dropped = self.dropout(cls_repr)
                 shared = self.shared_layer(dropped)
-                all_logits.append([clf(dropped) for clf in self.classifiers])
+                all_logits.append([clf(shared) for clf in self.classifiers])
             logits = [
                 torch.stack([all_logits[n][i] for n in range(N_DROPOUT)]).mean(0)
                 for i in range(len(self.classifiers))
