@@ -102,6 +102,7 @@ def compute_bertscore_groundedness(
     samples: list,
     n: int = 200,
     model_type: str = "vinai/phobert-base-v2",
+    num_layers: int = 10,
     batch_size: int = 32,
     device: Optional[str] = None,
     verbose: bool = True,
@@ -116,8 +117,10 @@ def compute_bertscore_groundedness(
       - Nếu evidence bịa hoàn toàn → F1 thấp hơn đáng kể
 
     Backbone: vinai/phobert-base-v2 (Zhang et al., 2020 — BERTScore)
-    Note: BERTScore dùng subword tokenizer, hoạt động tốt với tiếng Việt
-          kể cả khi text chưa qua word segmentation.
+    Note: PhoBERT dùng kiến trúc RoBERTa-base (12 layers).
+          bert_score không có vinai/phobert-base-v2 trong registry nên
+          phải truyền num_layers=10 (chuẩn cho RoBERTa-base) thủ công.
+          Không truyền lang khi đã chỉ định model_type.
     """
     try:
         from bert_score import score as bert_score_fn
@@ -154,11 +157,14 @@ def compute_bertscore_groundedness(
         print(f"  Tính BERTScore cho {len(evidence_list)} evidence items")
         print(f"  Model: {model_type} | Device: {device}")
 
+    # num_layers bắt buộc khi dùng model ngoài registry của bert_score.
+    # PhoBERT = RoBERTa-base → num_layers=10 (cùng roberta-base trong paper).
+    # Không truyền lang khi đã chỉ định model_type tường minh.
     P, R, F = bert_score_fn(
         cands=evidence_list,
         refs=review_list,
         model_type=model_type,
-        lang="vi",
+        num_layers=num_layers,
         batch_size=batch_size,
         device=device,
         verbose=verbose,
