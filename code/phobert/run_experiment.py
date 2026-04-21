@@ -85,6 +85,8 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
         model_name=PHOBERT_MODEL_NAME,
         dropout=config["dropout"],
         encoder_option=encoder_option,
+        focal_gamma=config.get("focal_gamma", 1.5),
+        acd_loss_weight=config.get("acd_loss_weight", 0.5),
     ).to(device)
 
 

@@ -7,13 +7,13 @@ from typing import Optional
 
 import torch
 import numpy as np
-from torch.optim import Adam
-from transformers import get_cosine_schedule_with_warmup
+from torch.optim import Adam, AdamW
+from transformers import get_cosine_schedule_with_warmup, get_linear_schedule_with_warmup
 from tqdm import tqdm
 
 
 try:
-    from torch.cuda.amp import autocast, GradScaler
+    from torch import amp
     AMP_AVAILABLE = True
 except ImportError:
     AMP_AVAILABLE = False
@@ -61,6 +61,7 @@ def run_epoch(
     optimizer: Optional[torch.optim.Optimizer] = None,
     scheduler=None,
     grad_accum: int = 1,
+    max_grad_norm: float = 1.0,
     is_train: bool = True,
     use_amp: bool = False,
     scaler=None,
@@ -89,7 +90,7 @@ def run_epoch(
 
 
             if use_amp and AMP_AVAILABLE:
-                with autocast():
+                with amp.autocast(device_type="cuda"):
                     out = model(
                         input_ids, attention_mask,
                         labels=labels,
@@ -120,11 +121,11 @@ def run_epoch(
                 if (step + 1) % grad_accum == 0 or is_last_batch:
                     if use_amp and AMP_AVAILABLE and scaler is not None:
                         scaler.unscale_(optimizer)
-                        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
                         scaler.step(optimizer)
                         scaler.update()
                     else:
-                        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
                         optimizer.step()
 
                     scheduler.step()
@@ -158,30 +159,49 @@ def train(
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
+    optimizer_name = config.get("optimizer", "AdamW")
+    if optimizer_name.lower() == "adamw":
+        optimizer = AdamW(
+            model.parameters(),
+            lr=config["learning_rate"],
+            eps=1e-8,
+            weight_decay=0.01,
+        )
+    else:
+        optimizer = Adam(
+            model.parameters(),
+            lr=config["learning_rate"],
+            eps=1e-8,
+        )
 
-    optimizer = Adam(
-        model.parameters(),
-        lr=config["learning_rate"],
-        eps=1e-8,
-    )
+    grad_accum = max(1, int(config.get("grad_accumulation_steps", 1)))
+    updates_per_epoch = (len(train_loader) + grad_accum - 1) // grad_accum
+    total_steps = updates_per_epoch * config["max_epochs"]
+    warmup_steps = int(total_steps * config["warmup_ratio"])
 
-    total_steps   = len(train_loader) * config["max_epochs"]
-    warmup_steps  = int(total_steps * config["warmup_ratio"])
-    scheduler = get_cosine_schedule_with_warmup(
-        optimizer,
-        num_warmup_steps=warmup_steps,
-        num_training_steps=total_steps,
-    )
+    scheduler_name = config.get("scheduler", "linear_warmup")
+    if scheduler_name == "cosine_warmup":
+        scheduler = get_cosine_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=warmup_steps,
+            num_training_steps=total_steps,
+        )
+    else:
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=warmup_steps,
+            num_training_steps=total_steps,
+        )
 
 
-    scaler = GradScaler() if (use_amp and AMP_AVAILABLE and device.type == "cuda") else None
+    scaler = amp.GradScaler("cuda") if (use_amp and AMP_AVAILABLE and device.type == "cuda") else None
     amp_active = scaler is not None
 
 
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\n[Model] {n_params:,} trainable parameters")
     print(f"[Scheduler] Total={total_steps} optimizer steps, Warmup={warmup_steps}")
-    print(f"[LR] Adam lr={config['learning_rate']:.2e}, scheduler=cosine_warmup")
+    print(f"[LR] {optimizer_name} lr={config['learning_rate']:.2e}, scheduler={scheduler_name}")
     print(f"[AMP] Mixed precision: {'ON' if amp_active else 'OFF'}")
     print(f"[Config] encoder={config.get('encoder_option')}, "
           f"seq_len={config.get('max_seq_len')}, "
@@ -198,10 +218,12 @@ def train(
         "best_epoch":       0,
         "best_dev_loss":    float("inf"),
         "best_combined_f1": 0.0,
+        "best_metric":      "macro_combined_f1",
         "config":           config,
         "use_amp":          amp_active,
     }
     best_loss = float("inf")
+    best_combined = -1.0
     patience  = 0
 
     for epoch in range(1, config["max_epochs"] + 1):
@@ -213,6 +235,7 @@ def train(
             model, train_loader, device, class_weights,
             optimizer=optimizer, scheduler=scheduler,
             grad_accum=config["grad_accumulation_steps"],
+            max_grad_norm=config.get("max_grad_norm", 1.0),
             is_train=True,
             use_amp=amp_active, scaler=scaler,
         )
@@ -246,7 +269,13 @@ def train(
         history["dev_combined_f1"].append(combined)
 
 
-        if dev_loss < best_loss:
+        # Primary criterion: maximize Combined F1; tie-breaker: lower dev_loss.
+        improved = (combined > best_combined) or (
+            np.isclose(combined, best_combined) and dev_loss < best_loss
+        )
+
+        if improved:
+            best_combined = combined
             best_loss = dev_loss
             history["best_epoch"]       = epoch
             history["best_dev_loss"]    = best_loss
@@ -261,7 +290,7 @@ def train(
                 "config":           config,
             }
             torch.save(ckpt, os.path.join(save_dir, "best_model.pt"))
-            print(f"  Best model saved (dev_loss={best_loss:.4f}, combined_f1={combined:.4f})")
+            print(f"  Best model saved (combined_f1={combined:.4f}, dev_loss={best_loss:.4f})")
             patience = 0
         else:
             patience += 1

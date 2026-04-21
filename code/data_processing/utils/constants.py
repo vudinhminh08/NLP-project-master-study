@@ -105,18 +105,20 @@ DEFAULT_ENCODER = "concat_4_layers"
 
 
 TRAIN_CONFIG = {
-    "learning_rate":           2e-5,      # giảm từ 1e-4
-    "warmup_ratio":            0.1,       
+    "learning_rate":           3e-5,
+    "warmup_ratio":            0.15,
     "batch_size":              16,
-    "grad_accumulation_steps": 2,         # effective batch = 32
-    "max_epochs":              15,
-    "early_stop_patience":     3,
-    "dropout":                 0.4,       # tăng regularization
-    "optimizer":               "AdamW",   # tốt hơn Adam cho transformer
-    "scheduler":               "cosine_warmup",
+    "grad_accumulation_steps": 1,
+    "max_epochs":              20,
+    "early_stop_patience":     7,
+    "dropout":                 0.2,
+    "optimizer":               "AdamW",
+    "scheduler":               "linear_warmup",
     "seed":                    42,
     "max_seq_len":             256,
     "weight_clip":             10.0,
-    "encoder_option":          "concat_4_layers",  # tốt hơn cls_only
+    "encoder_option":          "cls_only",
     "max_grad_norm":           1.0,
+    "acd_loss_weight":         0.5,
+    "focal_gamma":             1.5,
 }

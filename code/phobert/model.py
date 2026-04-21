@@ -16,12 +16,14 @@ class ABSAPhoBERT(nn.Module):
         dropout: float = 0.2,
         encoder_option: str = "concat_4_layers",
         focal_gamma: float = 2.0,
+        acd_loss_weight: float = 0.5,
     ) -> None:
         super().__init__()
         self.encoder_option = encoder_option
         self.num_aspects    = num_aspects
         self.focal_gamma    = focal_gamma
         self.num_labels     = num_labels
+        self.acd_loss_weight = acd_loss_weight
 
 
         self.phobert = AutoModel.from_pretrained(
@@ -33,9 +35,15 @@ class ABSAPhoBERT(nn.Module):
         self.hidden_size = 768 * 4 if encoder_option == "concat_4_layers" else 768
         self.dropout     = nn.Dropout(dropout)
 
-
-        self.classifiers = nn.ModuleList([
-            nn.Linear(self.hidden_size, num_labels)
+        # Two-head setup per aspect:
+        # 1) ACD head predicts aspect present/absent
+        # 2) SPC head predicts sentiment among {positive, negative, neutral}
+        self.acd_heads = nn.ModuleList([
+            nn.Linear(self.hidden_size, 1)
+            for _ in range(num_aspects)
+        ])
+        self.spc_heads = nn.ModuleList([
+            nn.Linear(self.hidden_size, 3)
             for _ in range(num_aspects)
         ])
 
@@ -66,71 +74,73 @@ class ABSAPhoBERT(nn.Module):
         labels: Optional[torch.Tensor] = None,
         class_weights: Optional[list] = None,
         token_type_ids: Optional[torch.Tensor] = None,
-    ) -> dict:
 
-        cls_repr = self.get_cls_representation(input_ids, attention_mask)
+        cls_repr = self.dropout(cls_repr)
 
-
-
-        if self.training:
-            N_DROPOUT = 5
-            all_logits = []
-            for _ in range(N_DROPOUT):
-                dropped = self.dropout(cls_repr)
-                all_logits.append([clf(dropped) for clf in self.classifiers])
-            logits = [
-                torch.stack([all_logits[n][i] for n in range(N_DROPOUT)]).mean(0)
-                for i in range(len(self.classifiers))
-            ]
-        else:
-            cls_repr = self.dropout(cls_repr)
-            logits = [clf(cls_repr) for clf in self.classifiers]
-
-
-
-
-
-
-
-
-
-
-
-
+        acd_logits = [head(cls_repr).squeeze(-1) for head in self.acd_heads]
+        spc_logits = [head(cls_repr) for head in self.spc_heads]
 
         loss = None
         if labels is not None:
-            losses = []
-            for i, logit in enumerate(logits):
-                lbl = labels[:, i]
-                log_probs = F.log_softmax(logit, dim=-1)
+            acd_losses = []
+            spc_losses = []
 
+            for i in range(self.num_aspects):
+                lbl = labels[:, i]  # 0=absent, 1=pos, 2=neg, 3=neu
+                present_target = (lbl > 0).float()
 
-                log_p_true = log_probs.gather(1, lbl.unsqueeze(1)).squeeze(1)
-                p_true     = log_p_true.exp()
-
-
-                focal_factor = (1.0 - p_true.detach()) ** self.focal_gamma
-
-
-                ce_per_sample = -log_p_true
-
-
-
+                # --- ACD binary loss ---
+                bce_per_sample = F.binary_cross_entropy_with_logits(
+                    acd_logits[i],
+                    present_target,
+                    reduction="none",
+                )
 
                 if class_weights is not None:
-                    sample_w = class_weights[i][lbl]
-                    weighted = sample_w * focal_factor * ce_per_sample
-                    loss_i   = weighted.sum() / sample_w.sum().clamp(min=1e-8)
+                    w_abs = class_weights[i][0]
+                    w_pos = class_weights[i][1:].mean()
+                    acd_sample_w = torch.where(present_target > 0.5, w_pos, w_abs)
+                    acd_loss_i = (bce_per_sample * acd_sample_w).sum() / acd_sample_w.sum().clamp(min=1e-8)
                 else:
-                    loss_i = (focal_factor * ce_per_sample).mean()
+                    acd_loss_i = bce_per_sample.mean()
+                acd_losses.append(acd_loss_i)
 
-                losses.append(loss_i)
-            loss = torch.stack(losses).mean()
+                # --- SPC sentiment loss, only where aspect is present ---
+                present_mask = lbl > 0
+                if present_mask.any():
+                    spc_target = lbl[present_mask] - 1  # map {1,2,3} -> {0,1,2}
+                    spc_logit_present = spc_logits[i][present_mask]
 
+                    ce_per_sample = F.cross_entropy(
+                        spc_logit_present,
+                        spc_target,
+                        reduction="none",
+                    )
+                    probs = F.softmax(spc_logit_present, dim=-1)
+                    p_true = probs.gather(1, spc_target.unsqueeze(1)).squeeze(1)
+                    focal_factor = (1.0 - p_true.detach()) ** self.focal_gamma
+                    ce_focal = ce_per_sample * focal_factor
 
-        preds = torch.stack(
-            [logit.argmax(dim=-1) for logit in logits], dim=1
-        )
+                    if class_weights is not None:
+                        # Use original per-label weights for sentiment classes {1,2,3}
+                        spc_sample_w = class_weights[i][lbl[present_mask]]
+                        spc_loss_i = (ce_focal * spc_sample_w).sum() / spc_sample_w.sum().clamp(min=1e-8)
+                    else:
+                        spc_loss_i = ce_focal.mean()
+                    spc_losses.append(spc_loss_i)
 
+            acd_loss = torch.stack(acd_losses).mean() if acd_losses else torch.tensor(0.0, device=cls_repr.device)
+            spc_loss = torch.stack(spc_losses).mean() if spc_losses else torch.tensor(0.0, device=cls_repr.device)
+            loss = self.acd_loss_weight * acd_loss + (1.0 - self.acd_loss_weight) * spc_loss
+
+        # Reconstruct original 4-class prediction format for evaluation pipeline.
+        acd_pred = torch.stack([(torch.sigmoid(lg) > 0.5).long() for lg in acd_logits], dim=1)
+        spc_pred = torch.stack([torch.argmax(lg, dim=-1) + 1 for lg in spc_logits], dim=1)
+        preds = torch.where(acd_pred > 0, spc_pred, torch.zeros_like(spc_pred))
+
+        return {
+            "loss": loss,
+            "logits": {"acd": acd_logits, "spc": spc_logits},
+            "preds": preds,
+        }
         return {"loss": loss, "logits": logits, "preds": preds}
