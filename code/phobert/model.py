@@ -20,20 +20,18 @@ class ABSAPhoBERT(nn.Module):
     ) -> None:
         super().__init__()
         self.encoder_option = encoder_option
-        self.num_aspects    = num_aspects
-        self.focal_gamma    = focal_gamma
-        self.num_labels     = num_labels
+        self.num_aspects = num_aspects
+        self.focal_gamma = focal_gamma
+        self.num_labels = num_labels
         self.acd_loss_weight = acd_loss_weight
-
 
         self.phobert = AutoModel.from_pretrained(
             model_name,
             output_hidden_states=True,
         )
 
-
         self.hidden_size = 768 * 4 if encoder_option == "concat_4_layers" else 768
-        self.dropout     = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
 
         # Two-head setup per aspect:
         # 1) ACD head predicts aspect present/absent
@@ -52,17 +50,15 @@ class ABSAPhoBERT(nn.Module):
         input_ids: torch.Tensor,
         attention_mask: torch.Tensor,
     ) -> torch.Tensor:
-        outputs       = self.phobert(input_ids=input_ids, attention_mask=attention_mask)
+        outputs = self.phobert(input_ids=input_ids, attention_mask=attention_mask)
         hidden_states = outputs.hidden_states
 
         if self.encoder_option == "concat_4_layers":
-
             cls_repr = torch.cat(
                 [hidden_states[i][:, 0, :] for i in [-4, -3, -2, -1]],
                 dim=-1,
             )
         else:
-
             cls_repr = hidden_states[-1][:, 0, :]
 
         return cls_repr
@@ -74,7 +70,8 @@ class ABSAPhoBERT(nn.Module):
         labels: Optional[torch.Tensor] = None,
         class_weights: Optional[list] = None,
         token_type_ids: Optional[torch.Tensor] = None,
-
+    ) -> dict:
+        cls_repr = self.get_cls_representation(input_ids, attention_mask)
         cls_repr = self.dropout(cls_repr)
 
         acd_logits = [head(cls_repr).squeeze(-1) for head in self.acd_heads]
@@ -143,4 +140,3 @@ class ABSAPhoBERT(nn.Module):
             "logits": {"acd": acd_logits, "spc": spc_logits},
             "preds": preds,
         }
-        return {"loss": loss, "logits": logits, "preds": preds}
