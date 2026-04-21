@@ -64,6 +64,7 @@ def run_epoch(
     is_train: bool = True,
     use_amp: bool = False,
     scaler=None,
+    loss_mode: str = "joint",
 ) -> tuple:
     model.train() if is_train else model.eval()
     total_loss  = 0.0
@@ -94,6 +95,7 @@ def run_epoch(
                         input_ids, attention_mask,
                         labels=labels,
                         class_weights=weights_on_device,
+                        loss_mode=loss_mode,
                     )
                     loss = out["loss"]
             else:
@@ -101,6 +103,7 @@ def run_epoch(
                     input_ids, attention_mask,
                     labels=labels,
                     class_weights=weights_on_device,
+                    loss_mode=loss_mode,
                 )
                 loss = out["loss"]
 
@@ -144,6 +147,26 @@ def run_epoch(
     return mean_loss, y_true, y_pred
 
 
+def _create_optimizer_scheduler(
+    model: torch.nn.Module,
+    learning_rate: float,
+    total_steps: int,
+    warmup_ratio: float,
+) -> tuple:
+    optimizer = Adam(
+        model.parameters(),
+        lr=learning_rate,
+        eps=1e-8,
+    )
+    warmup_steps = int(total_steps * warmup_ratio)
+    scheduler = get_cosine_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=warmup_steps,
+        num_training_steps=max(1, total_steps),
+    )
+    return optimizer, scheduler, warmup_steps
+
+
 def train(
     model: torch.nn.Module,
     train_loader: torch.utils.data.DataLoader,
@@ -158,19 +181,28 @@ def train(
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
+    max_epochs = config["max_epochs"]
+    acd_warmup_epochs = int(config.get("acd_warmup_epochs", 0))
+    acd_warmup_epochs = max(0, min(acd_warmup_epochs, max_epochs))
+    phase2_epochs = max_epochs - acd_warmup_epochs
 
-    optimizer = Adam(
-        model.parameters(),
-        lr=config["learning_rate"],
-        eps=1e-8,
-    )
+    phase1_steps = len(train_loader) * acd_warmup_epochs
+    phase2_steps = len(train_loader) * phase2_epochs
 
-    total_steps   = len(train_loader) * config["max_epochs"]
-    warmup_steps  = int(total_steps * config["warmup_ratio"])
-    scheduler = get_cosine_schedule_with_warmup(
-        optimizer,
-        num_warmup_steps=warmup_steps,
-        num_training_steps=total_steps,
+    selection_metric = config.get("selection_metric", "combined_f1").lower()
+    if selection_metric not in {"combined_f1", "dev_loss"}:
+        raise ValueError("selection_metric phải là 'combined_f1' hoặc 'dev_loss'")
+
+    phase1_lr = float(config.get("phase1_learning_rate", config["learning_rate"]))
+    phase2_lr = float(config.get("phase2_learning_rate", config["learning_rate"]))
+
+    active_lr = phase1_lr if acd_warmup_epochs > 0 else phase2_lr
+    active_steps = phase1_steps if acd_warmup_epochs > 0 else phase2_steps
+    optimizer, scheduler, warmup_steps = _create_optimizer_scheduler(
+        model=model,
+        learning_rate=active_lr,
+        total_steps=active_steps,
+        warmup_ratio=config["warmup_ratio"],
     )
 
 
@@ -180,8 +212,10 @@ def train(
 
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\n[Model] {n_params:,} trainable parameters")
-    print(f"[Scheduler] Total={total_steps} optimizer steps, Warmup={warmup_steps}")
-    print(f"[LR] Adam lr={config['learning_rate']:.2e}, scheduler=cosine_warmup")
+    print(f"[Scheduler] Active phase steps={active_steps}, Warmup={warmup_steps}")
+    print(f"[LR] phase1={phase1_lr:.2e}, phase2={phase2_lr:.2e}, scheduler=cosine_warmup")
+    print(f"[Selection] best checkpoint theo {selection_metric}")
+    print(f"[Curriculum] ACD warmup epochs={acd_warmup_epochs}, joint epochs={phase2_epochs}")
     print(f"[AMP] Mixed precision: {'ON' if amp_active else 'OFF'}")
     print(f"[Config] encoder={config.get('encoder_option')}, "
           f"seq_len={config.get('max_seq_len')}, "
@@ -198,15 +232,31 @@ def train(
         "best_epoch":       0,
         "best_dev_loss":    float("inf"),
         "best_combined_f1": 0.0,
+        "selection_metric": selection_metric,
+        "best_selection_value": None,
         "config":           config,
         "use_amp":          amp_active,
     }
     best_loss = float("inf")
+    best_combined = -1.0
     patience  = 0
 
     for epoch in range(1, config["max_epochs"] + 1):
+        stage = "acd_only" if epoch <= acd_warmup_epochs else "joint"
+        if epoch == acd_warmup_epochs + 1 and phase2_epochs > 0:
+            optimizer, scheduler, warmup_steps = _create_optimizer_scheduler(
+                model=model,
+                learning_rate=phase2_lr,
+                total_steps=phase2_steps,
+                warmup_ratio=config["warmup_ratio"],
+            )
+            print(
+                f"\n[Phase Switch] Bắt đầu joint training"
+                f" | steps={phase2_steps}, warmup={warmup_steps}, lr={phase2_lr:.2e}"
+            )
+
         t0 = time.time()
-        print(f"\n{'─'*60}\nEpoch {epoch}/{config['max_epochs']}")
+        print(f"\n{'─'*60}\nEpoch {epoch}/{config['max_epochs']} ({stage})")
 
 
         train_loss, _, _ = run_epoch(
@@ -215,6 +265,7 @@ def train(
             grad_accum=config["grad_accumulation_steps"],
             is_train=True,
             use_amp=amp_active, scaler=scaler,
+            loss_mode=stage,
         )
 
 
@@ -222,6 +273,7 @@ def train(
             model, dev_loader, device, class_weights,
             is_train=False,
             use_amp=amp_active, scaler=None,
+            loss_mode="joint",
         )
         metrics  = evaluate_predictions(
             y_true, y_pred,
@@ -246,11 +298,22 @@ def train(
         history["dev_combined_f1"].append(combined)
 
 
-        if dev_loss < best_loss:
+        improved = False
+        if selection_metric == "combined_f1":
+            if combined > best_combined:
+                best_combined = combined
+                improved = True
+        else:
+            if dev_loss < best_loss:
+                improved = True
+
+        if improved:
             best_loss = dev_loss
+            best_combined = max(best_combined, combined)
             history["best_epoch"]       = epoch
-            history["best_dev_loss"]    = best_loss
+            history["best_dev_loss"]    = dev_loss
             history["best_combined_f1"] = combined
+            history["best_selection_value"] = combined if selection_metric == "combined_f1" else dev_loss
             ckpt = {
                 "epoch":            epoch,
                 "model_state_dict": model.state_dict(),
@@ -258,10 +321,15 @@ def train(
                 "combined_f1":      combined,
                 "acd_f1":           metrics["macro_acd_f1"],
                 "spc_f1":           metrics["macro_spc_f1"],
+                "stage":            stage,
+                "selection_metric": selection_metric,
                 "config":           config,
             }
             torch.save(ckpt, os.path.join(save_dir, "best_model.pt"))
-            print(f"  Best model saved (dev_loss={best_loss:.4f}, combined_f1={combined:.4f})")
+            print(
+                f"  Best model saved (dev_loss={dev_loss:.4f}, combined_f1={combined:.4f}, "
+                f"selection={history['best_selection_value']:.4f})"
+            )
             patience = 0
         else:
             patience += 1
@@ -281,7 +349,9 @@ def train(
 
     print(
         f"\nTraining xong. "
-        f"Best dev_loss={best_loss:.4f}, Combined F1={history['best_combined_f1']:.4f}"
+        f"Best dev_loss={history['best_dev_loss']:.4f}, "
+        f"Combined F1={history['best_combined_f1']:.4f}, "
+        f"selection_metric={selection_metric}"
         f" @ epoch {history['best_epoch']}"
     )
     return history

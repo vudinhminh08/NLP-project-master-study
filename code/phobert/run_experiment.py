@@ -34,6 +34,10 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
         **TRAIN_CONFIG,
         "encoder_option": encoder_option,
     }
+    recommended_len = int(enc_cfg.get("recommended_max_seq_len", config["max_seq_len"]))
+    config["max_seq_len"] = int(config.get("max_seq_len", recommended_len))
+    if config.get("use_eda_seq_len", True):
+        config["max_seq_len"] = recommended_len
     max_seq_len = config["max_seq_len"]
 
     print(f"\n{'='*60}")
@@ -43,6 +47,10 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
     print(f"  batch:      {config['batch_size']} × {config['grad_accumulation_steps']}"
           f" = {config['batch_size'] * config['grad_accumulation_steps']} effective")
     print(f"  lr:         {config['learning_rate']}")
+    print(f"  phase1 lr:  {config['phase1_learning_rate']}")
+    print(f"  phase2 lr:  {config['phase2_learning_rate']}")
+    print(f"  acd warmup: {config['acd_warmup_epochs']} epochs")
+    print(f"  selection:  {config['selection_metric']}")
     print(f"  weight_clip:{config['weight_clip']}")
     print(f"  amp:        {'ON' if use_amp else 'OFF'}")
     print(f"{'='*60}")
@@ -152,5 +160,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Tắt Mixed Precision training (dùng nếu gặp lỗi AMP)",
     )
+    parser.add_argument(
+        "--no-acd-warmup",
+        action="store_true",
+        help="Tắt phase 1 ACD warmup (train joint toàn bộ epochs)",
+    )
     args = parser.parse_args()
+    if args.no_acd_warmup:
+        TRAIN_CONFIG["acd_warmup_epochs"] = 0
     main(encoder_option=args.encoder, use_amp=not args.no_amp)

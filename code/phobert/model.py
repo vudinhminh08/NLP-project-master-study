@@ -66,6 +66,7 @@ class ABSAPhoBERT(nn.Module):
         labels: Optional[torch.Tensor] = None,
         class_weights: Optional[list] = None,
         token_type_ids: Optional[torch.Tensor] = None,
+        loss_mode: str = "joint",
     ) -> dict:
 
         cls_repr = self.get_cls_representation(input_ids, attention_mask)
@@ -105,25 +106,36 @@ class ABSAPhoBERT(nn.Module):
                 lbl = labels[:, i]
                 log_probs = F.log_softmax(logit, dim=-1)
 
+                if loss_mode == "acd_only":
+                    present_target = (lbl > 0).long()
+                    log_p_absent = log_probs[:, 0]
+                    log_p_present = torch.logsumexp(log_probs[:, 1:], dim=-1)
+                    log_p_true = torch.where(present_target == 1, log_p_present, log_p_absent)
+                    p_true = log_p_true.exp()
+                    focal_factor = (1.0 - p_true.detach()) ** self.focal_gamma
+                    ce_per_sample = -log_p_true
 
-                log_p_true = log_probs.gather(1, lbl.unsqueeze(1)).squeeze(1)
-                p_true     = log_p_true.exp()
-
-
-                focal_factor = (1.0 - p_true.detach()) ** self.focal_gamma
-
-
-                ce_per_sample = -log_p_true
-
-
-
-
-                if class_weights is not None:
-                    sample_w = class_weights[i][lbl]
-                    weighted = sample_w * focal_factor * ce_per_sample
-                    loss_i   = weighted.sum() / sample_w.sum().clamp(min=1e-8)
+                    if class_weights is not None:
+                        w_aspect = class_weights[i]
+                        absent_w = w_aspect[0]
+                        present_w = torch.max(w_aspect[1:])
+                        sample_w = torch.where(present_target == 1, present_w, absent_w)
+                        weighted = sample_w * focal_factor * ce_per_sample
+                        loss_i = weighted.sum() / sample_w.sum().clamp(min=1e-8)
+                    else:
+                        loss_i = (focal_factor * ce_per_sample).mean()
                 else:
-                    loss_i = (focal_factor * ce_per_sample).mean()
+                    log_p_true = log_probs.gather(1, lbl.unsqueeze(1)).squeeze(1)
+                    p_true = log_p_true.exp()
+                    focal_factor = (1.0 - p_true.detach()) ** self.focal_gamma
+                    ce_per_sample = -log_p_true
+
+                    if class_weights is not None:
+                        sample_w = class_weights[i][lbl]
+                        weighted = sample_w * focal_factor * ce_per_sample
+                        loss_i = weighted.sum() / sample_w.sum().clamp(min=1e-8)
+                    else:
+                        loss_i = (focal_factor * ce_per_sample).mean()
 
                 losses.append(loss_i)
             loss = torch.stack(losses).mean()
