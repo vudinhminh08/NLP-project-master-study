@@ -33,9 +33,14 @@ class ABSAPhoBERT(nn.Module):
         self.hidden_size = 768 * 4 if encoder_option == "concat_4_layers" else 768
         self.dropout     = nn.Dropout(dropout)
 
-
+        shared_dim = 256
+        self.shared_layer = nn.Sequential(
+            nn.Linear(self.hidden_size, shared_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+        )
         self.classifiers = nn.ModuleList([
-            nn.Linear(self.hidden_size, num_labels)
+            nn.Linear(shared_dim, num_labels)
             for _ in range(num_aspects)
         ])
 
@@ -77,6 +82,7 @@ class ABSAPhoBERT(nn.Module):
             all_logits = []
             for _ in range(N_DROPOUT):
                 dropped = self.dropout(cls_repr)
+                shared = self.shared_layer(dropped)
                 all_logits.append([clf(dropped) for clf in self.classifiers])
             logits = [
                 torch.stack([all_logits[n][i] for n in range(N_DROPOUT)]).mean(0)
@@ -84,7 +90,8 @@ class ABSAPhoBERT(nn.Module):
             ]
         else:
             cls_repr = self.dropout(cls_repr)
-            logits = [clf(cls_repr) for clf in self.classifiers]
+            shared = self.shared_layer(cls_repr)
+            logits = [clf(shared) for clf in self.classifiers]
 
 
 

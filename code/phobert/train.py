@@ -201,7 +201,8 @@ def train(
         "config":           config,
         "use_amp":          amp_active,
     }
-    best_loss = float("inf")
+    
+    best_combined = 0.0
     patience  = 0
 
     for epoch in range(1, config["max_epochs"] + 1):
@@ -246,10 +247,10 @@ def train(
         history["dev_combined_f1"].append(combined)
 
 
-        if dev_loss < best_loss:
-            best_loss = dev_loss
+        if combined > best_combined:
+            best_combined = combined
             history["best_epoch"]       = epoch
-            history["best_dev_loss"]    = best_loss
+            history["best_dev_loss"]    = dev_loss
             history["best_combined_f1"] = combined
             ckpt = {
                 "epoch":            epoch,
@@ -261,7 +262,7 @@ def train(
                 "config":           config,
             }
             torch.save(ckpt, os.path.join(save_dir, "best_model.pt"))
-            print(f"  Best model saved (dev_loss={best_loss:.4f}, combined_f1={combined:.4f})")
+            print(f"  Best model saved (combined_f1={best_combined:.4f}, combined_f1={combined:.4f})")
             patience = 0
         else:
             patience += 1
@@ -275,13 +276,13 @@ def train(
             print(
                 f"\nEarly stopping tại epoch {epoch}. "
                 f"Best: epoch={history['best_epoch']}, "
-                f"dev_loss={best_loss:.4f}, Combined F1={history['best_combined_f1']:.4f}"
+                f"Combined F1={history['best_combined_f1']:.4f}"
             )
             break
 
     print(
         f"\nTraining xong. "
-        f"Best dev_loss={best_loss:.4f}, Combined F1={history['best_combined_f1']:.4f}"
+        f"Combined F1={history['best_combined_f1']:.4f}"
         f" @ epoch {history['best_epoch']}"
     )
     return history
