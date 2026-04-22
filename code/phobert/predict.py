@@ -36,7 +36,7 @@ def predict_and_evaluate(
     split_name: str = "test",
     save_path: Optional[str] = None,
 ) -> tuple:
-    _, y_true, y_pred = run_epoch(
+    _, _, _, y_true, y_pred = run_epoch(
         model, dataloader, device, class_weights, is_train=False
     )
     metrics = evaluate_predictions(

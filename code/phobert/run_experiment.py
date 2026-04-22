@@ -3,6 +3,7 @@ import os
 import sys
 import argparse
 import torch
+from typing import Optional
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "data_processing"))
 sys.path.insert(0, os.path.dirname(__file__))
@@ -17,9 +18,15 @@ from train import train, load_class_weights
 from predict import load_best_model, predict_and_evaluate, generate_summary_report
 
 
-def main(encoder_option: str = None, use_amp: bool = True) -> dict:
+def main(
+    encoder_option: str = None,
+    use_amp: bool = True,
+    seed: Optional[int] = None,
+    config_override: Optional[dict] = None,
+) -> dict:
 
-    set_seed(TRAIN_CONFIG["seed"])
+    run_seed = int(seed if seed is not None else TRAIN_CONFIG["seed"])
+    set_seed(run_seed)
     device = get_device()
 
 
@@ -33,16 +40,25 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
     config = {
         **TRAIN_CONFIG,
         "encoder_option": encoder_option,
+        "seed": run_seed,
     }
+    if config_override:
+        config.update(config_override)
     max_seq_len = config["max_seq_len"]
 
     print(f"\n{'='*60}")
     print(f"PHASE PHOBERT — Multi-task ABSA")
     print(f"  encoder:    {encoder_option}")
+    print(f"  seed:       {run_seed}")
     print(f"  seq_len:    {max_seq_len}")
     print(f"  batch:      {config['batch_size']} × {config['grad_accumulation_steps']}"
           f" = {config['batch_size'] * config['grad_accumulation_steps']} effective")
     print(f"  lr:         {config['learning_rate']}")
+    print(f"  encoder_lr: {config.get('encoder_learning_rate', 'auto')}")
+    print(f"  head_lr:    {config.get('head_learning_rate', 'auto')}")
+    print(f"  freeze_ep:  {config.get('freeze_encoder_epochs', 0)}")
+    print(f"  acd_lambda: {config.get('acd_loss_weight', 0.4)}")
+    print(f"  acd_thres:  {config.get('acd_threshold', 0.5)}")
     print(f"  weight_clip:{config['weight_clip']}")
     print(f"  amp:        {'ON' if use_amp else 'OFF'}")
     print(f"{'='*60}")
@@ -85,6 +101,8 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
         model_name=PHOBERT_MODEL_NAME,
         dropout=config["dropout"],
         encoder_option=encoder_option,
+        acd_loss_weight=config.get("acd_loss_weight", 0.4),
+        acd_threshold=config.get("acd_threshold", 0.5),
     ).to(device)
 
 

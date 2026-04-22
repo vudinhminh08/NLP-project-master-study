@@ -246,7 +246,7 @@ def t_gradient_flows():
     out["loss"].backward()
 
 
-    clf_weight_grad = model.classifiers[0].weight.grad
+    clf_weight_grad = model.spc_classifiers[0].weight.grad
     assert clf_weight_grad is not None, "Gradient không lan truyền tới classifiers!"
     assert not torch.isnan(clf_weight_grad).any(), "Gradient NaN trong classifiers!"
 
@@ -320,7 +320,7 @@ def t_train_loop_2steps():
     sched   = get_linear_schedule_with_warmup(optim, 0, 10)
 
 
-    loss1, _, _ = run_epoch(
+    loss1, _, _, _, _ = run_epoch(
         model, loader, device, weights,
         optimizer=optim, scheduler=sched,
         grad_accum=2, is_train=True,
@@ -330,7 +330,7 @@ def t_train_loop_2steps():
     assert loss1 > 0, f"Train loss <= 0: {loss1}"
 
 
-    loss2, y_true, y_pred = run_epoch(
+    loss2, _, _, y_true, y_pred = run_epoch(
         model, loader, device, weights,
         is_train=False, use_amp=False, scaler=None,
     )
@@ -365,11 +365,11 @@ def t_grad_accum_final_batch_flushed():
     sched   = get_linear_schedule_with_warmup(optim, 0, 10)
 
 
-    p_before = model.classifiers[0].weight.data.clone()
+    p_before = model.spc_classifiers[0].weight.data.clone()
     run_epoch(model, loader, torch.device("cpu"), weights,
               optimizer=optim, scheduler=sched,
               grad_accum=2, is_train=True)
-    p_after = model.classifiers[0].weight.data
+    p_after = model.spc_classifiers[0].weight.data
 
 
     assert not torch.allclose(p_before, p_after, atol=1e-9), \

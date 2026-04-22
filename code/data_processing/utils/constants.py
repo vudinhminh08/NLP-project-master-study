@@ -106,12 +106,17 @@ DEFAULT_ENCODER = "concat_4_layers"
 
 TRAIN_CONFIG = {
     "learning_rate":           1e-4,
+    "encoder_learning_rate":   3e-5,
+    "head_learning_rate":      1e-4,
     "warmup_ratio":            0.15,
     "batch_size":              16,
     "grad_accumulation_steps": 1,
     "max_epochs":              20,
+    "freeze_encoder_epochs":   2,
     "early_stop_patience":     7,
     "dropout":                 0.2,
+    "acd_loss_weight":         0.4,
+    "acd_threshold":           0.5,
     "optimizer":               "Adam",
     "scheduler":               "cosine_warmup",
     "seed":                    42,

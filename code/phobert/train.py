@@ -67,6 +67,8 @@ def run_epoch(
 ) -> tuple:
     model.train() if is_train else model.eval()
     total_loss  = 0.0
+    total_acd_loss = 0.0
+    total_spc_loss = 0.0
     all_preds:  list = []
     all_labels: list = []
 
@@ -96,6 +98,8 @@ def run_epoch(
                         class_weights=weights_on_device,
                     )
                     loss = out["loss"]
+                    acd_loss = out.get("loss_acd")
+                    spc_loss = out.get("loss_spc")
             else:
                 out = model(
                     input_ids, attention_mask,
@@ -103,8 +107,14 @@ def run_epoch(
                     class_weights=weights_on_device,
                 )
                 loss = out["loss"]
+                acd_loss = out.get("loss_acd")
+                spc_loss = out.get("loss_spc")
 
             total_loss += loss.item()
+            if acd_loss is not None:
+                total_acd_loss += float(acd_loss.item())
+            if spc_loss is not None:
+                total_spc_loss += float(spc_loss.item())
 
 
             if is_train:
@@ -135,13 +145,21 @@ def run_epoch(
                 all_labels.append(labels.cpu().numpy())
 
     mean_loss = total_loss / n_batches
+    mean_acd_loss = total_acd_loss / n_batches
+    mean_spc_loss = total_spc_loss / n_batches
 
     if is_train:
-        return mean_loss, None, None
+        return mean_loss, mean_acd_loss, mean_spc_loss, None, None
 
     y_true = np.vstack(all_labels)
     y_pred = np.vstack(all_preds)
-    return mean_loss, y_true, y_pred
+    return mean_loss, mean_acd_loss, mean_spc_loss, y_true, y_pred
+
+
+def set_encoder_trainable(model: torch.nn.Module, trainable: bool) -> None:
+    if hasattr(model, "phobert"):
+        for p in model.phobert.parameters():
+            p.requires_grad = trainable
 
 
 def train(
@@ -158,10 +176,23 @@ def train(
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
+    encoder_lr = config.get("encoder_learning_rate", 3e-5)
+    head_lr = config.get("head_learning_rate", config["learning_rate"])
+    freeze_epochs = int(config.get("freeze_encoder_epochs", 0))
+
+    encoder_params = []
+    head_params = []
+    for name, p in model.named_parameters():
+        if name.startswith("phobert."):
+            encoder_params.append(p)
+        else:
+            head_params.append(p)
 
     optimizer = Adam(
-        model.parameters(),
-        lr=config["learning_rate"],
+        [
+            {"params": encoder_params, "lr": encoder_lr},
+            {"params": head_params, "lr": head_lr},
+        ],
         eps=1e-8,
     )
 
@@ -181,8 +212,9 @@ def train(
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\n[Model] {n_params:,} trainable parameters")
     print(f"[Scheduler] Total={total_steps} optimizer steps, Warmup={warmup_steps}")
-    print(f"[LR] Adam lr={config['learning_rate']:.2e}, scheduler=cosine_warmup")
+    print(f"[LR] Adam encoder={encoder_lr:.2e}, heads={head_lr:.2e}, scheduler=cosine_warmup")
     print(f"[AMP] Mixed precision: {'ON' if amp_active else 'OFF'}")
+    print(f"[Freeze] Encoder freeze epochs: {freeze_epochs}")
     print(f"[Config] encoder={config.get('encoder_option')}, "
           f"seq_len={config.get('max_seq_len')}, "
           f"batch={config['batch_size']}×{config['grad_accumulation_steps']}="
@@ -208,8 +240,17 @@ def train(
         t0 = time.time()
         print(f"\n{'─'*60}\nEpoch {epoch}/{config['max_epochs']}")
 
+        if freeze_epochs > 0 and epoch <= freeze_epochs:
+            set_encoder_trainable(model, False)
+            if epoch == 1:
+                print("  [Train Phase] Encoder frozen")
+        else:
+            set_encoder_trainable(model, True)
+            if epoch == (freeze_epochs + 1) and freeze_epochs > 0:
+                print("  [Train Phase] Encoder unfrozen")
 
-        train_loss, _, _ = run_epoch(
+
+        train_loss, train_acd_loss, train_spc_loss, _, _ = run_epoch(
             model, train_loader, device, class_weights,
             optimizer=optimizer, scheduler=scheduler,
             grad_accum=config["grad_accumulation_steps"],
@@ -218,7 +259,7 @@ def train(
         )
 
 
-        dev_loss, y_true, y_pred = run_epoch(
+        dev_loss, dev_acd_loss, dev_spc_loss, y_true, y_pred = run_epoch(
             model, dev_loader, device, class_weights,
             is_train=False,
             use_amp=amp_active, scaler=None,
@@ -232,7 +273,8 @@ def train(
         elapsed  = time.time() - t0
 
         print(
-            f"  Train Loss: {train_loss:.4f} | Dev Loss: {dev_loss:.4f} | "
+            f"  Train Loss: {train_loss:.4f} (ACD={train_acd_loss:.4f}, SPC={train_spc_loss:.4f}) | "
+            f"Dev Loss: {dev_loss:.4f} (ACD={dev_acd_loss:.4f}, SPC={dev_spc_loss:.4f}) | "
             f"ACD: {metrics['macro_acd_f1']:.4f} | "
             f"SPC: {metrics['macro_spc_f1']:.4f} | "
             f"Combined: {combined:.4f} | {elapsed:.0f}s"
