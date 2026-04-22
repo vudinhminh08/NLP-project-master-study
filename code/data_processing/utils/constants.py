@@ -109,7 +109,7 @@ TRAIN_CONFIG = {
     "classifier_lr": 1e-4,
     "weight_decay": 0.01,
     "lr_layer_decay": 0.95,
-    "wramup_ratio": 0.1,
+    "warmup_ratio": 0.1,
     "batch_size":              16,
     "grad_accumulation_steps": 2,
     "max_epochs":              30,

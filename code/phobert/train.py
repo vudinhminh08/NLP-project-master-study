@@ -225,8 +225,9 @@ def train(
         eps=1e-8,
     )
 
-    total_steps = (len(train_loader)// config["grad_accumulation_steps"]) * config["max_epochs"]
-    warmup_steps = int(total_steps * config["warmup_ratio"])
+    total_steps = (len(train_loader) // config["grad_accumulation_steps"]) * config["max_epochs"]
+    warmup_ratio = config.get("warmup_ratio", config.get("wramup_ratio", 0.1))
+    warmup_steps = int(total_steps * warmup_ratio)
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
         num_warmup_steps=warmup_steps,
