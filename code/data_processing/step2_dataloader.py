@@ -3,12 +3,13 @@ import sys
 
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
 from utils.constants import (
     ASPECT_COLUMNS,
+    RARE_ASPECTS,
     PHOBERT_MODEL_NAME,
     MAX_SEQ_LEN,
     TRAIN_PATH,
@@ -59,6 +60,21 @@ class ABSADataset(torch.utils.data.Dataset):
         }
 
 
+def _build_rare_aspect_sampler(
+    labels: torch.Tensor,
+    rare_indices: list,
+    alpha: float = 2.0,
+    power: float = 1.0,
+) -> WeightedRandomSampler:
+    rare_count = (labels[:, rare_indices] > 0).sum(dim=1).float()
+    sample_weights = (1.0 + alpha * rare_count).pow(power)
+    return WeightedRandomSampler(
+        weights=sample_weights,
+        num_samples=len(sample_weights),
+        replacement=True,
+    )
+
+
 
 
 def create_dataloaders(
@@ -70,6 +86,9 @@ def create_dataloaders(
     max_len: int = MAX_SEQ_LEN,
     num_workers: int = 2,
     use_preprocessed: bool = True,
+    use_rare_oversampling: bool = False,
+    rare_oversample_alpha: float = 2.0,
+    rare_oversample_power: float = 1.0,
 ) -> tuple:
     text_col = "processed_review" if use_preprocessed else "Review"
     loaders = []
@@ -86,14 +105,38 @@ def create_dataloaders(
 
         df = pd.read_csv(path)
         ds = ABSADataset(df, tokenizer, max_len=max_len, text_col=text_col)
+
+        sampler = None
+        effective_shuffle = shuffle
+        if name == "train" and use_rare_oversampling:
+            rare_indices = [
+                i for i, asp in enumerate(ASPECT_COLUMNS)
+                if asp in RARE_ASPECTS
+            ]
+            labels_tensor = torch.tensor(ds.labels, dtype=torch.long)
+            sampler = _build_rare_aspect_sampler(
+                labels_tensor,
+                rare_indices=rare_indices,
+                alpha=rare_oversample_alpha,
+                power=rare_oversample_power,
+            )
+            effective_shuffle = False
+
         loader = DataLoader(
             ds,
             batch_size=batch_size,
-            shuffle=shuffle,
+            shuffle=effective_shuffle,
+            sampler=sampler,
             num_workers=num_workers,
             pin_memory=True,
         )
-        print(f"[DataLoader] {name}: {len(ds)} samples, {len(loader)} batches")
+        if sampler is not None:
+            print(
+                f"[DataLoader] {name}: {len(ds)} samples, {len(loader)} batches, "
+                f"rare_oversampling=ON (alpha={rare_oversample_alpha}, power={rare_oversample_power})"
+            )
+        else:
+            print(f"[DataLoader] {name}: {len(ds)} samples, {len(loader)} batches")
         loaders.append(loader)
 
     return tuple(loaders)

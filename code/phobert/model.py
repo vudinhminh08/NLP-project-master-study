@@ -21,6 +21,9 @@ class ABSAPhoBERT(nn.Module):
         lambda_presence: float = 1.0,
         lambda_sentiment: float = 1.0,
         presence_threshold: float = 0.5,
+        rare_aspect_ids: Optional[list] = None,
+        rare_presence_pos_mult: float = 1.0,
+        rare_sentiment_mult: float = 1.0,
     ) -> None:
         super().__init__()
         self.encoder_option = encoder_option
@@ -32,6 +35,13 @@ class ABSAPhoBERT(nn.Module):
         self.lambda_presence = lambda_presence
         self.lambda_sentiment = lambda_sentiment
         self.presence_threshold = presence_threshold
+        self.rare_aspect_ids = set(rare_aspect_ids or [])
+        self.rare_presence_pos_mult = float(rare_presence_pos_mult)
+        self.rare_sentiment_mult = float(rare_sentiment_mult)
+        self.register_buffer(
+            "aspect_presence_thresholds",
+            torch.full((self.num_aspects,), float(presence_threshold), dtype=torch.float32),
+        )
 
 
         self.phobert = AutoModel.from_pretrained(
@@ -81,7 +91,8 @@ class ABSAPhoBERT(nn.Module):
         scores = torch.matmul(proj, self.aspect_queries.t())  # (B, T, A)
 
         mask = (attention_mask == 0).unsqueeze(-1)  # (B, T, 1)
-        scores = scores.masked_fill(mask, float('-1e9'))
+        neg_inf = torch.finfo(scores.dtype).min
+        scores = scores.masked_fill(mask, neg_inf)
 
         alphas = torch.softmax(scores, dim=1)  # (B, T, A)
         pooled = torch.einsum("bta,bth->bah", alphas, H)  # (B, A, H)
@@ -163,6 +174,12 @@ class ABSAPhoBERT(nn.Module):
                             class_weights[i][1],
                             class_weights[i][0],
                         )
+                        if i in self.rare_aspect_ids and self.rare_presence_pos_mult != 1.0:
+                            presence_w = torch.where(
+                                exist_target > 0,
+                                presence_w * self.rare_presence_pos_mult,
+                                presence_w,
+                            )
                         presence_loss = (presence_bce * presence_w).sum() / presence_w.sum().clamp(min=1e-8)
                     else:
                         presence_loss = presence_bce.mean()
@@ -183,6 +200,9 @@ class ABSAPhoBERT(nn.Module):
                             sentiment_loss = weighted.sum() / sample_w.sum().clamp(min=1e-8)
                         else:
                             sentiment_loss = (focal_factor * ce_per_sample).mean()
+
+                        if i in self.rare_aspect_ids and self.rare_sentiment_mult != 1.0:
+                            sentiment_loss = sentiment_loss * self.rare_sentiment_mult
                     else:
                         sentiment_loss = torch.zeros((), device=logit.device)
 
@@ -212,7 +232,8 @@ class ABSAPhoBERT(nn.Module):
             preds = []
             for i, logit in enumerate(logits):
                 exist_prob = torch.sigmoid(presence_logits[i])
-                present_pred = exist_prob >= self.presence_threshold
+                thr_i = self.aspect_presence_thresholds[i].to(exist_prob.dtype)
+                present_pred = exist_prob >= thr_i
                 sent_pred = logit[:, 1:].argmax(dim=-1) + 1
                 pred_i = torch.where(
                     present_pred,

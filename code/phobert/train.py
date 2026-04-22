@@ -12,10 +12,34 @@ from tqdm import tqdm
 
 
 try:
-    from torch.cuda.amp import autocast, GradScaler
+    from torch import amp as torch_amp
     AMP_AVAILABLE = True
-except ImportError:
-    AMP_AVAILABLE = False
+
+    def amp_autocast():
+        return torch_amp.autocast(device_type="cuda")
+
+    def make_grad_scaler(enabled: bool):
+        return torch_amp.GradScaler("cuda", enabled=enabled)
+
+except Exception:
+    try:
+        from torch.cuda.amp import autocast as cuda_autocast, GradScaler as CudaGradScaler
+        AMP_AVAILABLE = True
+
+        def amp_autocast():
+            return cuda_autocast()
+
+        def make_grad_scaler(enabled: bool):
+            return CudaGradScaler(enabled=enabled)
+
+    except Exception:
+        AMP_AVAILABLE = False
+
+        def amp_autocast():
+            raise RuntimeError("AMP is not available in this environment")
+
+        def make_grad_scaler(enabled: bool):
+            return None
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "data_processing"))
 
@@ -24,15 +48,78 @@ from utils.helpers import set_seed, save_json, load_json
 from step4_eval import evaluate_predictions
 
 
+class EMA:
+    def __init__(self, model: torch.nn.Module, decay: float = 0.999) -> None:
+        self.decay = float(decay)
+        self.shadow = {
+            name: p.detach().clone()
+            for name, p in model.named_parameters()
+            if p.requires_grad
+        }
+
+    @torch.no_grad()
+    def update(self, model: torch.nn.Module) -> None:
+        for name, p in model.named_parameters():
+            if not p.requires_grad:
+                continue
+            self.shadow[name].mul_(self.decay).add_(p.detach(), alpha=(1.0 - self.decay))
+
+    @torch.no_grad()
+    def apply_to(self, model: torch.nn.Module) -> dict:
+        backup = {}
+        for name, p in model.named_parameters():
+            if not p.requires_grad:
+                continue
+            backup[name] = p.detach().clone()
+            p.copy_(self.shadow[name])
+        return backup
+
+    @torch.no_grad()
+    def restore(self, model: torch.nn.Module, backup: dict) -> None:
+        for name, p in model.named_parameters():
+            if not p.requires_grad:
+                continue
+            p.copy_(backup[name])
+
+
+def snapshot_state_dict(model: torch.nn.Module) -> dict:
+    return {
+        k: v.detach().cpu().clone()
+        for k, v in model.state_dict().items()
+    }
+
+
 def build_optimizer(model: torch.nn.Module, config: dict) -> torch.optim.Optimizer:
     base_lr = float(config["learning_rate"])
     head_mult = float(config.get("head_lr_mult", 5.0))
     weight_decay = float(config.get("weight_decay", 0.01))
+    layerwise_lr_decay = float(config.get("layerwise_lr_decay", 1.0))
 
     no_decay_terms = ("bias", "LayerNorm.weight", "layer_norm.weight")
 
-    encoder_decay, encoder_no_decay = [], []
-    head_decay, head_no_decay = [], []
+    num_layers = int(getattr(model.phobert.config, "num_hidden_layers", 12))
+
+    def get_encoder_layer_id(param_name: str) -> int:
+        # embeddings -> 0, encoder.layer.k -> k+1, others -> top
+        if ".embeddings." in param_name:
+            return 0
+        marker = ".encoder.layer."
+        if marker in param_name:
+            suffix = param_name.split(marker, 1)[1]
+            try:
+                layer_idx = int(suffix.split(".", 1)[0])
+                return layer_idx + 1
+            except Exception:
+                pass
+        return num_layers + 1
+
+    grouped_params = {}
+
+    def add_param(param: torch.nn.Parameter, lr: float, wd: float) -> None:
+        key = (lr, wd)
+        if key not in grouped_params:
+            grouped_params[key] = []
+        grouped_params[key].append(param)
 
     for name, param in model.named_parameters():
         if not param.requires_grad:
@@ -40,22 +127,23 @@ def build_optimizer(model: torch.nn.Module, config: dict) -> torch.optim.Optimiz
         is_no_decay = any(term in name for term in no_decay_terms)
         is_encoder = name.startswith("phobert.")
 
-        if is_encoder and is_no_decay:
-            encoder_no_decay.append(param)
-        elif is_encoder:
-            encoder_decay.append(param)
-        elif is_no_decay:
-            head_no_decay.append(param)
+        if is_encoder:
+            layer_id = get_encoder_layer_id(name)
+            if layerwise_lr_decay < 1.0:
+                lr_scale = layerwise_lr_decay ** ((num_layers + 1) - layer_id)
+            else:
+                lr_scale = 1.0
+            lr = base_lr * lr_scale
         else:
-            head_decay.append(param)
+            lr = base_lr * head_mult
+
+        wd = 0.0 if is_no_decay else weight_decay
+        add_param(param, lr, wd)
 
     param_groups = [
-        {"params": encoder_decay, "lr": base_lr, "weight_decay": weight_decay},
-        {"params": encoder_no_decay, "lr": base_lr, "weight_decay": 0.0},
-        {"params": head_decay, "lr": base_lr * head_mult, "weight_decay": weight_decay},
-        {"params": head_no_decay, "lr": base_lr * head_mult, "weight_decay": 0.0},
+        {"params": params, "lr": lr, "weight_decay": wd}
+        for (lr, wd), params in grouped_params.items()
     ]
-    param_groups = [g for g in param_groups if len(g["params"]) > 0]
 
     return AdamW(param_groups, eps=1e-8)
 
@@ -129,7 +217,7 @@ def run_epoch(
 
 
             if use_amp and AMP_AVAILABLE:
-                with autocast():
+                with amp_autocast():
                     out = model(
                         input_ids, attention_mask,
                         labels=labels,
@@ -169,6 +257,10 @@ def run_epoch(
 
                     scheduler.step()
                     optimizer.zero_grad()
+
+                    ema = getattr(model, "_ema", None)
+                    if ema is not None:
+                        ema.update(model)
             else:
 
                 all_preds.append(out["preds"].cpu().numpy())
@@ -211,8 +303,15 @@ def train(
     )
 
 
-    scaler = GradScaler() if (use_amp and AMP_AVAILABLE and device.type == "cuda") else None
+    scaler = make_grad_scaler(True) if (use_amp and AMP_AVAILABLE and device.type == "cuda") else None
     amp_active = scaler is not None
+
+    use_ema = bool(config.get("use_ema", True))
+    ema_decay = float(config.get("ema_decay", 0.999))
+    if use_ema:
+        model._ema = EMA(model, decay=ema_decay)
+    else:
+        model._ema = None
 
 
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -221,9 +320,11 @@ def train(
     print(
         f"[LR] AdamW encoder_lr={config['learning_rate']:.2e}, "
         f"head_lr={config['learning_rate'] * config.get('head_lr_mult', 5.0):.2e}, "
-        f"wd={config.get('weight_decay', 0.01):.2e}, scheduler=cosine_warmup"
+        f"wd={config.get('weight_decay', 0.01):.2e}, "
+        f"llrd={config.get('layerwise_lr_decay', 1.0):.3f}, scheduler=cosine_warmup"
     )
     print(f"[AMP] Mixed precision: {'ON' if amp_active else 'OFF'}")
+    print(f"[EMA] {'ON' if use_ema else 'OFF'} (decay={ema_decay:.4f})")
     print(f"[Config] encoder={config.get('encoder_option')}, "
           f"seq_len={config.get('max_seq_len')}, "
           f"batch={config['batch_size']}×{config['grad_accumulation_steps']}="
@@ -259,6 +360,11 @@ def train(
         )
 
 
+        if model._ema is not None:
+            backup = model._ema.apply_to(model)
+        else:
+            backup = None
+
         dev_loss, y_true, y_pred = run_epoch(
             model, dev_loader, device, class_weights,
             is_train=False,
@@ -271,6 +377,9 @@ def train(
         )
         combined = metrics["macro_combined_f1"]
         elapsed  = time.time() - t0
+
+        if backup is not None:
+            model._ema.restore(model, backup)
 
         print(
             f"  Train Loss: {train_loss:.4f} | Dev Loss: {dev_loss:.4f} | "
@@ -292,15 +401,23 @@ def train(
             history["best_epoch"]       = epoch
             history["best_dev_loss"]    = dev_loss
             history["best_combined_f1"] = combined
+            if model._ema is not None:
+                backup_ckpt = model._ema.apply_to(model)
+                model_state = snapshot_state_dict(model)
+                model._ema.restore(model, backup_ckpt)
+            else:
+                model_state = snapshot_state_dict(model)
+
             ckpt = {
                 "epoch":            epoch,
-                "model_state_dict": model.state_dict(),
+                "model_state_dict": model_state,
                 "dev_loss":         dev_loss,
                 "combined_f1":      combined,
                 "acd_f1":           metrics["macro_acd_f1"],
                 "spc_f1":           metrics["macro_spc_f1"],
                 "config":           config,
             }
+
             torch.save(ckpt, os.path.join(save_dir, "best_model.pt"))
             print(f"  Best model saved (combined_f1={combined:.4f}, dev_loss={dev_loss:.4f})")
             patience = 0

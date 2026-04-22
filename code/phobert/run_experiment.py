@@ -7,7 +7,7 @@ import torch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "data_processing"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-from utils.constants import TRAIN_CONFIG, PHOBERT_MODEL_NAME
+from utils.constants import TRAIN_CONFIG, PHOBERT_MODEL_NAME, ASPECT_COLUMNS, RARE_ASPECTS
 from utils.helpers import set_seed, get_device, load_json
 from step2_dataloader import create_dataloaders
 from transformers import AutoTokenizer
@@ -68,6 +68,9 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
         max_len=max_seq_len,
         num_workers=2,
         use_preprocessed=True,
+        use_rare_oversampling=config.get("use_rare_oversampling", False),
+        rare_oversample_alpha=float(config.get("rare_oversample_alpha", 2.0)),
+        rare_oversample_power=float(config.get("rare_oversample_power", 1.0)),
     )
 
     if train_loader is None or dev_loader is None:
@@ -87,15 +90,23 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
 
 
     print(f"\n[Model] Building ABSAPhoBERT ({encoder_option})...")
+    rare_aspect_ids = [
+        i for i, asp in enumerate(ASPECT_COLUMNS)
+        if asp in RARE_ASPECTS
+    ]
     model = ABSAPhoBERT(
         model_name=PHOBERT_MODEL_NAME,
         dropout=config["dropout"],
         encoder_option=encoder_option,
+        focal_gamma=config.get("focal_gamma", 2.0),
         attn_dim=config.get("attn_dim", 128),
         use_split_loss=config.get("use_split_loss", True),
         lambda_presence=config.get("lambda_presence", 1.0),
         lambda_sentiment=config.get("lambda_sentiment", 1.0),
         presence_threshold=config.get("presence_threshold", 0.5),
+        rare_aspect_ids=rare_aspect_ids,
+        rare_presence_pos_mult=float(config.get("rare_presence_pos_mult", 1.0)),
+        rare_sentiment_mult=float(config.get("rare_sentiment_mult", 1.0)),
     ).to(device)
 
 
@@ -122,6 +133,7 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
             class_weights,
             device,
             thresholds=config.get("presence_threshold_grid"),
+            mode=config.get("presence_threshold_mode", "per_aspect"),
         )
 
     dev_metrics, _, _ = predict_and_evaluate(
