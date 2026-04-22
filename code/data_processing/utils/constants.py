@@ -105,18 +105,23 @@ DEFAULT_ENCODER = "concat_4_layers"
 
 
 TRAIN_CONFIG = {
-    "learning_rate":           1e-4,
-    "warmup_ratio":            0.15,
+    "encoder_lr": 2e-5,
+    "classifier_lr": 1e-4,
+    "weight_decay": 0.01,
+    "lr_layer_decay": 0.95,
+    "wramup_ratio": 0.1,
     "batch_size":              16,
-    "grad_accumulation_steps": 1,
-    "max_epochs":              20,
-    "early_stop_patience":     7,
-    "dropout":                 0.2,
-    "optimizer":               "Adam",
+    "grad_accumulation_steps": 2,
+    "max_epochs":              30,
+    "early_stop_patience":     10,
+    "dropout":                 0.3,
+    "label_smoothing": 0.1,
+    "optimizer":               "AdamW",
     "scheduler":               "cosine_warmup",
     "seed":                    42,
-    "max_seq_len":             256,
-    "weight_clip":             10.0,
-    "encoder_option":          "cls_only",
+    "max_seq_len":             384,
+    "weight_clip":             15.0,
+    "encoder_option":          "concat_4_layers",
     "max_grad_norm":           1.0,
+    "learning_rate": 2e-5
 }

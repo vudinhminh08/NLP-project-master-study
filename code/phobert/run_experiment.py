@@ -85,6 +85,7 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
         model_name=PHOBERT_MODEL_NAME,
         dropout=config["dropout"],
         encoder_option=encoder_option,
+        label_smoothing=config.get("label_smoothing",0.0),
     ).to(device)
 
 

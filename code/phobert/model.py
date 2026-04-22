@@ -13,15 +13,17 @@ class ABSAPhoBERT(nn.Module):
         model_name: str = "vinai/phobert-base-v2",
         num_aspects: int = 34,
         num_labels: int = 4,
-        dropout: float = 0.2,
+        dropout: float = 0.3,
         encoder_option: str = "concat_4_layers",
         focal_gamma: float = 2.0,
+        label_smoothing: float = 0.0,
     ) -> None:
         super().__init__()
         self.encoder_option = encoder_option
         self.num_aspects    = num_aspects
         self.focal_gamma    = focal_gamma
         self.num_labels     = num_labels
+        self.label_smoothing = label_smoothing
 
 
         self.phobert = AutoModel.from_pretrained(
@@ -106,17 +108,23 @@ class ABSAPhoBERT(nn.Module):
                 log_probs = F.log_softmax(logit, dim=-1)
 
 
-                log_p_true = log_probs.gather(1, lbl.unsqueeze(1)).squeeze(1)
-                p_true     = log_p_true.exp()
+                
+                if self.label_smoothing > 0:
+                    n_cls = logit.size(-1)
+                    smooth = torch.full_like(log_probs, self.label_smoothing / (n_cls -1))
+                    smooth.scatter_(1, lbl.unsqueeze(1), 1.0 - self.label_smoothing)
+                    
+                    ce_per_sample = -(smooth * log_probs).sum(dim=-1)
+                    
+                    log_p_true = log_probs.gather(1, lbl.unsqueeze(1)).squeeze(1)
+                    p_true     = log_p_true.exp()
+                else:
+                    log_p_true = log_probs.gather(1, lbl.unsqueeze(1)).squeeze(1)
+                    p_true     = log_p_true.exp()
+                    ce_per_sample = -log_p_true
 
 
                 focal_factor = (1.0 - p_true.detach()) ** self.focal_gamma
-
-
-                ce_per_sample = -log_p_true
-
-
-
 
                 if class_weights is not None:
                     sample_w = class_weights[i][lbl]

@@ -1,4 +1,3 @@
-
 import os
 import sys
 import json
@@ -7,13 +6,14 @@ from typing import Optional
 
 import torch
 import numpy as np
-from torch.optim import Adam
+from torch.optim import AdamW
 from transformers import get_cosine_schedule_with_warmup
 from tqdm import tqdm
 
 
 try:
     from torch.cuda.amp import autocast, GradScaler
+
     AMP_AVAILABLE = True
 except ImportError:
     AMP_AVAILABLE = False
@@ -23,6 +23,69 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "data_processin
 from utils.constants import ASPECT_COLUMNS, ZERO_TRAIN_ASPECTS
 from utils.helpers import set_seed, save_json, load_json
 from step4_eval import evaluate_predictions
+
+
+def get_optimiser_grouped_params(model, config: dict) -> list:
+    encoder_lr = config.get("encoder_lr", 2e-5)
+    classifier_lr = config.get("classifier_lr", 1e-4)
+    weight_decay = config.get("weight_decay", 0.01)
+    layer_decay = config.get("lr_layer_decay", 0.95)
+
+    no_decay = ("bias", "LayerNorm.weight", "LayerNorm. bias")
+    embed_params_decay = []
+    embed_params_no_decay = []
+    for n, p in model.phobert.embeddings.named_parameters():
+        if not p.requires_grad:
+            continue
+        if any(nd in n for nd in no_decay):
+            embed_params_no_decay.append(p)
+        else:
+            embed_params_decay.append(p)
+    num_layers = len(model.phobert.encoder.layer)
+    embed_lr = encoder_lr * (layer_decay**num_layers)
+
+    groups = (
+        [
+            {
+                "params": embed_params_decay,
+                "lr": embed_lr,
+                "weight_decay": weight_decay,
+            },
+            {"params": embed_params_no_decay, "lr": embed_lr, "weight_decay": 0.0},
+        ],
+    )
+    for i, layer in enumerate(model.phobert.encoder.layer):
+        lr_i = encoder_lr * (layer_decay ** (num_layers - 1 - i))
+        layer_decay_params = []
+        layer_no_decay_params = []
+        for n, p in layer.named_parameters():
+            if not p.requires_grad:
+                continue
+            if any(nd in n for nd in no_decay):
+                layer_no_decay_params.append(p)
+            else:
+                layer_decay_params.append(p)
+        groups.append(
+            {"params": layer_decay_params, "lr": lr_i, "weight_decay": weight_decay}
+        )
+        groups.append(
+            {"params": layer_no_decay_params, "lr": lr_i, "weight_decay": 0.0}
+        )
+    clf_decay = []
+    clf_no_decay = []
+    for n, p in model.classifiers.named_parameters:
+        if not p.requires_grad:
+            continue
+        if any(nd in n for nd in no_decay):
+            clf_no_decay.append(p)
+        else:
+            clf_decay.append(p)
+    groups.append(
+        {"params": clf_decay, "lr": classifier_lr, "weight_decay": weight_decay}
+    )
+    groups.append({"params": clf_no_decay, "lr": classifier_lr, "weight_decay": 0.0})
+    groups = [g for g in groups if len(g["params"]) > 0]
+    return groups
 
 
 def load_class_weights(
@@ -48,8 +111,10 @@ def load_class_weights(
             w.append(clipped)
         weights_list.append(torch.tensor(w, dtype=torch.float32, device=device))
 
-    print(f"[Weights] {len(weights_list)} aspects loaded, "
-          f"{clipped_count} weight values clipped at {weight_clip}")
+    print(
+        f"[Weights] {len(weights_list)} aspects loaded, "
+        f"{clipped_count} weight values clipped at {weight_clip}"
+    )
     return weights_list
 
 
@@ -66,10 +131,9 @@ def run_epoch(
     scaler=None,
 ) -> tuple:
     model.train() if is_train else model.eval()
-    total_loss  = 0.0
-    all_preds:  list = []
+    total_loss = 0.0
+    all_preds: list = []
     all_labels: list = []
-
 
     weights_on_device = [w.to(device) for w in class_weights]
 
@@ -83,29 +147,29 @@ def run_epoch(
             optimizer.zero_grad()
 
         for step, batch in enumerate(tqdm(dataloader, desc=desc, leave=False)):
-            input_ids      = batch["input_ids"].to(device)
+            input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
-            labels         = batch["labels"].to(device)
-
+            labels = batch["labels"].to(device)
 
             if use_amp and AMP_AVAILABLE:
                 with autocast():
                     out = model(
-                        input_ids, attention_mask,
+                        input_ids,
+                        attention_mask,
                         labels=labels,
                         class_weights=weights_on_device,
                     )
                     loss = out["loss"]
             else:
                 out = model(
-                    input_ids, attention_mask,
+                    input_ids,
+                    attention_mask,
                     labels=labels,
                     class_weights=weights_on_device,
                 )
                 loss = out["loss"]
 
             total_loss += loss.item()
-
 
             if is_train:
                 scaled_loss = loss / grad_accum
@@ -114,7 +178,6 @@ def run_epoch(
                     scaler.scale(scaled_loss).backward()
                 else:
                     scaled_loss.backward()
-
 
                 is_last_batch = (step + 1) == n_batches
                 if (step + 1) % grad_accum == 0 or is_last_batch:
@@ -158,78 +221,86 @@ def train(
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
-
-    optimizer = Adam(
-        model.parameters(),
-        lr=config["learning_rate"],
+    param_groups = get_optimiser_grouped_params(model, config)
+    optimizer = AdamW(
+        param_groups,
         eps=1e-8,
     )
 
-    total_steps   = len(train_loader) * config["max_epochs"]
-    warmup_steps  = int(total_steps * config["warmup_ratio"])
+    total_steps = (len(train_loader)// config["grad_accumulation_steps"]) * config["max_epochs"]
+    warmup_steps = int(total_steps * config["warmup_ratio"])
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
         num_warmup_steps=warmup_steps,
         num_training_steps=total_steps,
     )
 
-
-    scaler = GradScaler() if (use_amp and AMP_AVAILABLE and device.type == "cuda") else None
+    scaler = (
+        GradScaler() if (use_amp and AMP_AVAILABLE and device.type == "cuda") else None
+    )
     amp_active = scaler is not None
-
 
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\n[Model] {n_params:,} trainable parameters")
     print(f"[Scheduler] Total={total_steps} optimizer steps, Warmup={warmup_steps}")
-    print(f"[LR] Adam lr={config['learning_rate']:.2e}, scheduler=cosine_warmup")
+    # print(f"[LR] AdamW encoder_lr={config.get('encoder_lr',)} lr={config['learning_rate']:.2e}, scheduler=cosine_warmup")
     print(f"[AMP] Mixed precision: {'ON' if amp_active else 'OFF'}")
-    print(f"[Config] encoder={config.get('encoder_option')}, "
-          f"seq_len={config.get('max_seq_len')}, "
-          f"batch={config['batch_size']}×{config['grad_accumulation_steps']}="
-          f"{config['batch_size']*config['grad_accumulation_steps']} (effective)")
-
+    print(
+        f"[Config] encoder={config.get('encoder_option')}, "
+        f"seq_len={config.get('max_seq_len')}, "
+        f"batch={config['batch_size']}×{config['grad_accumulation_steps']}="
+        f"{config['batch_size']*config['grad_accumulation_steps']} (effective)"
+    )
 
     history = {
-        "train_loss":       [],
-        "dev_loss":         [],
-        "dev_acd_f1":       [],
-        "dev_spc_f1":       [],
-        "dev_combined_f1":  [],
-        "best_epoch":       0,
-        "best_dev_loss":    float("inf"),
+        "train_loss": [],
+        "dev_loss": [],
+        "dev_acd_f1": [],
+        "dev_spc_f1": [],
+        "dev_combined_f1": [],
+        "best_epoch": 0,
+        "best_dev_loss": float("inf"),
         "best_combined_f1": 0.0,
-        "config":           config,
-        "use_amp":          amp_active,
+        "config": config,
+        "use_amp": amp_active,
     }
-    best_loss = float("inf")
-    patience  = 0
+    best_combined = 0.0
+    patience = 0
 
     for epoch in range(1, config["max_epochs"] + 1):
         t0 = time.time()
         print(f"\n{'─'*60}\nEpoch {epoch}/{config['max_epochs']}")
 
-
         train_loss, _, _ = run_epoch(
-            model, train_loader, device, class_weights,
-            optimizer=optimizer, scheduler=scheduler,
+            model,
+            train_loader,
+            device,
+            class_weights,
+            optimizer=optimizer,
+            scheduler=scheduler,
             grad_accum=config["grad_accumulation_steps"],
             is_train=True,
-            use_amp=amp_active, scaler=scaler,
+            use_amp=amp_active,
+            scaler=scaler,
         )
-
 
         dev_loss, y_true, y_pred = run_epoch(
-            model, dev_loader, device, class_weights,
+            model,
+            dev_loader,
+            device,
+            class_weights,
             is_train=False,
-            use_amp=amp_active, scaler=None,
+            use_amp=amp_active,
+            scaler=None,
         )
-        metrics  = evaluate_predictions(
-            y_true, y_pred,
+        metrics = evaluate_predictions(
+            y_true,
+            y_pred,
             title=f"Dev — Epoch {epoch}",
             exclude_aspects=ZERO_TRAIN_ASPECTS,
         )
         combined = metrics["macro_combined_f1"]
-        elapsed  = time.time() - t0
+        elapsed = time.time() - t0
 
         print(
             f"  Train Loss: {train_loss:.4f} | Dev Loss: {dev_loss:.4f} | "
@@ -238,50 +309,47 @@ def train(
             f"Combined: {combined:.4f} | {elapsed:.0f}s"
         )
 
-
         history["train_loss"].append(train_loss)
         history["dev_loss"].append(dev_loss)
         history["dev_acd_f1"].append(metrics["macro_acd_f1"])
         history["dev_spc_f1"].append(metrics["macro_spc_f1"])
         history["dev_combined_f1"].append(combined)
 
-
-        if dev_loss < best_loss:
-            best_loss = dev_loss
-            history["best_epoch"]       = epoch
-            history["best_dev_loss"]    = best_loss
+        if combined > history["best_combined_f1"]:
+            history["best_epoch"] = epoch
+            history["best_dev_loss"] = dev_loss
             history["best_combined_f1"] = combined
             ckpt = {
-                "epoch":            epoch,
+                "epoch": epoch,
                 "model_state_dict": model.state_dict(),
-                "dev_loss":         dev_loss,
-                "combined_f1":      combined,
-                "acd_f1":           metrics["macro_acd_f1"],
-                "spc_f1":           metrics["macro_spc_f1"],
-                "config":           config,
+                "dev_loss": dev_loss,
+                "combined_f1": combined,
+                "acd_f1": metrics["macro_acd_f1"],
+                "spc_f1": metrics["macro_spc_f1"],
+                "config": config,
             }
             torch.save(ckpt, os.path.join(save_dir, "best_model.pt"))
-            print(f"  Best model saved (dev_loss={best_loss:.4f}, combined_f1={combined:.4f})")
+            print(
+                f"  Best model saved (combined_f1={combined:.4f}, dev_loss={dev_loss:.4f})"
+            )
             patience = 0
         else:
             patience += 1
             print(f"  No improvement [{patience}/{config['early_stop_patience']}]")
 
-
         save_json(history, os.path.join(results_dir, "training_history.json"))
-
 
         if patience >= config["early_stop_patience"]:
             print(
                 f"\nEarly stopping tại epoch {epoch}. "
                 f"Best: epoch={history['best_epoch']}, "
-                f"dev_loss={best_loss:.4f}, Combined F1={history['best_combined_f1']:.4f}"
+                f"Combined F1={history['best_combined_f1']:.4f}"
             )
             break
 
     print(
         f"\nTraining xong. "
-        f"Best dev_loss={best_loss:.4f}, Combined F1={history['best_combined_f1']:.4f}"
+        f" Combined F1={history['best_combined_f1']:.4f}"
         f" @ epoch {history['best_epoch']}"
     )
     return history
