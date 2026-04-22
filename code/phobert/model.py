@@ -149,7 +149,9 @@ class ABSAPhoBERT(nn.Module):
 
                 loss_acd = None
                 loss_spc = None
+                loss = None
 
+                if labels is not None:
                     acd_targets = (labels > 0).float()
                     spc_targets = (labels - 1).clamp(min=0, max=2)
 
