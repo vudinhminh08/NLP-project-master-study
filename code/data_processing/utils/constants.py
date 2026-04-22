@@ -116,6 +116,7 @@ TRAIN_CONFIG = {
     "scheduler":               "cosine_warmup",
     "seed":                    42,
     "max_seq_len":             256,
+    "head_lr_mult":            5.0,
     "weight_clip":             10.0,
     "encoder_option":          "cls_only",
     "max_grad_norm":           1.0,

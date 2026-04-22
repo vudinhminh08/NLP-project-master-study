@@ -159,11 +159,14 @@ def train(
     os.makedirs(results_dir, exist_ok=True)
 
 
-    optimizer = Adam(
-        model.parameters(),
-        lr=config["learning_rate"],
-        eps=1e-8,
-    )
+    base_lr = config["learning_rate"]
+    head_mult = float(config.get("head_lr_mult", 5.0))
+
+    # Parameter groups: encoder (phobert) with base lr, head (classifiers) with higher lr
+    optimizer = Adam([
+        {"params": model.phobert.parameters(), "lr": base_lr},
+        {"params": model.classifiers.parameters(), "lr": base_lr * head_mult},
+    ], eps=1e-8)
 
     total_steps   = len(train_loader) * config["max_epochs"]
     warmup_steps  = int(total_steps * config["warmup_ratio"])
