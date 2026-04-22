@@ -13,7 +13,8 @@ from tqdm import tqdm
 
 
 try:
-    from torch.cuda.amp import autocast, GradScaler
+    from torch.amp import autocast
+    from torch.cuda.amp import GradScaler
     AMP_AVAILABLE = True
 except ImportError:
     AMP_AVAILABLE = False
@@ -91,7 +92,7 @@ def run_epoch(
 
 
             if use_amp and AMP_AVAILABLE:
-                with autocast():
+                with autocast("cuda"):
                     out = model(
                         input_ids, attention_mask,
                         labels=labels,

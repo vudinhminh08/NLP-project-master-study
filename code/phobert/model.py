@@ -115,7 +115,7 @@ class ABSAPhoBERT(nn.Module):
             N_DROPOUT = 5
             for _ in range(N_DROPOUT):
                 dropped = self.dropout(cls_repr)
-                shared = torch.gelu(self.shared_layer(dropped))
+                shared = F.gelu(self.shared_layer(dropped))
                 shared = self.dropout(shared)
 
                 if self.num_entities > 0:
