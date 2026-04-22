@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import time
+import heapq
 from typing import Optional
 
 import torch
@@ -198,11 +199,15 @@ def train(
         "best_epoch":       0,
         "best_dev_loss":    float("inf"),
         "best_combined_f1": 0.0,
+        "best_metric":      "macro_combined_f1",
         "config":           config,
         "use_amp":          amp_active,
     }
+    best_combined = -float("inf")
     best_loss = float("inf")
     patience  = 0
+    top_k = []
+    top_k_size = int(config.get("top_k_checkpoints", 3))
 
     for epoch in range(1, config["max_epochs"] + 1):
         t0 = time.time()
@@ -245,23 +250,53 @@ def train(
         history["dev_spc_f1"].append(metrics["macro_spc_f1"])
         history["dev_combined_f1"].append(combined)
 
+        ckpt = {
+            "epoch":            epoch,
+            "model_state_dict": model.state_dict(),
+            "dev_loss":         dev_loss,
+            "combined_f1":      combined,
+            "acd_f1":           metrics["macro_acd_f1"],
+            "spc_f1":           metrics["macro_spc_f1"],
+            "config":           config,
+        }
+        ckpt_name = f"checkpoint_epoch_{epoch:03d}.pt"
+        ckpt_path = os.path.join(save_dir, ckpt_name)
+        torch.save(ckpt, ckpt_path)
 
-        if dev_loss < best_loss:
+        ckpt_meta = {
+            "epoch": epoch,
+            "path": ckpt_path,
+            "filename": ckpt_name,
+            "combined_f1": combined,
+            "acd_f1": metrics["macro_acd_f1"],
+            "spc_f1": metrics["macro_spc_f1"],
+            "dev_loss": dev_loss,
+        }
+        heapq.heappush(top_k, (combined, epoch, ckpt_path, ckpt_meta))
+        while len(top_k) > top_k_size:
+            _, _, stale_path, _ = heapq.heappop(top_k)
+            if os.path.exists(stale_path):
+                os.remove(stale_path)
+
+        top_k_sorted = [
+            item[3] for item in sorted(top_k, key=lambda x: (x[0], x[1]), reverse=True)
+        ]
+        save_json(
+            {"metric": "macro_combined_f1", "top_k": top_k_sorted},
+            os.path.join(save_dir, "top_k_checkpoints.json"),
+        )
+
+        if combined > best_combined:
+            best_combined = combined
             best_loss = dev_loss
             history["best_epoch"]       = epoch
             history["best_dev_loss"]    = best_loss
             history["best_combined_f1"] = combined
-            ckpt = {
-                "epoch":            epoch,
-                "model_state_dict": model.state_dict(),
-                "dev_loss":         dev_loss,
-                "combined_f1":      combined,
-                "acd_f1":           metrics["macro_acd_f1"],
-                "spc_f1":           metrics["macro_spc_f1"],
-                "config":           config,
-            }
             torch.save(ckpt, os.path.join(save_dir, "best_model.pt"))
-            print(f"  Best model saved (dev_loss={best_loss:.4f}, combined_f1={combined:.4f})")
+            print(
+                f"  Best model saved "
+                f"(combined_f1={combined:.4f}, dev_loss={best_loss:.4f})"
+            )
             patience = 0
         else:
             patience += 1

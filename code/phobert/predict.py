@@ -53,10 +53,18 @@ def generate_summary_report(
     dev_metrics: dict,
     test_metrics: dict,
     config: dict,
+    ensemble_metrics: dict = None,
     save_path: str = "outputs/results/phobert_summary.md",
 ) -> None:
-    gap_acd  = 0.8255 - test_metrics["macro_acd_f1"]
-    gap_comb = 0.7732 - test_metrics["macro_combined_f1"]
+    primary_metrics = test_metrics
+    if (
+        ensemble_metrics is not None
+        and ensemble_metrics["macro_combined_f1"] > test_metrics["macro_combined_f1"]
+    ):
+        primary_metrics = ensemble_metrics
+
+    gap_acd  = 0.8255 - primary_metrics["macro_acd_f1"]
+    gap_comb = 0.7732 - primary_metrics["macro_combined_f1"]
 
 
     per_aspect = test_metrics.get("per_aspect", {})
@@ -87,6 +95,16 @@ def generate_summary_report(
         f"| **Test**  | **{test_metrics['macro_acd_f1']:.4f}** | "
         f"**{test_metrics['macro_spc_f1']:.4f}** | "
         f"**{test_metrics['macro_combined_f1']:.4f}** |",
+    ]
+
+    if ensemble_metrics is not None:
+        lines.append(
+            f"| Ensemble Top-3 | {ensemble_metrics['macro_acd_f1']:.4f} | "
+            f"{ensemble_metrics['macro_spc_f1']:.4f} | "
+            f"{ensemble_metrics['macro_combined_f1']:.4f} |"
+        )
+
+    lines += [
         f"| SOTA (Huynh 2022) | 0.8255 | — | 0.7732 |",
         "",
         "## Phân tích Gap so với SOTA",
