@@ -3,11 +3,12 @@ import os
 import sys
 import json
 import time
+import math
 from typing import Optional
 
 import torch
 import numpy as np
-from torch.optim import Adam
+from torch.optim import AdamW
 from transformers import get_cosine_schedule_with_warmup
 from tqdm import tqdm
 
@@ -159,13 +160,37 @@ def train(
     os.makedirs(results_dir, exist_ok=True)
 
 
-    optimizer = Adam(
-        model.parameters(),
-        lr=config["learning_rate"],
-        eps=1e-8,
-    )
+    encoder_lr = config.get("encoder_learning_rate", config["learning_rate"])
+    head_lr = config.get("head_learning_rate", config["learning_rate"])
+    weight_decay = config.get("weight_decay", 0.01)
+    use_separate_lrs = hasattr(model, "phobert") and hasattr(model, "classifiers")
 
-    total_steps   = len(train_loader) * config["max_epochs"]
+    if use_separate_lrs:
+        optimizer_grouped_parameters = [
+            {
+                "params": model.phobert.parameters(),
+                "lr": encoder_lr,
+                "weight_decay": weight_decay,
+            },
+            {
+                "params": model.classifiers.parameters(),
+                "lr": head_lr,
+                "weight_decay": weight_decay,
+            },
+        ]
+        optimizer = AdamW(optimizer_grouped_parameters, eps=1e-8)
+    else:
+        optimizer = AdamW(
+            model.parameters(),
+            lr=config["learning_rate"],
+            eps=1e-8,
+            weight_decay=weight_decay,
+        )
+
+    update_steps_per_epoch = math.ceil(
+        len(train_loader) / max(1, config["grad_accumulation_steps"])
+    )
+    total_steps   = update_steps_per_epoch * config["max_epochs"]
     warmup_steps  = int(total_steps * config["warmup_ratio"])
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
@@ -181,12 +206,29 @@ def train(
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\n[Model] {n_params:,} trainable parameters")
     print(f"[Scheduler] Total={total_steps} optimizer steps, Warmup={warmup_steps}")
-    print(f"[LR] Adam lr={config['learning_rate']:.2e}, scheduler=cosine_warmup")
+    if use_separate_lrs:
+        print(
+            f"[LR] AdamW encoder_lr={encoder_lr:.2e}, "
+            f"head_lr={head_lr:.2e}, wd={weight_decay}, scheduler=cosine_warmup"
+        )
+    else:
+        print(
+            f"[LR] AdamW lr={config['learning_rate']:.2e}, "
+            f"wd={weight_decay}, scheduler=cosine_warmup"
+        )
     print(f"[AMP] Mixed precision: {'ON' if amp_active else 'OFF'}")
     print(f"[Config] encoder={config.get('encoder_option')}, "
           f"seq_len={config.get('max_seq_len')}, "
           f"batch={config['batch_size']}×{config['grad_accumulation_steps']}="
           f"{config['batch_size']*config['grad_accumulation_steps']} (effective)")
+
+    selection_metric = config.get("selection_metric", "combined_f1")
+    if selection_metric not in {"combined_f1", "dev_loss"}:
+        raise ValueError(
+            f"selection_metric={selection_metric} không hợp lệ. "
+            "Chỉ hỗ trợ: combined_f1, dev_loss"
+        )
+    print(f"[Model Selection] best checkpoint theo: {selection_metric}")
 
 
     history = {
@@ -201,7 +243,7 @@ def train(
         "config":           config,
         "use_amp":          amp_active,
     }
-    best_loss = float("inf")
+    best_score = -float("inf") if selection_metric == "combined_f1" else float("inf")
     patience  = 0
 
     for epoch in range(1, config["max_epochs"] + 1):
@@ -246,10 +288,17 @@ def train(
         history["dev_combined_f1"].append(combined)
 
 
-        if dev_loss < best_loss:
-            best_loss = dev_loss
+        current_score = combined if selection_metric == "combined_f1" else dev_loss
+        is_better = (
+            current_score > best_score
+            if selection_metric == "combined_f1"
+            else current_score < best_score
+        )
+
+        if is_better:
+            best_score = current_score
             history["best_epoch"]       = epoch
-            history["best_dev_loss"]    = best_loss
+            history["best_dev_loss"]    = dev_loss
             history["best_combined_f1"] = combined
             ckpt = {
                 "epoch":            epoch,
@@ -258,10 +307,15 @@ def train(
                 "combined_f1":      combined,
                 "acd_f1":           metrics["macro_acd_f1"],
                 "spc_f1":           metrics["macro_spc_f1"],
+                "selection_metric": selection_metric,
+                "selection_score":  current_score,
                 "config":           config,
             }
             torch.save(ckpt, os.path.join(save_dir, "best_model.pt"))
-            print(f"  Best model saved (dev_loss={best_loss:.4f}, combined_f1={combined:.4f})")
+            print(
+                f"  Best model saved (dev_loss={dev_loss:.4f}, combined_f1={combined:.4f}, "
+                f"{selection_metric}={current_score:.4f})"
+            )
             patience = 0
         else:
             patience += 1
@@ -275,13 +329,13 @@ def train(
             print(
                 f"\nEarly stopping tại epoch {epoch}. "
                 f"Best: epoch={history['best_epoch']}, "
-                f"dev_loss={best_loss:.4f}, Combined F1={history['best_combined_f1']:.4f}"
+                f"dev_loss={history['best_dev_loss']:.4f}, Combined F1={history['best_combined_f1']:.4f}"
             )
             break
 
     print(
         f"\nTraining xong. "
-        f"Best dev_loss={best_loss:.4f}, Combined F1={history['best_combined_f1']:.4f}"
+        f"Best dev_loss={history['best_dev_loss']:.4f}, Combined F1={history['best_combined_f1']:.4f}"
         f" @ epoch {history['best_epoch']}"
     )
     return history

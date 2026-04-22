@@ -16,11 +16,13 @@ class ABSAPhoBERT(nn.Module):
         dropout: float = 0.2,
         encoder_option: str = "concat_4_layers",
         focal_gamma: float = 2.0,
+        focal_detach: bool = False,
     ) -> None:
         super().__init__()
         self.encoder_option = encoder_option
         self.num_aspects    = num_aspects
         self.focal_gamma    = focal_gamma
+        self.focal_detach   = focal_detach
         self.num_labels     = num_labels
 
 
@@ -110,7 +112,8 @@ class ABSAPhoBERT(nn.Module):
                 p_true     = log_p_true.exp()
 
 
-                focal_factor = (1.0 - p_true.detach()) ** self.focal_gamma
+                p_for_focal = p_true.detach() if self.focal_detach else p_true
+                focal_factor = (1.0 - p_for_focal) ** self.focal_gamma
 
 
                 ce_per_sample = -log_p_true
