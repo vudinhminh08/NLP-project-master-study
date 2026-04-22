@@ -14,7 +14,12 @@ from transformers import AutoTokenizer
 
 from model import ABSAPhoBERT
 from train import train, load_class_weights
-from predict import load_best_model, predict_and_evaluate, generate_summary_report
+from predict import (
+    load_best_model,
+    predict_and_evaluate,
+    generate_summary_report,
+    tune_presence_threshold,
+)
 
 
 def main(encoder_option: str = None, use_amp: bool = True) -> dict:
@@ -77,6 +82,7 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
         "outputs/eda/class_weights.json",
         weight_clip=config["weight_clip"],
         device=torch.device("cpu"),
+        rare_mult=config.get("rare_aspect_mult", 1.0),
     )
 
 
@@ -85,6 +91,11 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
         model_name=PHOBERT_MODEL_NAME,
         dropout=config["dropout"],
         encoder_option=encoder_option,
+        attn_dim=config.get("attn_dim", 128),
+        use_split_loss=config.get("use_split_loss", True),
+        lambda_presence=config.get("lambda_presence", 1.0),
+        lambda_sentiment=config.get("lambda_sentiment", 1.0),
+        presence_threshold=config.get("presence_threshold", 0.5),
     ).to(device)
 
 
@@ -103,6 +114,15 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
 
 
     model = load_best_model(f"{save_dir}/best_model.pt", model, device)
+
+    if config.get("tune_presence_threshold", True):
+        tune_presence_threshold(
+            model,
+            dev_loader,
+            class_weights,
+            device,
+            thresholds=config.get("presence_threshold_grid"),
+        )
 
     dev_metrics, _, _ = predict_and_evaluate(
         model, dev_loader, class_weights, device,

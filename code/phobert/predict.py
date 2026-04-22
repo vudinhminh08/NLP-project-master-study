@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "data_processin
 
 from utils.constants import ZERO_TRAIN_ASPECTS, RARE_ASPECTS
 from utils.helpers import save_json, load_json
-from step4_eval import evaluate_predictions
+from step4_eval import evaluate_predictions, compute_aspect_f1
 from train import run_epoch
 
 def load_best_model(
@@ -46,6 +46,49 @@ def predict_and_evaluate(
         save_path=save_path,
     )
     return metrics, y_true, y_pred
+
+
+def tune_presence_threshold(
+    model: torch.nn.Module,
+    dataloader: torch.utils.data.DataLoader,
+    class_weights: list,
+    device: torch.device,
+    thresholds: Optional[list] = None,
+    exclude_aspects: Optional[list] = None,
+) -> tuple:
+    if not hasattr(model, "presence_threshold"):
+        return None, None
+
+    if thresholds is None:
+        thresholds = [0.35, 0.4, 0.45, 0.5, 0.55, 0.6]
+    if exclude_aspects is None:
+        exclude_aspects = ZERO_TRAIN_ASPECTS
+
+    original = float(model.presence_threshold)
+    best_thr = original
+    best_score = -1.0
+
+    for thr in thresholds:
+        model.presence_threshold = float(thr)
+        _, y_true, y_pred = run_epoch(
+            model, dataloader, device, class_weights, is_train=False
+        )
+        metrics = compute_aspect_f1(
+            y_true,
+            y_pred,
+            exclude_aspects=exclude_aspects,
+        )
+        combined = metrics["macro_combined_f1"]
+        if combined > best_score:
+            best_score = combined
+            best_thr = float(thr)
+
+    model.presence_threshold = best_thr
+    print(
+        f"[Tune] Best presence_threshold on dev: {best_thr:.2f} "
+        f"(Combined F1={best_score:.4f})"
+    )
+    return best_thr, best_score
 
 
 def generate_summary_report(
