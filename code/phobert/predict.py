@@ -54,6 +54,7 @@ def generate_summary_report(
     test_metrics: dict,
     config: dict,
     save_path: str = "outputs/results/phobert_summary.md",
+    ensemble_metrics: dict = None,
 ) -> None:
     gap_acd  = 0.8255 - test_metrics["macro_acd_f1"]
     gap_comb = 0.7732 - test_metrics["macro_combined_f1"]
@@ -84,15 +85,28 @@ def generate_summary_report(
         f"| Dev   | {dev_metrics['macro_acd_f1']:.4f} | "
         f"{dev_metrics['macro_spc_f1']:.4f} | "
         f"{dev_metrics['macro_combined_f1']:.4f} |",
-        f"| **Test**  | **{test_metrics['macro_acd_f1']:.4f}** | "
+        f"| **Test (single)** | **{test_metrics['macro_acd_f1']:.4f}** | "
         f"**{test_metrics['macro_spc_f1']:.4f}** | "
         f"**{test_metrics['macro_combined_f1']:.4f}** |",
-        f"| SOTA (Huynh 2022) | 0.8255 | — | 0.7732 |",
+    ]
+    if ensemble_metrics:
+        gap_ens = 0.7732 - ensemble_metrics["macro_combined_f1"]
+        lines.append(
+            f"| **Test (ensemble)** | **{ensemble_metrics['macro_acd_f1']:.4f}** | "
+            f"**{ensemble_metrics['macro_spc_f1']:.4f}** | "
+            f"**{ensemble_metrics['macro_combined_f1']:.4f}** |"
+        )
+    lines += [
+        f"| SOTA (ds4v 2022)  | 0.8255 | — | 0.7732 |",
         "",
         "## Phân tích Gap so với SOTA",
         "",
-        f"- **ACD F1 gap:** {gap_acd:.4f} ({gap_acd * 100:.1f}%)",
-        f"- **Combined F1 gap:** {gap_comb:.4f} ({gap_comb * 100:.1f}%)",
+        f"- **ACD F1 gap (single):**    {gap_acd:.4f} ({gap_acd * 100:.1f}%)",
+        f"- **Combined F1 gap (single):** {gap_comb:.4f} ({gap_comb * 100:.1f}%)",
+    ]
+    if ensemble_metrics:
+        lines.append(f"- **Combined F1 gap (ensemble):** {gap_ens:.4f} ({gap_ens * 100:.1f}%)")
+    lines += [
         "",
         "### Nguyên nhân gap (phân tích):",
         "1. **underthesea vs VnCoreNLP:** Dùng underthesea làm fallback → ~1-2% F1 loss",

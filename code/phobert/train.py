@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import time
+import heapq
 from typing import Optional
 
 import torch
@@ -189,6 +190,10 @@ def train(
           f"{config['batch_size']*config['grad_accumulation_steps']} (effective)")
 
 
+    # top_k_checkpoints: min-heap of (combined_f1, epoch) — giữ top-3 cho ensemble
+    top_k = config.get("ensemble_top_k", 3)
+    top_k_heap: list = []   # min-heap: (f1, epoch)
+
     history = {
         "train_loss":       [],
         "dev_loss":         [],
@@ -198,11 +203,12 @@ def train(
         "best_epoch":       0,
         "best_dev_loss":    float("inf"),
         "best_combined_f1": 0.0,
+        "top_k_epochs":     [],
         "config":           config,
         "use_amp":          amp_active,
     }
-    best_loss = float("inf")
-    patience  = 0
+    best_combined = 0.0
+    patience      = 0
 
     for epoch in range(1, config["max_epochs"] + 1):
         t0 = time.time()
@@ -246,42 +252,65 @@ def train(
         history["dev_combined_f1"].append(combined)
 
 
-        if dev_loss < best_loss:
-            best_loss = dev_loss
+        # ── Checkpoint: dùng Combined F1 làm criterion (thay vì dev_loss) ──
+        ckpt = {
+            "epoch":            epoch,
+            "model_state_dict": model.state_dict(),
+            "dev_loss":         dev_loss,
+            "combined_f1":      combined,
+            "acd_f1":           metrics["macro_acd_f1"],
+            "spc_f1":           metrics["macro_spc_f1"],
+            "config":           config,
+        }
+
+        # Lưu best_model.pt khi Combined F1 tăng
+        if combined > best_combined:
+            best_combined = combined
             history["best_epoch"]       = epoch
-            history["best_dev_loss"]    = best_loss
-            history["best_combined_f1"] = combined
-            ckpt = {
-                "epoch":            epoch,
-                "model_state_dict": model.state_dict(),
-                "dev_loss":         dev_loss,
-                "combined_f1":      combined,
-                "acd_f1":           metrics["macro_acd_f1"],
-                "spc_f1":           metrics["macro_spc_f1"],
-                "config":           config,
-            }
+            history["best_dev_loss"]    = dev_loss
+            history["best_combined_f1"] = best_combined
             torch.save(ckpt, os.path.join(save_dir, "best_model.pt"))
-            print(f"  Best model saved (dev_loss={best_loss:.4f}, combined_f1={combined:.4f})")
+            print(f"  ✓ Best model saved (combined_f1={best_combined:.4f}, dev_loss={dev_loss:.4f})")
             patience = 0
         else:
             patience += 1
-            print(f"  No improvement [{patience}/{config['early_stop_patience']}]")
+            print(f"  No improvement [{patience}/{config['early_stop_patience']}]"
+                  f" (best combined_f1={best_combined:.4f})")
 
+        # ── Top-k checkpoint cho ensemble ──
+        ckpt_path = os.path.join(save_dir, f"ckpt_epoch{epoch:02d}.pt")
+        torch.save(ckpt, ckpt_path)
 
+        if len(top_k_heap) < top_k:
+            heapq.heappush(top_k_heap, (combined, epoch, ckpt_path))
+        elif combined > top_k_heap[0][0]:
+            # Xoá checkpoint bị đẩy ra khỏi top-k
+            _, _, evicted_path = heapq.heapreplace(top_k_heap, (combined, epoch, ckpt_path))
+            if os.path.exists(evicted_path) and evicted_path != os.path.join(save_dir, "best_model.pt"):
+                os.remove(evicted_path)
+        else:
+            # Không vào top-k — xoá ngay để tiết kiệm disk
+            if os.path.exists(ckpt_path):
+                os.remove(ckpt_path)
+
+        history["top_k_epochs"] = sorted([e for _, e, _ in top_k_heap], reverse=True)
         save_json(history, os.path.join(results_dir, "training_history.json"))
 
+        # Lưu danh sách top-k paths để ensemble dùng
+        top_k_info = [{"epoch": e, "combined_f1": f, "path": p}
+                      for f, e, p in sorted(top_k_heap, reverse=True)]
+        save_json(top_k_info, os.path.join(save_dir, "top_k_checkpoints.json"))
 
         if patience >= config["early_stop_patience"]:
             print(
                 f"\nEarly stopping tại epoch {epoch}. "
                 f"Best: epoch={history['best_epoch']}, "
-                f"dev_loss={best_loss:.4f}, Combined F1={history['best_combined_f1']:.4f}"
+                f"Combined F1={best_combined:.4f}"
             )
             break
 
     print(
         f"\nTraining xong. "
-        f"Best dev_loss={best_loss:.4f}, Combined F1={history['best_combined_f1']:.4f}"
-        f" @ epoch {history['best_epoch']}"
+        f"Best Combined F1={best_combined:.4f} @ epoch {history['best_epoch']}"
     )
     return history
