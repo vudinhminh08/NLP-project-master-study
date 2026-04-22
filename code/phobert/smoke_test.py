@@ -80,10 +80,10 @@ def t_import_constants():
     )
     assert len(ASPECT_COLUMNS) == 34
     assert TRAIN_CONFIG["batch_size"] == 16
-    assert TRAIN_CONFIG["learning_rate"] == 2e-5
+    assert TRAIN_CONFIG["learning_rate"] == 1e-4
     assert TRAIN_CONFIG["optimizer"] == "AdamW"
     assert TRAIN_CONFIG["scheduler"] == "cosine_warmup"
-    assert TRAIN_CONFIG["selection_metric"] == "combined_f1"
+    assert TRAIN_CONFIG["selection_metric"] == "dev_loss"
     assert ZERO_TRAIN_ASPECTS == ["ROOM_AMENITIES#PRICES"]
 
 def t_import_helpers():
