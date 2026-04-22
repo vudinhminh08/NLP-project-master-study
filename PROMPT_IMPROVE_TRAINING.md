@@ -91,18 +91,19 @@ Notebook chạy các run chính:
    - max_epochs: `20`
    - early_stop_patience: `7`
 
-3. `v3_cls_split_lr2e5`
+3. Optional ablation: `v3_cls_split_lr2e5`
    - encoder: `cls_only`
    - lr: `2e-5`
    - max_epochs: `40`
    - early_stop_patience: `10`
+   - chỉ chạy nếu còn GPU time để chứng minh lr thấp không phù hợp; không dùng làm run chính
 
 Optional:
 - `v3_cls_attention_lr1e4` với `use_attention_pooling=True`.
 
 Notebook phải:
 - clone/pull branch `feature/improve-training-v3-explainable`
-- chạy các run trên
+- chạy hai run chính `lr=1e-4` trước
 - vẽ learning curve
 - in comparison table
 - chọn primary result tự động
