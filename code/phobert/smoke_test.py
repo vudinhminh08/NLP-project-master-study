@@ -79,10 +79,11 @@ def t_import_constants():
         PHOBERT_MODEL_NAME,
     )
     assert len(ASPECT_COLUMNS) == 34
-    assert TRAIN_CONFIG["batch_size"] == 16
+    assert TRAIN_CONFIG["batch_size"] == 8
     assert TRAIN_CONFIG["learning_rate"] == 1e-4
-    assert TRAIN_CONFIG["optimizer"] == "Adam"
+    assert TRAIN_CONFIG["optimizer"] == "AdamW"
     assert TRAIN_CONFIG["scheduler"] == "cosine_warmup"
+    assert TRAIN_CONFIG["use_split_loss"] is True
     assert ZERO_TRAIN_ASPECTS == ["ROOM_AMENITIES#PRICES"]
 
 def t_import_helpers():
@@ -101,7 +102,12 @@ def t_import_train():
     from train import load_class_weights, run_epoch, train
 
 def t_import_predict():
-    from predict import load_best_model, predict_and_evaluate, generate_summary_report
+    from predict import (
+        load_best_model,
+        predict_and_evaluate,
+        generate_summary_report,
+        tune_presence_threshold,
+    )
 
 def t_import_run():
     import run_experiment
@@ -197,9 +203,11 @@ def t_model_concat4_forward():
     ids   = torch.randint(0, 1000, (BATCH, SEQ))
     mask  = torch.ones(BATCH, SEQ, dtype=torch.long)
     out   = model(ids, mask)
-    assert "loss" in out and "logits" in out and "preds" in out
+    assert "loss" in out and "logits" in out and "presence_logits" in out and "preds" in out
     assert out["loss"] is None
     assert out["preds"].shape == (BATCH, 34)
+    assert len(out["presence_logits"]) == 34
+    assert out["presence_logits"][0].shape == (BATCH,)
 
 def t_model_cls_only_forward():
     model = make_mock_model("cls_only")
@@ -208,6 +216,7 @@ def t_model_cls_only_forward():
     mask = torch.ones(BATCH, SEQ, dtype=torch.long)
     out  = model(ids, mask)
     assert out["preds"].shape == (BATCH, 34)
+    assert len(out["presence_logits"]) == 34
 
 def t_weighted_loss_computed():
     from train import load_class_weights
@@ -224,6 +233,17 @@ def t_weighted_loss_computed():
     assert not torch.isnan(loss), f"Loss là NaN! Lỗi nghiêm trọng."
     assert not torch.isinf(loss), f"Loss là Inf! Lỗi nghiêm trọng."
     assert loss.item() > 0, f"Loss = {loss.item()} không hợp lý"
+
+def t_split_loss_outputs_presence_logits():
+    model = make_mock_model("cls_only")
+    ids = torch.randint(0, 1000, (BATCH, SEQ))
+    mask = torch.ones(BATCH, SEQ, dtype=torch.long)
+    labels = torch.randint(0, 4, (BATCH, 34))
+    out = model(ids, mask, labels=labels, class_weights=None)
+    assert model.use_split_loss is True
+    assert len(out["logits"]) == 34
+    assert len(out["presence_logits"]) == 34
+    assert out["loss"] is not None
 
 def t_unweighted_loss_fallback():
     model  = make_mock_model("concat_4_layers")
@@ -270,7 +290,8 @@ def t_weighted_vs_unweighted_loss_differ():
     )
 
 for fn in [t_model_concat4_forward, t_model_cls_only_forward,
-           t_weighted_loss_computed, t_unweighted_loss_fallback,
+           t_weighted_loss_computed, t_split_loss_outputs_presence_logits,
+           t_unweighted_loss_fallback,
            t_gradient_flows, t_weighted_vs_unweighted_loss_differ]:
     check(fn.__name__.removeprefix("t_"), fn)
 
@@ -416,8 +437,36 @@ def t_eval_absent_majority():
     assert m["macro_acd_f1"] < 0.5, \
         f"All-absent pred: ACD F1 phải thấp, got {m['macro_acd_f1']:.3f}"
 
+def t_threshold_tuning_smoke():
+    from torch.utils.data import DataLoader
+    from predict import tune_presence_threshold
+
+    class DictDataset(torch.utils.data.Dataset):
+        def __len__(self):
+            return 6
+        def __getitem__(self, i):
+            return {
+                "input_ids": torch.randint(0, 1000, (64,)),
+                "attention_mask": torch.ones(64, dtype=torch.long),
+                "labels": torch.randint(0, 4, (34,)),
+                "review_text": "x",
+            }
+
+    model = make_mock_model("cls_only")
+    loader = DataLoader(DictDataset(), batch_size=3)
+    info, score = tune_presence_threshold(
+        model,
+        loader,
+        torch.device("cpu"),
+        thresholds=[0.4, 0.5],
+        mode="per_aspect",
+    )
+    assert info is not None
+    assert len(info["thresholds"]) == 34
+    assert score >= 0
+
 for fn in [t_eval_perfect_prediction, t_eval_zero_train_aspects_excluded,
-           t_eval_absent_majority]:
+           t_eval_absent_majority, t_threshold_tuning_smoke]:
     check(fn.__name__.removeprefix("t_"), fn)
 
 

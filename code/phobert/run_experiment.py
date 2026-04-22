@@ -8,14 +8,19 @@ from typing import Optional
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "data_processing"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-from utils.constants import TRAIN_CONFIG, PHOBERT_MODEL_NAME
+from utils.constants import TRAIN_CONFIG, PHOBERT_MODEL_NAME, ASPECT_COLUMNS, RARE_ASPECTS
 from utils.helpers import set_seed, get_device, load_json
 from step2_dataloader import create_dataloaders
 from transformers import AutoTokenizer
 
 from model import ABSAPhoBERT
 from train import train, load_class_weights
-from predict import load_best_model, predict_and_evaluate, generate_summary_report
+from predict import (
+    load_best_model,
+    predict_and_evaluate,
+    generate_summary_report,
+    tune_presence_threshold,
+)
 from ensemble import ensemble_from_top_k_file
 
 
@@ -26,7 +31,10 @@ def _format_lr_tag(lr: float) -> str:
     return tag.replace("e-0", "e").replace("e+0", "e").replace("e+", "e")
 
 
-def build_run_tag(encoder_option: str, lr: float) -> str:
+def build_run_tag(encoder_option: str, lr: float, run_name: str = None) -> str:
+    if run_name:
+        clean = run_name.strip().strip("_").replace("/", "_")
+        return f"_{clean}"
     parts = []
     if encoder_option != "concat_4_layers":
         parts.append(encoder_option)
@@ -63,6 +71,8 @@ def main(
     lr: Optional[float] = None,
     max_epochs: Optional[int] = None,
     early_stop_patience: Optional[int] = None,
+    run_name: Optional[str] = None,
+    config_overrides: Optional[dict] = None,
     overwrite: bool = False,
 ) -> dict:
 
@@ -87,9 +97,11 @@ def main(
         config["max_epochs"] = max_epochs
     if early_stop_patience is not None:
         config["early_stop_patience"] = early_stop_patience
+    if config_overrides:
+        config.update(config_overrides)
 
     max_seq_len = config["max_seq_len"]
-    run_tag     = build_run_tag(encoder_option, config["learning_rate"])
+    run_tag     = build_run_tag(encoder_option, config["learning_rate"], run_name=run_name)
     save_dir    = f"outputs/models{run_tag}"
     results_dir = f"outputs/results{run_tag}"
     ensure_output_available(save_dir, results_dir, overwrite=overwrite)
@@ -121,6 +133,9 @@ def main(
         max_len=max_seq_len,
         num_workers=2,
         use_preprocessed=True,
+        use_rare_oversampling=bool(config.get("use_rare_oversampling", False)),
+        rare_oversample_alpha=float(config.get("rare_oversample_alpha", 2.0)),
+        rare_oversample_power=float(config.get("rare_oversample_power", 1.0)),
     )
 
     if train_loader is None or dev_loader is None:
@@ -135,14 +150,31 @@ def main(
         "outputs/eda/class_weights.json",
         weight_clip=config["weight_clip"],
         device=torch.device("cpu"),
+        rare_mult=float(config.get("rare_aspect_mult", 1.0)),
     )
 
 
     print(f"\n[Model] Building ABSAPhoBERT ({encoder_option})...")
+    rare_aspect_ids = [
+        i for i, aspect in enumerate(ASPECT_COLUMNS)
+        if aspect in RARE_ASPECTS
+    ]
     model = ABSAPhoBERT(
         model_name=PHOBERT_MODEL_NAME,
         dropout=config["dropout"],
         encoder_option=encoder_option,
+        focal_gamma=float(config.get("focal_gamma", 2.0)),
+        attn_dim=int(config.get("attn_dim", 128)),
+        use_attention_pooling=bool(config.get("use_attention_pooling", False)),
+        use_split_loss=bool(config.get("use_split_loss", True)),
+        lambda_presence=float(config.get("lambda_presence", 1.0)),
+        lambda_sentiment=float(config.get("lambda_sentiment", 1.0)),
+        presence_threshold=float(config.get("presence_threshold", 0.5)),
+        rare_aspect_ids=rare_aspect_ids,
+        rare_presence_pos_mult=float(config.get("rare_presence_pos_mult", 1.0)),
+        rare_sentiment_mult=float(config.get("rare_sentiment_mult", 1.0)),
+        use_gradient_checkpointing=bool(config.get("use_gradient_checkpointing", False)),
+        mc_dropout_passes=int(config.get("mc_dropout_passes", 3)),
     ).to(device)
 
 
@@ -156,6 +188,17 @@ def main(
 
 
     model = load_best_model(f"{save_dir}/best_model.pt", model, device)
+
+    threshold_info = None
+    if config.get("tune_presence_threshold", False):
+        threshold_info, _ = tune_presence_threshold(
+            model,
+            dev_loader,
+            device,
+            thresholds=config.get("presence_threshold_grid"),
+            mode=config.get("presence_threshold_mode", "per_aspect_combined"),
+            save_path=f"{results_dir}/presence_thresholds.json",
+        )
 
     dev_metrics, _, _ = predict_and_evaluate(
         model, dev_loader, class_weights, device,
@@ -183,6 +226,7 @@ def main(
     generate_summary_report(
         history, dev_metrics, test_metrics, config,
         ensemble_metrics=ensemble_metrics,
+        threshold_info=threshold_info,
         save_path=f"{results_dir}/phobert_summary.md",
     )
 
@@ -233,6 +277,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--lr", type=float, default=None, help="Override learning rate")
     parser.add_argument("--max-epochs", type=int, default=None, help="Override max epochs")
+    parser.add_argument("--run-name", default=None, help="Explicit output run tag")
     parser.add_argument(
         "--early-stop-patience",
         type=int,
@@ -251,5 +296,6 @@ if __name__ == "__main__":
         lr=args.lr,
         max_epochs=args.max_epochs,
         early_stop_patience=args.early_stop_patience,
+        run_name=args.run_name,
         overwrite=args.overwrite,
     )

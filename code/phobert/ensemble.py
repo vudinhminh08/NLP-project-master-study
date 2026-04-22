@@ -30,14 +30,23 @@ def ensemble_predict_and_evaluate(
         raise ValueError("checkpoint_paths must contain at least one checkpoint")
 
     all_checkpoint_probs = []
+    all_checkpoint_presence_probs = []
+    split_mode = bool(getattr(model, "use_split_loss", False))
+    tuned_thresholds = None
+    if split_mode and hasattr(model, "aspect_presence_thresholds"):
+        tuned_thresholds = model.aspect_presence_thresholds.detach().clone()
     y_true = None
 
     for checkpoint_path in checkpoint_paths:
         ckpt = torch.load(checkpoint_path, map_location=device)
         model.load_state_dict(ckpt["model_state_dict"])
         model.to(device).eval()
+        if tuned_thresholds is not None:
+            with torch.no_grad():
+                model.aspect_presence_thresholds.copy_(tuned_thresholds.to(device))
 
         probs_batches = []
+        presence_batches = []
         labels_batches = []
 
         with torch.no_grad():
@@ -47,11 +56,20 @@ def ensemble_predict_and_evaluate(
 
                 out = model(input_ids, attention_mask)
                 logits = torch.stack(out["logits"], dim=1)
-                probs = torch.softmax(logits, dim=-1)
-                probs_batches.append(probs.cpu())
+                if split_mode and "presence_logits" in out:
+                    sent_probs = torch.softmax(logits[:, :, 1:], dim=-1)
+                    presence_logits = torch.stack(out["presence_logits"], dim=1)
+                    presence_probs = torch.sigmoid(presence_logits)
+                    probs_batches.append(sent_probs.cpu())
+                    presence_batches.append(presence_probs.cpu())
+                else:
+                    probs = torch.softmax(logits, dim=-1)
+                    probs_batches.append(probs.cpu())
                 labels_batches.append(batch["labels"].cpu())
 
         all_checkpoint_probs.append(torch.cat(probs_batches, dim=0))
+        if split_mode:
+            all_checkpoint_presence_probs.append(torch.cat(presence_batches, dim=0))
         if y_true is None:
             y_true = torch.cat(labels_batches, dim=0).numpy()
 
@@ -61,7 +79,18 @@ def ensemble_predict_and_evaluate(
         )
 
     avg_probs = torch.stack(all_checkpoint_probs, dim=0).mean(dim=0)
-    y_pred = avg_probs.argmax(dim=-1).numpy()
+    if split_mode:
+        avg_presence_probs = torch.stack(all_checkpoint_presence_probs, dim=0).mean(dim=0)
+        thresholds = model.aspect_presence_thresholds.detach().cpu().view(1, -1)
+        present_pred = avg_presence_probs >= thresholds
+        sent_pred = avg_probs.argmax(dim=-1) + 1
+        y_pred = torch.where(
+            present_pred,
+            sent_pred,
+            torch.zeros_like(sent_pred),
+        ).numpy()
+    else:
+        y_pred = avg_probs.argmax(dim=-1).numpy()
 
     metrics = evaluate_predictions(
         y_true,
