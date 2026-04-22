@@ -119,7 +119,7 @@ TRAIN_CONFIG = {
     "optimizer":               "AdamW",
     "scheduler":               "cosine_warmup",
     "seed":                    42,
-    "max_seq_len":             384,
+    "max_seq_len":             256,
     "weight_clip":             15.0,
     "encoder_option":          "concat_4_layers",
     "max_grad_norm":           1.0,
