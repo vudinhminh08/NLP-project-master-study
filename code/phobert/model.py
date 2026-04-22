@@ -113,10 +113,9 @@ class ABSAPhoBERT(nn.Module):
 
         if self.training:
             N_DROPOUT = 5
-            all_logits = []
             for _ in range(N_DROPOUT):
-                all_logits.append([clf(dropped) for clf in self.classifiers])
-                shared = torch.gelu(self.shared_layer(cls_repr))
+                dropped = self.dropout(cls_repr)
+                shared = torch.gelu(self.shared_layer(dropped))
                 shared = self.dropout(shared)
 
                 if self.num_entities > 0:
