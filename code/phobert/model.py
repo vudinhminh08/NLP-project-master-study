@@ -24,6 +24,8 @@ class ABSAPhoBERT(nn.Module):
         rare_aspect_ids: Optional[list] = None,
         rare_presence_pos_mult: float = 1.0,
         rare_sentiment_mult: float = 1.0,
+        use_gradient_checkpointing: bool = False,
+        mc_dropout_passes: int = 5,
     ) -> None:
         super().__init__()
         self.encoder_option = encoder_option
@@ -38,6 +40,7 @@ class ABSAPhoBERT(nn.Module):
         self.rare_aspect_ids = set(rare_aspect_ids or [])
         self.rare_presence_pos_mult = float(rare_presence_pos_mult)
         self.rare_sentiment_mult = float(rare_sentiment_mult)
+        self.mc_dropout_passes = int(max(1, mc_dropout_passes))
         self.register_buffer(
             "aspect_presence_thresholds",
             torch.full((self.num_aspects,), float(presence_threshold), dtype=torch.float32),
@@ -48,6 +51,8 @@ class ABSAPhoBERT(nn.Module):
             model_name,
             output_hidden_states=True,
         )
+        if use_gradient_checkpointing and hasattr(self.phobert, "gradient_checkpointing_enable"):
+            self.phobert.gradient_checkpointing_enable()
 
 
         self.hidden_size = 768 * 4 if encoder_option == "concat_4_layers" else 768
@@ -113,7 +118,7 @@ class ABSAPhoBERT(nn.Module):
 
 
         if self.training:
-            N_DROPOUT = 5
+            N_DROPOUT = self.mc_dropout_passes
             all_logits = []
             all_presence = []
             for _ in range(N_DROPOUT):

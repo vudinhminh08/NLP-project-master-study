@@ -107,6 +107,8 @@ def main(encoder_option: str = None, use_amp: bool = True) -> dict:
         rare_aspect_ids=rare_aspect_ids,
         rare_presence_pos_mult=float(config.get("rare_presence_pos_mult", 1.0)),
         rare_sentiment_mult=float(config.get("rare_sentiment_mult", 1.0)),
+        use_gradient_checkpointing=bool(config.get("use_gradient_checkpointing", False)),
+        mc_dropout_passes=int(config.get("mc_dropout_passes", 5)),
     ).to(device)
 
 

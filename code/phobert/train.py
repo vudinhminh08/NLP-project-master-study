@@ -208,7 +208,7 @@ def run_epoch(
 
     with ctx:
         if is_train:
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
 
         for step, batch in enumerate(tqdm(dataloader, desc=desc, leave=False)):
             input_ids      = batch["input_ids"].to(device)
@@ -256,7 +256,7 @@ def run_epoch(
                         optimizer.step()
 
                     scheduler.step()
-                    optimizer.zero_grad()
+                    optimizer.zero_grad(set_to_none=True)
 
                     ema = getattr(model, "_ema", None)
                     if ema is not None:
