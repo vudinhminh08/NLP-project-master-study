@@ -31,7 +31,7 @@ def get_optimiser_grouped_params(model, config: dict) -> list:
     weight_decay = config.get("weight_decay", 0.01)
     layer_decay = config.get("lr_layer_decay", 0.95)
 
-    no_decay = ("bias", "LayerNorm.weight", "LayerNorm. bias")
+    no_decay = ("bias", "LayerNorm.weight", "LayerNorm.bias")
     embed_params_decay = []
     embed_params_no_decay = []
     for n, p in model.phobert.embeddings.named_parameters():
@@ -44,16 +44,14 @@ def get_optimiser_grouped_params(model, config: dict) -> list:
     num_layers = len(model.phobert.encoder.layer)
     embed_lr = encoder_lr * (layer_decay**num_layers)
 
-    groups = (
-        [
-            {
-                "params": embed_params_decay,
-                "lr": embed_lr,
-                "weight_decay": weight_decay,
-            },
-            {"params": embed_params_no_decay, "lr": embed_lr, "weight_decay": 0.0},
-        ],
-    )
+    groups = [
+        {
+            "params": embed_params_decay,
+            "lr": embed_lr,
+            "weight_decay": weight_decay,
+        },
+        {"params": embed_params_no_decay, "lr": embed_lr, "weight_decay": 0.0},
+    ]
     for i, layer in enumerate(model.phobert.encoder.layer):
         lr_i = encoder_lr * (layer_decay ** (num_layers - 1 - i))
         layer_decay_params = []
@@ -73,7 +71,7 @@ def get_optimiser_grouped_params(model, config: dict) -> list:
         )
     clf_decay = []
     clf_no_decay = []
-    for n, p in model.classifiers.named_parameters:
+    for n, p in model.classifiers.named_parameters():
         if not p.requires_grad:
             continue
         if any(nd in n for nd in no_decay):
