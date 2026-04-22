@@ -33,7 +33,7 @@ class ABSAPhoBERT(nn.Module):
         self.hidden_size = 768 * 4 if encoder_option == "concat_4_layers" else 768
         self.dropout     = nn.Dropout(dropout)
 
-        shared_dim = 256
+        shared_dim = 384
         self.shared_layer = nn.Sequential(
             nn.Linear(self.hidden_size, shared_dim),
             nn.ReLU(),
