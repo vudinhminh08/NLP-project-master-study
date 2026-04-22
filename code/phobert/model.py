@@ -35,7 +35,13 @@ class ABSAPhoBERT(nn.Module):
 
 
         self.classifiers = nn.ModuleList([
-            nn.Linear(self.hidden_size, num_labels)
+            nn.Sequential(
+                nn.Linear(self.hidden_size, self.hidden_size),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.LayerNorm(self.hidden_size),
+                nn.Linear(self.hidden_size, num_labels),
+            )
             for _ in range(num_aspects)
         ])
 
