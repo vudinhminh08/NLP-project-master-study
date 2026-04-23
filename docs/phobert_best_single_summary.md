@@ -4,6 +4,12 @@
 version 3. Không dùng ensemble. Kết quả tốt nhất hiện tại là `cls_only` với
 Combined F1 `0.6218`.
 
+Checkpoint chính:
+
+```text
+outputs/results/phobert_results_version3/models_cls_only/best_model.pt
+```
+
 ## Kết quả chính
 
 | Model | Dev ACD F1 | Dev SPC F1 | Dev Combined | Test ACD F1 | Test SPC F1 | Test Combined |
