@@ -1,0 +1,318 @@
+{
+  "per_aspect": {
+    "FACILITIES#CLEANLINESS": {
+      "acd_f1": 0.14285714285714285,
+      "acd_precision": 0.1111111111111111,
+      "acd_recall": 0.2,
+      "spc_f1": 0.0,
+      "spc_precision": 0.0,
+      "spc_recall": 0.0,
+      "support": 5
+    },
+    "FACILITIES#COMFORT": {
+      "acd_f1": 0.0,
+      "acd_precision": 0.0,
+      "acd_recall": 0.0,
+      "spc_f1": 0.0,
+      "spc_precision": 0.0,
+      "spc_recall": 0.0,
+      "support": 26
+    },
+    "FACILITIES#DESIGN&FEATURES": {
+      "acd_f1": 0.36363636363636365,
+      "acd_precision": 0.5294117647058824,
+      "acd_recall": 0.27692307692307694,
+      "spc_f1": 0.19999999999999998,
+      "spc_precision": 0.43333333333333335,
+      "spc_recall": 0.13078149920255183,
+      "support": 65
+    },
+    "FACILITIES#GENERAL": {
+      "acd_f1": 0.35714285714285715,
+      "acd_precision": 0.7142857142857143,
+      "acd_recall": 0.23809523809523808,
+      "spc_f1": 0.1388888888888889,
+      "spc_precision": 0.3333333333333333,
+      "spc_recall": 0.08771929824561403,
+      "support": 21
+    },
+    "FACILITIES#MISCELLANEOUS": {
+      "acd_f1": 0.0,
+      "acd_precision": 0.0,
+      "acd_recall": 0.0,
+      "spc_f1": 0.0,
+      "spc_precision": 0.0,
+      "spc_recall": 0.0,
+      "support": 8
+    },
+    "FACILITIES#PRICES": {
+      "acd_f1": 0.0,
+      "acd_precision": 0.0,
+      "acd_recall": 0.0,
+      "spc_f1": 0.0,
+      "spc_precision": 0.0,
+      "spc_recall": 0.0,
+      "support": 13
+    },
+    "FACILITIES#QUALITY": {
+      "acd_f1": 0.1016949152542373,
+      "acd_precision": 0.375,
+      "acd_recall": 0.058823529411764705,
+      "spc_f1": 0.023809523809523808,
+      "spc_precision": 0.1111111111111111,
+      "spc_recall": 0.013333333333333334,
+      "support": 51
+    },
+    "FOOD&DRINKS#MISCELLANEOUS": {
+      "acd_f1": 0.0,
+      "acd_precision": 0.0,
+      "acd_recall": 0.0,
+      "spc_f1": 0.0,
+      "spc_precision": 0.0,
+      "spc_recall": 0.0,
+      "support": 3
+    },
+    "FOOD&DRINKS#PRICES": {
+      "acd_f1": 0.0,
+      "acd_precision": 0.0,
+      "acd_recall": 0.0,
+      "spc_f1": 0.0,
+      "spc_precision": 0.0,
+      "spc_recall": 0.0,
+      "support": 9
+    },
+    "FOOD&DRINKS#QUALITY": {
+      "acd_f1": 0.7333333333333333,
+      "acd_precision": 0.6432748538011696,
+      "acd_recall": 0.8527131782945736,
+      "spc_f1": 0.4570785251899803,
+      "spc_precision": 0.4648158858685174,
+      "spc_recall": 0.4497441520467836,
+      "support": 129
+    },
+    "FOOD&DRINKS#STYLE&OPTIONS": {
+      "acd_f1": 0.6169491525423729,
+      "acd_precision": 0.5321637426900585,
+      "acd_recall": 0.7338709677419355,
+      "spc_f1": 0.44877344877344877,
+      "spc_precision": 0.5141038871689027,
+      "spc_recall": 0.3982428940568476,
+      "support": 124
+    },
+    "HOTEL#CLEANLINESS": {
+      "acd_f1": 0.7272727272727273,
+      "acd_precision": 0.6436781609195402,
+      "acd_recall": 0.835820895522388,
+      "spc_f1": 0.31884057971014496,
+      "spc_precision": 0.3273809523809524,
+      "spc_recall": 0.3107344632768361,
+      "support": 67
+    },
+    "HOTEL#COMFORT": {
+      "acd_f1": 0.41350210970464135,
+      "acd_precision": 0.34265734265734266,
+      "acd_recall": 0.5212765957446809,
+      "spc_f1": 0.2911636045494313,
+      "spc_precision": 0.5,
+      "spc_recall": 0.221474358974359,
+      "support": 94
+    },
+    "HOTEL#DESIGN&FEATURES": {
+      "acd_f1": 0.3791469194312796,
+      "acd_precision": 0.31746031746031744,
+      "acd_recall": 0.47058823529411764,
+      "spc_f1": 0.27499999999999997,
+      "spc_precision": 0.47368421052631576,
+      "spc_recall": 0.19932432432432434,
+      "support": 85
+    },
+    "HOTEL#GENERAL": {
+      "acd_f1": 0.40298507462686567,
+      "acd_precision": 0.46153846153846156,
+      "acd_recall": 0.3576158940397351,
+      "spc_f1": 0.26942909760589323,
+      "spc_precision": 0.4583333333333333,
+      "spc_recall": 0.1969135802469136,
+      "support": 151
+    },
+    "HOTEL#MISCELLANEOUS": {
+      "acd_f1": 0.0,
+      "acd_precision": 0.0,
+      "acd_recall": 0.0,
+      "spc_f1": 0.0,
+      "spc_precision": 0.0,
+      "spc_recall": 0.0,
+      "support": 68
+    },
+    "HOTEL#PRICES": {
+      "acd_f1": 0.6938775510204082,
+      "acd_precision": 0.6710526315789473,
+      "acd_recall": 0.7183098591549296,
+      "spc_f1": 0.26548672566371684,
+      "spc_precision": 0.3,
+      "spc_recall": 0.2380952380952381,
+      "support": 71
+    },
+    "HOTEL#QUALITY": {
+      "acd_f1": 0.2777777777777778,
+      "acd_precision": 0.21739130434782608,
+      "acd_recall": 0.38461538461538464,
+      "spc_f1": 0.1818181818181818,
+      "spc_precision": 0.25,
+      "spc_recall": 0.14285714285714285,
+      "support": 13
+    },
+    "LOCATION#GENERAL": {
+      "acd_f1": 0.5777777777777777,
+      "acd_precision": 0.4890282131661442,
+      "acd_recall": 0.7058823529411765,
+      "spc_f1": 0.33257345491388046,
+      "spc_precision": 0.3782973621103118,
+      "spc_recall": 0.29912280701754385,
+      "support": 221
+    },
+    "ROOMS#CLEANLINESS": {
+      "acd_f1": 0.8053097345132744,
+      "acd_precision": 0.7222222222222222,
+      "acd_recall": 0.91,
+      "spc_f1": 0.5246675246675246,
+      "spc_precision": 0.6062541583499668,
+      "spc_recall": 0.4797709355942288,
+      "support": 200
+    },
+    "ROOMS#COMFORT": {
+      "acd_f1": 0.49429657794676807,
+      "acd_precision": 0.38235294117647056,
+      "acd_recall": 0.6989247311827957,
+      "spc_f1": 0.37592592592592594,
+      "spc_precision": 0.6166666666666667,
+      "spc_recall": 0.3370967741935484,
+      "support": 93
+    },
+    "ROOMS#DESIGN&FEATURES": {
+      "acd_f1": 0.667910447761194,
+      "acd_precision": 0.5295857988165681,
+      "acd_recall": 0.9040404040404041,
+      "spc_f1": 0.4595238095238095,
+      "spc_precision": 0.45604015230183453,
+      "spc_recall": 0.46339269652815257,
+      "support": 198
+    },
+    "ROOMS#GENERAL": {
+      "acd_f1": 0.26373626373626374,
+      "acd_precision": 0.35294117647058826,
+      "acd_recall": 0.21052631578947367,
+      "spc_f1": 0.12345679012345678,
+      "spc_precision": 0.2777777777777778,
+      "spc_recall": 0.07936507936507936,
+      "support": 57
+    },
+    "ROOMS#MISCELLANEOUS": {
+      "acd_f1": 0.0,
+      "acd_precision": 0.0,
+      "acd_recall": 0.0,
+      "spc_f1": 0.0,
+      "spc_precision": 0.0,
+      "spc_recall": 0.0,
+      "support": 4
+    },
+    "ROOMS#PRICES": {
+      "acd_f1": 0.36363636363636365,
+      "acd_precision": 0.32432432432432434,
+      "acd_recall": 0.41379310344827586,
+      "spc_f1": 0.2817204301075269,
+      "spc_precision": 0.5,
+      "spc_recall": 0.20039682539682538,
+      "support": 29
+    },
+    "ROOMS#QUALITY": {
+      "acd_f1": 0.23076923076923078,
+      "acd_precision": 0.1875,
+      "acd_recall": 0.3,
+      "spc_f1": 0.35555555555555557,
+      "spc_precision": 0.6666666666666666,
+      "spc_recall": 0.25,
+      "support": 10
+    },
+    "ROOM_AMENITIES#CLEANLINESS": {
+      "acd_f1": 0.25,
+      "acd_precision": 0.7,
+      "acd_recall": 0.15217391304347827,
+      "spc_f1": 0.13227513227513227,
+      "spc_precision": 0.6111111111111112,
+      "spc_recall": 0.077079107505071,
+      "support": 46
+    },
+    "ROOM_AMENITIES#COMFORT": {
+      "acd_f1": 0.17721518987341772,
+      "acd_precision": 0.6363636363636364,
+      "acd_recall": 0.10294117647058823,
+      "spc_f1": 0.06535947712418301,
+      "spc_precision": 0.2380952380952381,
+      "spc_recall": 0.03787878787878788,
+      "support": 68
+    },
+    "ROOM_AMENITIES#DESIGN&FEATURES": {
+      "acd_f1": 0.4696969696969697,
+      "acd_precision": 0.5166666666666667,
+      "acd_recall": 0.4305555555555556,
+      "spc_f1": 0.3529686769518467,
+      "spc_precision": 0.5881737310308739,
+      "spc_recall": 0.2526205450733752,
+      "support": 144
+    },
+    "ROOM_AMENITIES#GENERAL": {
+      "acd_f1": 0.6268656716417911,
+      "acd_precision": 0.6,
+      "acd_recall": 0.65625,
+      "spc_f1": 0.2692307692307692,
+      "spc_precision": 0.3333333333333333,
+      "spc_recall": 0.22580645161290322,
+      "support": 32
+    },
+    "ROOM_AMENITIES#MISCELLANEOUS": {
+      "acd_f1": 0.0,
+      "acd_precision": 0.0,
+      "acd_recall": 0.0,
+      "spc_f1": 0.0,
+      "spc_precision": 0.0,
+      "spc_recall": 0.0,
+      "support": 3
+    },
+    "ROOM_AMENITIES#PRICES": {
+      "acd_f1": 0.0,
+      "acd_precision": 0.0,
+      "acd_recall": 0.0,
+      "spc_f1": 0.0,
+      "spc_precision": 0.0,
+      "spc_recall": 0.0,
+      "support": 1
+    },
+    "ROOM_AMENITIES#QUALITY": {
+      "acd_f1": 0.21212121212121213,
+      "acd_precision": 0.1917808219178082,
+      "acd_recall": 0.23728813559322035,
+      "spc_f1": 0.13043478260869565,
+      "spc_precision": 0.2142857142857143,
+      "spc_recall": 0.09375,
+      "support": 59
+    },
+    "SERVICE#GENERAL": {
+      "acd_f1": 0.703601108033241,
+      "acd_precision": 0.8300653594771242,
+      "acd_recall": 0.6105769230769231,
+      "spc_f1": 0.37065191205049547,
+      "spc_precision": 0.756006006006006,
+      "spc_recall": 0.31212762086687584,
+      "support": 416
+    }
+  },
+  "macro_acd_f1": 0.3349428021850761,
+  "macro_spc_f1": 0.20135250960812157,
+  "macro_combined_f1": 0.26814765589659884,
+  "weighted_acd_f1": 0.5236078243877519,
+  "excluded_aspects": [
+    "ROOM_AMENITIES#PRICES"
+  ],
+  "num_aspects": 34
+}

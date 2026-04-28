@@ -1,0 +1,42 @@
+{
+  "label_consistency": {
+    "n_samples": 200,
+    "n_parse_fail": 81,
+    "total_llm_items_generated": 399,
+    "total_items_valid": 399,
+    "total_dropped_spurious": 0,
+    "total_sentiment_wrong": 0,
+    "aspect_preservation_rate": 100.0,
+    "sentiment_consistency_rate": 100.0,
+    "overall_label_accuracy": 100.0
+  },
+  "bertscore_groundedness": {
+    "n_samples": 200,
+    "n_evidence_items": 377,
+    "model_type": "vinai/phobert-base-v2",
+    "mean_bertscore_precision": 0.7709,
+    "mean_bertscore_recall": 0.4396,
+    "mean_bertscore_f1": 0.5535,
+    "citation": "Zhang et al. 2020 — BERTScore: Evaluating Text Generation with BERT"
+  },
+  "human_rubric": {
+    "n_samples": 30,
+    "n_with_recommended_action": 18,
+    "annotator": "Thành viên nhóm (manual annotation)",
+    "faithfulness": {
+      "mean": 1.867,
+      "stdev": 0.346,
+      "score_2_pct": 86.7,
+      "score_1_pct": 13.3,
+      "score_0_pct": 0.0
+    },
+    "usefulness": {
+      "mean": 1.667,
+      "stdev": 0.485,
+      "score_2_pct": 66.7,
+      "score_1_pct": 33.3,
+      "score_0_pct": 0.0
+    },
+    "verdict": "Không có hallucination (score=0: 0/30). 86.7% hoàn toàn trung thực. Không có recommended_action nào hoàn toàn sai hướng."
+  }
+}

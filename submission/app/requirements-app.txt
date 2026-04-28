@@ -1,0 +1,10 @@
+streamlit>=1.32.0
+torch>=2.0.0
+transformers>=4.38.0
+pandas>=2.0.0
+numpy>=1.24.0
+openai>=1.14.0
+py_vncorenlp>=0.1.4
+tqdm>=4.65.0
+openpyxl>=3.1.0
+xlrd>=2.0.1

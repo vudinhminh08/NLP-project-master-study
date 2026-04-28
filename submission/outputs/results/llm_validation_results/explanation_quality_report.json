@@ -1,0 +1,8 @@
+{
+  "num_records": 200,
+  "parse_fails": 81,
+  "parse_fail_rate": 0.405,
+  "invalid_evidence": 10,
+  "sentiment_restored": 0,
+  "skipped_empty_predictions": 0
+}
